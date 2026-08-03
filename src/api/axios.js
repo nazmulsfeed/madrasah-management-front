@@ -1,7 +1,20 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  const pathname = window.location.pathname;
+  // If hosted under cPanel temp subdirectory, route to port 5000 directly
+  if (pathname.includes('/~annurisl')) {
+    return 'http://144.217.68.82:5000/api/v1';
+  }
+  // Default relative API path for local dev proxy and production domain root
+  return '/api/v1';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
