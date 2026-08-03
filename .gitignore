@@ -3,8 +3,8 @@ node_modules/
 **/node_modules/
 
 # Production/Build
-dist/
-**/dist/
+# dist/
+# **/dist/
 build/
 **/build/
 

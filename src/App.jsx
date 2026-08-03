@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import InstallPrompt from './components/InstallPrompt';
 import LoginPage from './pages/auth/LoginPage';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -52,7 +52,7 @@ import ReportsPage from './pages/reports/ReportsPage';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <InstallPrompt />
       <Routes>
         {/* পাবলিক */}
@@ -119,6 +119,6 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
