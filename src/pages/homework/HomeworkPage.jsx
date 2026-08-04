@@ -249,9 +249,12 @@ export default function HomeworkPage() {
     if (!window.confirm('আপনি কি নিশ্চিত যে এই হোমওয়ার্কটি মুছে ফেলতে চান?')) return;
     try {
       await api.delete(`/homework/${id}`);
+      // Immediately remove from state so UI updates instantly
+      setHomeworks(prev => prev.filter(hw => hw._id !== id && hw.id !== id));
       setToast({ type: 'success', message: 'হোমওয়ার্ক সফলভাবে মুছে ফেলা হয়েছে!' });
-      fetchHomeworks();
       fetchFilterOptions();
+      // Also refresh from server to sync pagination/total count
+      fetchHomeworks();
     } catch (err) {
       const errMsg = err.response?.data?.message || 'হোমওয়ার্ক মুছতে সমস্যা হয়েছে';
       setToast({ type: 'error', message: errMsg });
