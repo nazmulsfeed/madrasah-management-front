@@ -2,11 +2,10 @@
   RewriteEngine On
   RewriteBase /
 
-  # Proxy API requests to Node.js backend running on port 5000
-  RewriteRule ^api/(.*) http://127.0.0.1:5000/api/$1 [P,L]
-
   # Route all other requests to index.html (React Router)
   RewriteRule ^index\.html$ - [L]
+  # Exclude /api/ so Passenger Node.js app can handle it
+  RewriteCond %{REQUEST_URI} !^/api
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !-l
