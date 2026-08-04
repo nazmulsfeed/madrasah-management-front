@@ -2,11 +2,8 @@
   RewriteEngine On
   RewriteBase /
 
-  # Redirect /public-homework (without hash) to /#/public-homework for HashRouter
-  RewriteRule ^public-homework$ /#/public-homework [R=301,L]
-
-  # Proxy API requests to Node.js backend running on port 30170
-  RewriteRule ^api/(.*) http://127.0.0.1:30170/api/$1 [P,L]
+  # Proxy API requests to Node.js backend running on port 5000
+  RewriteRule ^api/(.*) http://127.0.0.1:5000/api/$1 [P,L]
 
   # Route all other requests to index.html (React Router)
   RewriteRule ^index\.html$ - [L]
@@ -14,4 +11,16 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !-l
   RewriteRule . /index.html [L]
+</IfModule>
+
+# Fix MIME types for JavaScript and CSS
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType text/css .css
+  AddType image/svg+xml .svg
+</IfModule>
+
+# Enable compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/javascript text/css text/html
 </IfModule>
