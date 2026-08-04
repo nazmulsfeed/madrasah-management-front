@@ -70,19 +70,31 @@ export default function PublicHomeworkPage() {
     }
     setNotifStatus('loading');
     try {
-      const reg = await navigator.serviceWorker.ready;
+      let reg;
+      try {
+        reg = await navigator.serviceWorker.ready;
+      } catch (swErr) {
+        reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+      }
+
       const existingSub = await reg.pushManager.getSubscription();
 
       if (existingSub) {
         // আনসাবস্ক্রাইব করা হচ্ছে
         await existingSub.unsubscribe();
-        await api.post('/push/unsubscribe', { endpoint: existingSub.endpoint });
+        try {
+          await api.post('/push/unsubscribe', { endpoint: existingSub.endpoint });
+        } catch (e) {
+          console.error('[Push] Unsubscribe server call error:', e);
+        }
         setNotifStatus('idle');
       } else {
         // নতুন সাবস্ক্রাইব করা হচ্ছে
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           setNotifStatus('denied');
+          alert('নোটিফিকেশনের অনুমতি দেওয়া হয়নি (Permission Denied)। ব্রাউজারের সেটিংস থেকে পারমিশন Allow করুন।');
           return;
         }
         const sub = await reg.pushManager.subscribe({
@@ -92,11 +104,13 @@ export default function PublicHomeworkPage() {
         const subJSON = sub.toJSON();
         await api.post('/push/subscribe', { endpoint: subJSON.endpoint, keys: subJSON.keys });
         setNotifStatus('subscribed');
+        alert('নোটিফিকেশন সফলভাবে চালু করা হয়েছে! 🔔');
       }
     } catch (err) {
       console.error('[Push] Toggle error:', err);
       setNotifStatus('idle');
-      alert('নোটিফিকেশন সেটআপে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।');
+      const msg = err.response?.data?.message || err.message || 'নোটিফিকেশন সেটআপে সমস্যা হয়েছে।';
+      alert(`নোটিফিকেশন সেটআপ সমস্যা: ${msg}`);
     }
   };
 
