@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, FileText, Calendar, ShieldAlert, Search, Sun, Moon, Download, Bell, BellOff } from 'lucide-react';
+import { BookOpen, FileText, Calendar, ShieldAlert, Search, Sun, Moon, Download } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 
 export default function PublicHomeworkPage() {
   const [homeworks, setHomeworks] = useState([]);
-  const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isPublic, setIsPublic] = useState(null);
   const [institutionName, setInstitutionName] = useState('দারুল উলূম মাদ্রাসা');
   
-  // Tab State: 'homework' | 'notice'
-  const [activeTab, setActiveTab] = useState('homework');
-
-  // Notification State
-  const [notifyEnabled, setNotifyEnabled] = useState(typeof Notification !== 'undefined' && Notification.permission === 'granted');
-
   // Theme State
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
 
@@ -64,32 +57,6 @@ export default function PublicHomeworkPage() {
   }, [theme]);
 
   const [loadingHomeworks, setLoadingHomeworks] = useState(false);
-  const [loadingNotices, setLoadingNotices] = useState(false);
-
-  // Request Push Notification Permission
-  const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
-      alert('আপনার ব্রাউজার নোটিফিকেশন সাপোর্ট করে না');
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      alert('ব্রাউজার নোটিফিকেশন ইতোমধ্যে চালু আছে');
-      setNotifyEnabled(true);
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      setNotifyEnabled(true);
-      new Notification('দারুল উলূম মাদ্রাসা', {
-        body: 'ব্রাউজার নোটিফিকেশন সফলভাবে চালু করা হয়েছে! নতুন নোটিশ ও হোমওয়ার্ক প্রকাশিত হলে বার্তা পাঠানো হবে।',
-      });
-    } else {
-      alert('নোটিফিকেশন অনুমতি পাওয়া যায়নি');
-      setNotifyEnabled(false);
-    }
-  };
 
   useEffect(() => {
     const checkSettingsAndLoad = async () => {
@@ -120,27 +87,6 @@ export default function PublicHomeworkPage() {
     };
     checkSettingsAndLoad();
   }, []);
-
-  // Load Notices
-  useEffect(() => {
-    if (isPublic !== true) return;
-
-    const fetchNotices = async () => {
-      setLoadingNotices(true);
-      try {
-        const res = await api.get('/notices/public');
-        if (res.data.success) {
-          setNotices(res.data.data.notices || []);
-        }
-      } catch (err) {
-        console.error('Failed to load public notices', err);
-      } finally {
-        setLoadingNotices(false);
-      }
-    };
-
-    fetchNotices();
-  }, [isPublic]);
 
   useEffect(() => {
     if (isPublic !== true) return;
@@ -192,24 +138,25 @@ export default function PublicHomeworkPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         <div className="spinner"></div>
+        <span style={{ marginLeft: '12px' }}>তথ্য লোড হচ্ছে...</span>
       </div>
     );
   }
 
   if (isPublic === false) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-primary)', padding: '20px', textAlign: 'center' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-          <ShieldAlert size={40} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '20px', textAlign: 'center' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--danger-bg)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+          <ShieldAlert size={36} />
         </div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>পাবলিক অ্যাক্সেস নিষ্ক্রিয়</h1>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: '450px', marginBottom: '28px', lineHeight: '1.6' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '8px' }}>পাবলিক অ্যাক্সেস নিষ্ক্রিয়</h2>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', fontSize: '0.9rem' }}>
           {institutionName}-এর হোমওয়ার্ক তালিকাটি বর্তমানে সর্বসাধারণের জন্য উন্মুক্ত নয়। অনুগ্রহ করে আপনার অ্যাকাউন্টে লগ ইন করে চেক করুন।
         </p>
-        <a href="/login" className="btn btn-primary" style={{ textDecoration: 'none', padding: '12px 28px', borderRadius: '8px', fontWeight: 600 }}>
-          অ্যাকাউন্টে লগ ইন করুন
+        <a href="/login" className="btn btn-primary" style={{ marginTop: '24px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', height: '42px', padding: '0 24px', borderRadius: '8px' }}>
+          লগ ইন পেজে যান
         </a>
       </div>
     );
@@ -220,38 +167,15 @@ export default function PublicHomeworkPage() {
       <div style={{ maxWidth: '1300px', margin: '0 auto' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '6px' }}>
               <BookOpen size={16} /> {institutionName}
             </div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>পাবলিক নোটিশ ও হোমওয়ার্ক বোর্ড</h1>
-            <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0 0', fontSize: '0.95rem' }}>অফিসিয়াল ড্যাশবোর্ড থেকে রিয়েল-টাইমে প্রকাশিত নোটিশ ও উন্মুক্ত হোমওয়ার্কসমূহ</p>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>আজকের হোমওয়ার্ক ও অ্যাসাইনমেন্ট</h1>
+            <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0 0', fontSize: '0.95rem' }}>অফিসিয়াল ড্যাশবোর্ড থেকে রিয়েল-টাইমে প্রকাশিত ও উন্মুক্ত হোমওয়ার্কসমূহ</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <button
-              onClick={requestNotificationPermission}
-              title={notifyEnabled ? 'নোটিফিকেশন সক্রিয়' : 'নোটিফিকেশন অন করুন'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                height: '42px',
-                padding: '0 16px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                background: notifyEnabled ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-secondary)',
-                color: notifyEnabled ? '#22c55e' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                transition: 'all 0.2s'
-              }}
-            >
-              {notifyEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-              <span>{notifyEnabled ? 'নোটিফিকেশন অন আছে' : 'নোটিফিকেশন অন করুন'}</span>
-            </button>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {showInstallBtn && (
               <button 
                 onClick={handleInstallClick} 
@@ -303,108 +227,16 @@ export default function PublicHomeworkPage() {
           </div>
         </div>
 
-        {/* Navigation Tabs (Homework vs Notice) */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-          <button
-            onClick={() => setActiveTab('homework')}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '1rem',
-              cursor: 'pointer',
-              border: 'none',
-              background: activeTab === 'homework' ? 'var(--primary)' : 'var(--bg-secondary)',
-              color: activeTab === 'homework' ? '#ffffff' : 'var(--text-secondary)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <BookOpen size={18} />
-            <span>হোমওয়ার্ক তালিকা ({homeworks.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('notice')}
-            style={{
-              padding: '10px 24px',
-              borderRadius: '8px',
-              fontWeight: 700,
-              fontSize: '1rem',
-              cursor: 'pointer',
-              border: 'none',
-              background: activeTab === 'notice' ? 'var(--primary)' : 'var(--bg-secondary)',
-              color: activeTab === 'notice' ? '#ffffff' : 'var(--text-secondary)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Bell size={18} />
-            <span>সাধারণ নোটিশ বোর্ড ({notices.length})</span>
-          </button>
-        </div>
-
-        {activeTab === 'notice' ? (
-          /* Notice List View */
-          <div>
-            {loadingNotices ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-                <div className="spinner"></div>
-              </div>
-            ) : notices.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <Bell size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
-                <h3 style={{ fontSize: '1.25rem', color: 'var(--text-secondary)' }}>কোনো নোটিশ পাওয়া যায়নি</h3>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-                {notices.map((notice) => (
-                  <div
-                    key={notice._id}
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-color)',
-                      borderLeft: `4px solid ${notice.priority === 'urgent' ? 'var(--danger)' : notice.priority === 'high' ? 'var(--warning)' : 'var(--primary)'}`,
-                      borderRadius: '12px',
-                      padding: '24px',
-                      boxShadow: 'var(--shadow-sm)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Calendar size={14} />
-                        {new Date(notice.publishedAt || notice.createdAt).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}
-                      </span>
-                      <span className="badge badge-active">
-                        {Array.isArray(notice.audience) && notice.audience.includes('all') ? 'সকলের জন্য' : Array.isArray(notice.audience) ? notice.audience.join(', ') : notice.audience}
-                      </span>
-                    </div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>{notice.title}</h3>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontSize: '0.95rem' }}>
-                      {notice.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Homework View */
-          <div>
-            {/* Filter Bar (Premium Styling Matching Screenshot) */}
-            <div style={{ 
-              background: 'var(--bg-card)', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: '12px', 
-              padding: '16px 20px', 
-              marginBottom: '32px', 
-              backdropFilter: 'blur(10px)',
-              boxShadow: 'var(--shadow-md)'
-            }}>
+        {/* Filter Bar (Premium Styling Matching Screenshot) */}
+        <div style={{ 
+          background: 'var(--bg-card)', 
+          border: '1px solid var(--border-color)', 
+          borderRadius: '12px', 
+          padding: '16px 20px', 
+          marginBottom: '32px', 
+          backdropFilter: 'blur(10px)',
+          boxShadow: 'var(--shadow-md)'
+        }}>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
             
             {/* Search Input Box */}
@@ -601,7 +433,6 @@ export default function PublicHomeworkPage() {
             ))}
           </div>
         )}
-        </div>
       </div>
     </div>
   );
