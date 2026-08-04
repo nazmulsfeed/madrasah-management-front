@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v2'; // Changed version to bust old cache
+const CACHE_NAME = 'annur-academy-cache-v3'; // Changed version to bust old cache
 const urlsToCache = [
   '/',
   '/index.html',
@@ -35,6 +35,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Do not intercept API requests or non-GET requests
+  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+    return;
+  }
+
   // Network-first strategy for all requests
   event.respondWith(
     fetch(event.request)

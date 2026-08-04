@@ -301,6 +301,8 @@ export default function PublicHomeworkPage() {
               ড্যাশবোর্ডে লগ ইন
             </a>
           </div>
+        </div>
+
         {/* Navigation Tabs (Homework vs Notice) */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
           <button
@@ -392,7 +394,7 @@ export default function PublicHomeworkPage() {
           </div>
         ) : (
           /* Homework View */
-          <>
+          <div>
             {/* Filter Bar (Premium Styling Matching Screenshot) */}
             <div style={{ 
               background: 'var(--bg-card)', 
@@ -599,8 +601,7 @@ export default function PublicHomeworkPage() {
             ))}
           </div>
         )}
-        </>
-        )}
+        </div>
       </div>
     </div>
   );
