@@ -37,14 +37,18 @@ export default function PublicHomeworkPage() {
 
   // Push Notification State
   const [notifStatus, setNotifStatus] = useState('idle'); // 'idle' | 'subscribed' | 'denied' | 'loading'
-  const VAPID_PUBLIC_KEY = 'BNVHR4Au94AbinB-C_b6GsIIWmEbYUY8j6C3GLICK6E32vct-L25B3riXMtwWDiv83CfvYykPCh3ObiobSeE0uk';
+  const FALLBACK_VAPID_PUBLIC_KEY = 'BNVHR4Au94AbinB-C_b6GsIIWmEbYUY8j6C3GLICK6E32vct-L25B3riXMtwWDiv83CfvYykPCh3ObiobSeE0uk';
 
-  // VAPID key কে URL-safe base64 থেকে Uint8Array এ কনভার্ট করা
+  // MDN Standard: VAPID key কে URL-safe base64 থেকে Uint8Array এ কনভার্ট করা
   const urlBase64ToUint8Array = (base64String) => {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
-    return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   };
 
   // পেজ লোড হলে চেক করা হচ্ছে ব্রাউজারে নোটিফিকেশন অলরেডি অন আছে কিনা
@@ -97,9 +101,21 @@ export default function PublicHomeworkPage() {
           alert('নোটিফিকেশনের অনুমতি দেওয়া হয়নি (Permission Denied)। ব্রাউজারের সেটিংস থেকে পারমিশন Allow করুন।');
           return;
         }
+
+        // সার্ভার থেকে ডায়নামিক VAPID Key আনা হচ্ছে
+        let publicKey = FALLBACK_VAPID_PUBLIC_KEY;
+        try {
+          const keyRes = await api.get('/push/vapid-key');
+          if (keyRes.data?.publicKey) {
+            publicKey = keyRes.data.publicKey;
+          }
+        } catch (kErr) {
+          console.warn('[Push] Using fallback VAPID key');
+        }
+
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
         });
         const subJSON = sub.toJSON();
         await api.post('/push/subscribe', { endpoint: subJSON.endpoint, keys: subJSON.keys });
@@ -110,7 +126,11 @@ export default function PublicHomeworkPage() {
       console.error('[Push] Toggle error:', err);
       setNotifStatus('idle');
       const msg = err.response?.data?.message || err.message || 'নোটিফিকেশন সেটআপে সমস্যা হয়েছে।';
-      alert(`নোটিফিকেশন সেটআপ সমস্যা: ${msg}`);
+      if (msg.includes('push service error') || msg.includes('Registration failed')) {
+        alert('ব্রাউজারের পুশ সার্ভিস সংযুক্ত করা যাচ্ছে না। আপনি যদি Brave ব্রাউজার ব্যবহার করেন, তবে Settings -> Privacy & Security এ গিয়ে "Use Google Services for Push Messaging" অপশনটি অন করুন। অথবা ব্রাউজারের অন্যান্য এক্সটেনশন/VPN বন্ধ করে চেষ্টা করুন।');
+      } else {
+        alert(`নোটিফিকেশন সেটআপ সমস্যা: ${msg}`);
+      }
     }
   };
 
