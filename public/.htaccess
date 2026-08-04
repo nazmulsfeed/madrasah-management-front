@@ -2,11 +2,10 @@
   RewriteEngine On
   RewriteBase /
 
-  # 1. Let Passenger handle /api requests without any interference
-  RewriteRule ^api/ - [L]
-
-  # 2. Route all other requests to index.html (React Router)
+  # Route all other requests to index.html (React Router)
   RewriteRule ^index\.html$ - [L]
+  # Exclude /api/ so Passenger Node.js app can handle it
+  RewriteCond %{REQUEST_URI} !^/api
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !-l
