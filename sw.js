@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v3'; // Changed version to bust old cache
+const CACHE_NAME = 'annur-academy-cache-v4'; // Updated to force SW refresh with push support
 const urlsToCache = [
   '/',
   '/index.html',
@@ -53,5 +53,41 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse || caches.match('/index.html');
         });
       })
+  );
+});
+
+// ── পুশ নোটিফিকেশন রিসিভার ──
+self.addEventListener('push', function (event) {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'নতুন আপডেট', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = data.title || 'নতুন আপডেট';
+  const options = {
+    body: data.body || 'মাদ্রাসা থেকে একটি নতুন আপডেট এসেছে।',
+    icon: data.icon || '/icon-192x192.png',
+    badge: data.badge || '/icon-192x192.png',
+    data: { url: data.url || '/' },
+    vibrate: [100, 50, 100],
+    requireInteraction: false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// নোটিফিকেশনে ক্লিক করলে ওয়েবসাইট খুলে যাবে
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
   );
 });
