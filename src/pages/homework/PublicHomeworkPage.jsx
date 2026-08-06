@@ -342,7 +342,7 @@ export default function PublicHomeworkPage() {
                 role="button"
                 onClick={handleInstallClick}
                 title="অ্যাপ ইনস্টল করুন"
-                className="btn btn-secondary"
+                className="btn btn-primary"
                 style={{
                   cursor: 'pointer',
                   textDecoration: 'none',
@@ -353,9 +353,11 @@ export default function PublicHomeworkPage() {
                   padding: '0 20px',
                   borderRadius: '8px',
                   fontSize: '0.9rem',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  transition: 'all 0.2s ease'
+                  background: 'var(--primary-500)',
+                  color: '#ffffff',
+                  border: '1px solid var(--primary-600)',
+                  transition: 'all 0.2s ease',
+                  boxShadow: 'var(--shadow-sm)'
                 }}
               >
                 <Download size={16} />
