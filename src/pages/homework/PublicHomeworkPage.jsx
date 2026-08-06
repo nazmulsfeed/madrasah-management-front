@@ -608,12 +608,14 @@ export default function PublicHomeworkPage() {
 
             {/* Custom Date Input */}
             {dateFilter === 'custom' && (
-              <input
-                type="date"
-                value={customDate}
-                onChange={e => setCustomDate(e.target.value)}
-                style={{ flex: 1, minWidth: '150px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem' }}
-              />
+              <div style={{ width: '100%' }}>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={e => setCustomDate(e.target.value)}
+                  style={{ width: '100%', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '10px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem' }}
+                />
+              </div>
             )}
 
             {/* Dropdown 2: Subject Filter */}
