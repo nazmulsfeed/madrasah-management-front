@@ -6,7 +6,7 @@ import useAuthStore from '../../store/authStore';
 export default function NoticesPage() {
   const { user } = useAuthStore();
   const permissions = user?.permissions || {};
-  const canManageNotice = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || permissions?.can_manage_notice;
+  const canManageNotice = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin' || permissions?.can_manage_notice;
 
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
