@@ -154,10 +154,16 @@ export default function PublicHomeworkPage() {
     setShowInstallBtn(false);
   };
 
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  const toggleTheme = () => {
+    setTheme(current => current === 'dark' ? 'light' : 'dark');
+  };
+
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('theme', 'light');
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const [loadingHomeworks, setLoadingHomeworks] = useState(false);
 
@@ -346,7 +352,6 @@ export default function PublicHomeworkPage() {
                   borderRadius: '8px',
                   fontSize: '0.9rem',
                   color: 'var(--text-primary)',
-                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
                   transition: 'all 0.2s ease'
                 }}
@@ -355,6 +360,18 @@ export default function PublicHomeworkPage() {
                 <span>অ্যাপ ইনস্টল করুন</span>
               </button>
             )}
+            <button
+              onClick={toggleTheme}
+              className="btn btn-icon"
+              style={{
+                width: '42px', height: '42px', borderRadius: '50%',
+                background: 'var(--bg-card)', color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
+              }}
+              title={theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <a href="/login" className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', height: '42px', padding: '0 20px', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               ড্যাশবোর্ডে লগ ইন
             </a>
