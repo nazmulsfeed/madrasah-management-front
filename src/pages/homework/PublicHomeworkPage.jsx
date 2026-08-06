@@ -244,9 +244,7 @@ export default function PublicHomeworkPage() {
     setSearchQuery(search);
   };
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
+
 
   const filteredHomeworks = homeworks;
 
@@ -369,16 +367,6 @@ export default function PublicHomeworkPage() {
                 borderRadius: '50%',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
             <a href="/login" className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', height: '42px', padding: '0 20px', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               ড্যাশবোর্ডে লগ ইন
             </a>
@@ -713,7 +701,7 @@ export default function PublicHomeworkPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(20, 184, 166, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--success-bg)', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <FileText size={18} />
                     </div>
                     <div>
@@ -761,8 +749,7 @@ export default function PublicHomeworkPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(6px)',
+            background: 'rgba(15, 23, 42, 0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
