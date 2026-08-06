@@ -123,9 +123,27 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [branches, setBranches] = useState([]);
   const [myPermissions, setMyPermissions] = useState(() => {
     try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
   });
+
+  useEffect(() => {
+    if (user?.userType === 'super_admin') {
+      const fetchBranches = async () => {
+        try {
+          const api = (await import('../api/axios')).default;
+          const res = await api.get('/students/branches');
+          if (res.data.success) {
+            setBranches(res.data.data.branches || []);
+          }
+        } catch (e) {
+          console.error('Failed to fetch branches', e);
+        }
+      };
+      fetchBranches();
+    }
+  }, [user]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -405,14 +423,18 @@ export default function DashboardLayout() {
                 onClick={() => setBranchMenuOpen(!branchMenuOpen)}
               >
                 <Building2 size={16} /> 
-                {user?.institution?.name || 'ব্রাঞ্চ নির্বাচন'} 
+                {user?.branch || 'ব্রাঞ্চ নির্বাচন'} 
                 <ChevronDown size={14} />
               </button>
               {branchMenuOpen && (
                 <div className="dropdown-menu shadow animate-scale-in" style={{ position: 'absolute', top: '100%', right: 0, zIndex: 10 }}>
-                  <button className="dropdown-item" onClick={() => handleSwitchBranch('Dhaka Main Branch')}>Dhaka Main Branch</button>
-                  <button className="dropdown-item" onClick={() => handleSwitchBranch('Chittagong Branch')}>Chittagong Branch</button>
-                  <button className="dropdown-item" onClick={() => handleSwitchBranch('Sylhet Branch')}>Sylhet Branch</button>
+                  {branches.length > 0 ? branches.map((b) => (
+                    <button key={b._id || b.code} className="dropdown-item" onClick={() => handleSwitchBranch(b.name)}>
+                      {b.name}
+                    </button>
+                  )) : (
+                    <div className="dropdown-item text-muted">কোনো ব্রাঞ্চ নেই</div>
+                  )}
                 </div>
               )}
             </div>
