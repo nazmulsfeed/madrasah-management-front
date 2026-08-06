@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v3'; // Changed version to bust old cache
+const CACHE_NAME = 'annur-academy-cache-v4'; // Changed version to bust old cache
 const urlsToCache = [
   '/',
   '/index.html',
