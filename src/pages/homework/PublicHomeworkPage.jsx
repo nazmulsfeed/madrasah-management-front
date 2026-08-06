@@ -342,7 +342,7 @@ export default function PublicHomeworkPage() {
                 role="button"
                 onClick={handleInstallClick}
                 title="অ্যাপ ইনস্টল করুন"
-                className="btn btn-primary"
+                className="btn"
                 style={{
                   cursor: 'pointer',
                   textDecoration: 'none',
