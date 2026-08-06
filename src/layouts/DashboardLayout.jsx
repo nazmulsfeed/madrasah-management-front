@@ -121,29 +121,10 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const [branches, setBranches] = useState([]);
   const [myPermissions, setMyPermissions] = useState(() => {
     try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
   });
-
-  useEffect(() => {
-    if (user?.userType === 'super_admin') {
-      const fetchBranches = async () => {
-        try {
-          const api = (await import('../api/axios')).default;
-          const res = await api.get('/students/branches');
-          if (res.data.success) {
-            setBranches(res.data.data.branches || []);
-          }
-        } catch (e) {
-          console.error('Failed to fetch branches', e);
-        }
-      };
-      fetchBranches();
-    }
-  }, [user]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -152,19 +133,6 @@ export default function DashboardLayout() {
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
-
-  const handleSwitchBranch = async (branchName) => {
-    try {
-      const api = (await import('../api/axios')).default;
-      const res = await api.post('/users/change-branch', { branch: branchName });
-      if (res.data.success) {
-        window.location.reload(); // Reload to refresh user context and data
-      }
-    } catch (error) {
-      alert('Failed to switch branch');
-    }
-    setBranchMenuOpen(false);
   };
 
   // Fetch latest user info on layout mount to sync updates (e.g. Institution Name)
@@ -415,32 +383,6 @@ export default function DashboardLayout() {
             <Bell size={20} />
             <span className="notification-dot"></span>
           </button>
-
-          {user?.userType === 'super_admin' && (
-            <div className="dropdown" style={{ position: 'relative' }}>
-              <button 
-                className="btn btn-outline flex-center gap-8" 
-                onClick={() => setBranchMenuOpen(!branchMenuOpen)}
-              >
-                <Building2 size={16} /> 
-                {(typeof user?.branch === 'object' ? user?.branch?.name : user?.branch) || 'ব্রাঞ্চ নির্বাচন'} 
-                <ChevronDown size={14} />
-              </button>
-              {branchMenuOpen && (
-                <div className="dropdown-menu shadow animate-scale-in" style={{ position: 'absolute', top: '100%', right: 0, zIndex: 10 }}>
-                  {branches.length > 0 ? branches.map((b) => (
-                    <button key={b._id || b.code} className="dropdown-item" onClick={() => handleSwitchBranch(b.name)}>
-                      {b.name}
-                    </button>
-                  )) : (
-                    <div className="dropdown-item text-muted">কোনো ব্রাঞ্চ নেই</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-
         </div>
       </header>
 
