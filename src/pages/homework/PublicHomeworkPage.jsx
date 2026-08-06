@@ -357,16 +357,6 @@ export default function PublicHomeworkPage() {
                 <span>অ্যাপ ইনস্টল করুন</span>
               </button>
             )}
-            <button 
-              onClick={toggleTheme} 
-              title="থিম পরিবর্তন করুন"
-              style={{
-                width: '42px',
-                height: '42px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '50%',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
             <a href="/login" className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', height: '42px', padding: '0 20px', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               ড্যাশবোর্ডে লগ ইন
             </a>
