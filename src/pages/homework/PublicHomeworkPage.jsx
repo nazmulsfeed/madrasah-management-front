@@ -154,7 +154,7 @@ export default function PublicHomeworkPage() {
     setShowInstallBtn(false);
   };
 
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
   const toggleTheme = () => {
     setTheme(current => current === 'dark' ? 'light' : 'dark');
@@ -612,7 +612,7 @@ export default function PublicHomeworkPage() {
                 type="date"
                 value={customDate}
                 onChange={e => setCustomDate(e.target.value)}
-                style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem' }}
+                style={{ flex: 1, minWidth: '150px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem' }}
               />
             )}
 
