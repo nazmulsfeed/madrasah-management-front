@@ -505,8 +505,8 @@ export default function HomeworkPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">বর্ণনা *</label>
-                <textarea name="description" className="form-input" required value={formData.description} onChange={handleChange} placeholder="হোমওয়ার্কের বিস্তারিত লিখুন" rows="4" />
+                <label className="form-label">বর্ণনা</label>
+                <textarea name="description" className="form-input" value={formData.description} onChange={handleChange} placeholder="হোমওয়ার্কের বিস্তারিত লিখুন" rows="4" />
               </div>
 
               <div className="grid grid-2" style={{ gap: '16px' }}>

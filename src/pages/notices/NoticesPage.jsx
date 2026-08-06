@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Plus, Bell, X, Trash2 } from 'lucide-react';
 import api from '../../api/axios';
+import useAuthStore from '../../store/authStore';
 
 export default function NoticesPage() {
+  const { hasPermission } = useAuthStore();
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -78,9 +80,11 @@ export default function NoticesPage() {
           <h1 className="page-title">নোটিশ বোর্ড</h1>
           <p className="page-subtitle">মাদ্রাসার সমস্ত ঘোষণা এবং নোটিশ</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={16} /> নতুন নোটিশ
-        </button>
+        {hasPermission('can_manage_notice') && (
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> নতুন নোটিশ
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -104,9 +108,11 @@ export default function NoticesPage() {
                   <span className={`badge badge-active`}>
                     {Array.isArray(notice.audience) && notice.audience.includes('all') ? 'সকলের জন্য' : Array.isArray(notice.audience) ? notice.audience.join(', ') : notice.audience}
                   </span>
-                  <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={(e) => handleDelete(notice._id, e)} title="মুছুন">
-                    <Trash2 size={16} />
-                  </button>
+                  {hasPermission('can_manage_notice') && (
+                    <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={(e) => handleDelete(notice._id, e)} title="মুছুন">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
               <h3 style={{ fontSize: '1.25rem', marginBottom: '12px' }}>{notice.title}</h3>
