@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Bell, X, Trash2 } from 'lucide-react';
+import { Plus, Bell, X, Trash2, Edit } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 
@@ -11,6 +11,8 @@ export default function NoticesPage() {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [selectedNotice, setSelectedNotice] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,21 +48,44 @@ export default function NoticesPage() {
     }
     setSubmitting(true);
     try {
-      const res = await api.post('/notices', {
+      let res;
+      const payload = {
         ...formData,
         audience: [formData.audience]
-      });
+      };
+      
+      if (isEditing && editId) {
+        res = await api.put(`/notices/${editId}`, payload);
+      } else {
+        res = await api.post('/notices', payload);
+      }
+      
       if (res.data.success) {
         setShowModal(false);
         setFormData({ title: '', content: '', audience: 'all', priority: 'normal' });
+        setIsEditing(false);
+        setEditId(null);
         fetchNotices();
       }
     } catch (error) {
-      console.error('Error creating notice:', error);
-      alert(error.response?.data?.message || 'নোটিশ পোস্ট করতে ব্যর্থ হয়েছে');
+      console.error('Error saving notice:', error);
+      alert(error.response?.data?.message || 'নোটিশ সংরক্ষণ করতে ব্যর্থ হয়েছে');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditClick = (notice, e) => {
+    e.stopPropagation();
+    setFormData({
+      title: notice.title,
+      content: notice.content,
+      audience: (Array.isArray(notice.audience) && notice.audience[0]) ? notice.audience[0] : 'all',
+      priority: notice.priority
+    });
+    setEditId(notice._id);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleDelete = async (id, e) => {
@@ -84,7 +109,12 @@ export default function NoticesPage() {
           <p className="page-subtitle">মাদ্রাসার সমস্ত ঘোষণা এবং নোটিশ</p>
         </div>
         {canManageNotice && (
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <button className="btn btn-primary" onClick={() => {
+            setFormData({ title: '', content: '', audience: 'all', priority: 'normal' });
+            setIsEditing(false);
+            setEditId(null);
+            setShowModal(true);
+          }}>
             <Plus size={16} /> নতুন নোটিশ
           </button>
         )}
@@ -112,9 +142,14 @@ export default function NoticesPage() {
                     {Array.isArray(notice.audience) && notice.audience.includes('all') ? 'সকলের জন্য' : Array.isArray(notice.audience) ? notice.audience.join(', ') : notice.audience}
                   </span>
                   {canManageNotice && (
-                    <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={(e) => handleDelete(notice._id, e)} title="মুছুন">
-                      <Trash2 size={16} />
-                    </button>
+                    <>
+                      <button className="btn btn-ghost btn-icon btn-sm text-primary" onClick={(e) => handleEditClick(notice, e)} title="এডিট করুন">
+                        <Edit size={16} />
+                      </button>
+                      <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={(e) => handleDelete(notice._id, e)} title="মুছুন">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -136,7 +171,7 @@ export default function NoticesPage() {
         <div className="modal-backdrop">
           <div className="modal-content card" style={{ maxWidth: '550px', width: '90%' }}>
             <div className="flex-between mb-20">
-              <h2>নতুন নোটিশ পোস্ট করুন</h2>
+              <h2>{isEditing ? 'নোটিশ এডিট করুন' : 'নতুন নোটিশ পোস্ট করুন'}</h2>
               <button className="btn btn-ghost btn-icon" onClick={() => setShowModal(false)}>
                 <X size={20} />
               </button>
@@ -198,7 +233,7 @@ export default function NoticesPage() {
               <div className="flex-end gap-12">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>বাতিল</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন'}
+                  {submitting ? 'সংরক্ষণ হচ্ছে...' : (isEditing ? 'আপডেট করুন' : 'পোস্ট করুন')}
                 </button>
               </div>
             </form>
