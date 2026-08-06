@@ -354,7 +354,7 @@ export default function PublicHomeworkPage() {
                   borderRadius: '8px',
                   fontSize: '0.9rem',
                   background: '#0259f9ff',
-                  color: '#ffffff',
+                  color: 'var(--text-primary)',
                   border: '1px solid #0d9488',
                   transition: 'all 0.2s ease',
                   boxShadow: '0 2px 4px rgba(15, 23, 42, 0.08)'
