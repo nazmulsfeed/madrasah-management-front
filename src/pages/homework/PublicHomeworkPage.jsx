@@ -353,11 +353,11 @@ export default function PublicHomeworkPage() {
                   padding: '0 20px',
                   borderRadius: '8px',
                   fontSize: '0.9rem',
-                  background: 'var(--primary-500)',
+                  background: '#14b8a6',
                   color: '#ffffff',
-                  border: '1px solid var(--primary-600)',
+                  border: '1px solid #0d9488',
                   transition: 'all 0.2s ease',
-                  boxShadow: 'var(--shadow-sm)'
+                  boxShadow: '0 2px 4px rgba(15, 23, 42, 0.08)'
                 }}
               >
                 <Download size={16} />
