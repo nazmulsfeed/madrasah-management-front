@@ -338,11 +338,13 @@ export default function PublicHomeworkPage() {
               </span>
             </button>
             {showInstallBtn && (
-              <button
+              <a
+                role="button"
                 onClick={handleInstallClick}
                 title="অ্যাপ ইনস্টল করুন"
                 className="btn btn-secondary"
                 style={{
+                  cursor: 'pointer',
                   textDecoration: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -358,7 +360,7 @@ export default function PublicHomeworkPage() {
               >
                 <Download size={16} />
                 <span>অ্যাপ ইনস্টল করুন</span>
-              </button>
+              </a>
             )}
             <button
               onClick={toggleTheme}
