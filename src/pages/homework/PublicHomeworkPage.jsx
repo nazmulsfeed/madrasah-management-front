@@ -608,13 +608,18 @@ export default function PublicHomeworkPage() {
 
             {/* Custom Date Input */}
             {dateFilter === 'custom' && (
-              <div style={{ width: '100%' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
                 <input
                   type="date"
                   value={customDate}
                   onChange={e => setCustomDate(e.target.value)}
-                  style={{ width: '100%', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '10px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem' }}
+                  style={{ width: '100%', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem', display: 'block', minHeight: '40px', fontFamily: 'inherit' }}
                 />
+                {!customDate && (
+                  <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none', fontSize: '0.875rem', background: 'var(--bg-input)', paddingRight: '8px' }}>
+                    তারিখ নির্বাচন করুন
+                  </div>
+                )}
               </div>
             )}
 
