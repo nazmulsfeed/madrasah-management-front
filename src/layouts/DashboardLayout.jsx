@@ -122,7 +122,6 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [myPermissions, setMyPermissions] = useState(() => {
     try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
   });
@@ -149,9 +148,9 @@ export default function DashboardLayout() {
 
   // Handle theme changes
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('theme', 'light');
+  }, []);
 
   // Fetch and cache user permissions
   useEffect(() => {
@@ -168,9 +167,7 @@ export default function DashboardLayout() {
     if (user) fetchPerms();
   }, [user]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
+
 
   const handleLogout = () => {
     localStorage.removeItem('userPermissions');
@@ -407,9 +404,7 @@ export default function DashboardLayout() {
             </div>
           )}
 
-          <button className="topbar-icon-btn" onClick={toggleTheme} title="থিম পরিবর্তন করুন">
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+
         </div>
       </header>
 

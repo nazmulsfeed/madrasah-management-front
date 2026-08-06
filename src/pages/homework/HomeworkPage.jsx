@@ -414,12 +414,12 @@ export default function HomeworkPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-3" style={{ alignItems: 'stretch' }}>
+        <div className="grid grid-3" style={{ alignItems: 'stretch', gap: '24px' }}>
           {homeworks.map((hw) => (
             <div key={hw._id} className="card animate-slide-up" style={{ display: 'flex', flexDirection: 'column', height: '280px' }}>
               <div className="flex-between mb-16">
                 <div className="flex gap-8" style={{ alignItems: 'center' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(20, 184, 166, 0.1)', color: 'var(--primary-400)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--success-bg)', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={16} />
                   </div>
                   <div>
