@@ -300,7 +300,7 @@ export default function PublicHomeworkPage() {
             <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>আজকের হোমওয়ার্ক ও অ্যাসাইনমেন্ট</h1>
             <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0 0', fontSize: '0.95rem' }}>অফিসিয়াল ড্যাশবোর্ড থেকে রিয়েল-টাইমে প্রকাশিত ও উন্মুক্ত হোমওয়ার্কসমূহ</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {/* Push Notification Toggle Button */}
             <button
               onClick={handleNotificationToggle}
