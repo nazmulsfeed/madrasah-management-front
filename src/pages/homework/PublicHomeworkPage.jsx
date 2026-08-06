@@ -8,7 +8,7 @@ export default function PublicHomeworkPage() {
   const [loading, setLoading] = useState(true);
   const [isPublic, setIsPublic] = useState(null);
   const [institutionName, setInstitutionName] = useState('দারুল উলূম মাদ্রাসা');
-  
+
   // Notices State
   const [notices, setNotices] = useState([]);
   const [selectedPublicNotice, setSelectedPublicNotice] = useState(null);
@@ -276,7 +276,7 @@ export default function PublicHomeworkPage() {
   const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
   const recentNotices = notices.filter(n => new Date(n.publishedAt || n.createdAt) >= twoDaysAgo);
   const hasNewNotices = recentNotices.length > 0;
-  
+
   const visibleNotices = recentNotices.slice(0, 2);
   const hiddenNotices = notices.filter(n => !visibleNotices.includes(n));
   const displayedNotices = showAllNotices ? notices : visibleNotices;
@@ -284,7 +284,7 @@ export default function PublicHomeworkPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', padding: '40px 20px', transition: 'background 0.3s, color 0.3s' }}>
       <div style={{ maxWidth: '1300px', margin: '0 auto' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -301,9 +301,9 @@ export default function PublicHomeworkPage() {
               disabled={notifStatus === 'loading' || notifStatus === 'denied'}
               title={
                 notifStatus === 'subscribed' ? 'নোটিফিকেশন বন্ধ করুন' :
-                notifStatus === 'denied' ? 'ব্রাউজার নোটিফিকেশন ব্লক করা আছে' :
-                notifStatus === 'loading' ? 'প্রসেস হচ্ছে...' :
-                'নোটিফিকেশন চালু করুন'
+                  notifStatus === 'denied' ? 'ব্রাউজার নোটিফিকেশন ব্লক করা আছে' :
+                    notifStatus === 'loading' ? 'প্রসেস হচ্ছে...' :
+                      'নোটিফিকেশন চালু করুন'
               }
               style={{
                 display: 'inline-flex',
@@ -326,14 +326,14 @@ export default function PublicHomeworkPage() {
               {notifStatus === 'subscribed' ? <BellOff size={16} /> : <Bell size={16} />}
               <span style={{ display: window.innerWidth < 500 ? 'none' : 'inline' }}>
                 {notifStatus === 'loading' ? 'লোড হচ্ছে...' :
-                 notifStatus === 'subscribed' ? 'নোটিফিকেশন অন' :
-                 notifStatus === 'denied' ? 'ব্লকড' :
-                 'নোটিফিকেশন'}
+                  notifStatus === 'subscribed' ? 'নোটিফিকেশন অন' :
+                    notifStatus === 'denied' ? 'ব্লকড' :
+                      'নোটিফিকেশন'}
               </span>
             </button>
             {showInstallBtn && (
-              <button 
-                onClick={handleInstallClick} 
+              <button
+                onClick={handleInstallClick}
                 title="অ্যাপ ইনস্টল করুন"
                 style={{
                   display: 'inline-flex',
@@ -344,7 +344,7 @@ export default function PublicHomeworkPage() {
                   border: '1px solid var(--primary-500)',
                   borderRadius: '8px',
                   background: 'var(--primary-500)',
-                  color: '#ffffff',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   fontWeight: 600,
                   fontSize: '0.85rem',
@@ -364,12 +364,12 @@ export default function PublicHomeworkPage() {
 
         {/* Notice Board Section (Above Search/Filter Box) */}
         {(displayedNotices.length > 0 || hasNewNotices || hiddenNotices.length > 0) && (
-          <div style={{ 
-            background: 'var(--bg-card)', 
-            border: '1px solid var(--border-color)', 
-            borderRadius: '16px', 
-            padding: '20px 24px', 
-            marginBottom: '28px', 
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            marginBottom: '28px',
             boxShadow: 'var(--shadow-md)',
             position: 'relative',
             overflow: 'hidden'
@@ -387,27 +387,27 @@ export default function PublicHomeworkPage() {
             `}</style>
 
             {/* Top Glowing Accent Line */}
-            <div style={{ 
-              position: 'absolute', 
-              top: 0, 
-              left: 0, 
-              right: 0, 
-              height: '4px', 
-              background: 'linear-gradient(90deg, #f59e0b, #ef4444, #14b8a6)' 
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: 'linear-gradient(90deg, #f59e0b, #ef4444, #14b8a6)'
             }} />
 
             {/* Section Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
-                  background: 'rgba(245, 158, 11, 0.15)', 
-                  color: '#f59e0b', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  color: '#f59e0b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
                   <Bell size={20} />
                 </div>
@@ -436,15 +436,15 @@ export default function PublicHomeworkPage() {
 
             {/* Notice Cards List */}
             {displayedNotices.length > 0 ? (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
-                gap: '16px' 
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '16px'
               }}>
                 {displayedNotices.map((notice) => {
                   const isUrgent = notice.priority === 'urgent' || notice.priority === 'high';
                   return (
-                    <div 
+                    <div
                       key={notice._id}
                       onClick={() => setSelectedPublicNotice(notice)}
                       style={{
@@ -497,17 +497,17 @@ export default function PublicHomeworkPage() {
             {/* See More Button */}
             {hiddenNotices.length > 0 && (
               <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                <button 
+                <button
                   onClick={() => setShowAllNotices(!showAllNotices)}
                   style={{
-                    background: 'var(--bg-secondary)', 
+                    background: 'var(--bg-secondary)',
                     border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)', 
-                    padding: '8px 24px', 
+                    color: 'var(--text-primary)',
+                    padding: '8px 24px',
                     borderRadius: '20px',
-                    fontSize: '0.9rem', 
-                    fontWeight: 500, 
-                    cursor: 'pointer', 
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     boxShadow: 'var(--shadow-sm)'
                   }}
@@ -522,50 +522,50 @@ export default function PublicHomeworkPage() {
         )}
 
         {/* Filter Bar (Premium Styling Matching Screenshot) */}
-        <div style={{ 
-          background: 'var(--bg-card)', 
-          border: '1px solid var(--border-color)', 
-          borderRadius: '12px', 
-          padding: '16px 20px', 
-          marginBottom: '32px', 
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '32px',
           backdropFilter: 'blur(10px)',
           boxShadow: 'var(--shadow-md)'
         }}>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            
+
             {/* Search Input Box */}
             <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '300px' }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input 
-                  type="text" 
-                  placeholder="বিষয় বা শিরোনাম দিয়ে খুঁজুন..." 
-                  value={search} 
+                <input
+                  type="text"
+                  placeholder="বিষয় বা শিরোনাম দিয়ে খুঁজুন..."
+                  value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  style={{ 
+                  style={{
                     width: '100%',
-                    padding: '8px 12px 8px 36px', 
-                    background: 'var(--bg-input)', 
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '8px', 
-                    color: 'var(--text-primary)', 
+                    padding: '8px 12px 8px 36px',
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
                     fontSize: '0.875rem',
                     outline: 'none'
-                  }} 
+                  }}
                 />
               </div>
-              <button 
-                type="submit" 
-                style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '6px', 
-                  background: 'var(--bg-secondary)', 
-                  border: '1px solid var(--border-color)', 
+              <button
+                type="submit"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
                   color: 'var(--text-primary)',
-                  padding: '8px 16px', 
-                  borderRadius: '8px', 
-                  fontSize: '0.875rem', 
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
                   fontWeight: 500,
                   cursor: 'pointer',
                   transition: 'background 0.2s'
@@ -576,9 +576,9 @@ export default function PublicHomeworkPage() {
             </form>
 
             {/* Dropdown 1: Date Filter */}
-            <select 
-              value={dateFilter} 
-              onChange={e => setDateFilter(e.target.value)} 
+            <select
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <option value="today">আজকের হোমওয়ার্ক</option>
@@ -588,18 +588,18 @@ export default function PublicHomeworkPage() {
 
             {/* Custom Date Input */}
             {dateFilter === 'custom' && (
-              <input 
-                type="date" 
-                value={customDate} 
-                onChange={e => setCustomDate(e.target.value)} 
+              <input
+                type="date"
+                value={customDate}
+                onChange={e => setCustomDate(e.target.value)}
                 style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '6px 12px', borderRadius: '8px', outline: 'none', fontSize: '0.875rem' }}
               />
             )}
 
             {/* Dropdown 2: Subject Filter */}
-            <select 
-              value={subjectFilter} 
-              onChange={e => setSubjectFilter(e.target.value)} 
+            <select
+              value={subjectFilter}
+              onChange={e => setSubjectFilter(e.target.value)}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <option value="">সকল বিষয়</option>
@@ -607,9 +607,9 @@ export default function PublicHomeworkPage() {
             </select>
 
             {/* Dropdown 3: Class Filter */}
-            <select 
-              value={classFilter} 
-              onChange={e => setClassFilter(e.target.value)} 
+            <select
+              value={classFilter}
+              onChange={e => setClassFilter(e.target.value)}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <option value="">সকল শ্রেণী</option>
@@ -617,9 +617,9 @@ export default function PublicHomeworkPage() {
             </select>
 
             {/* Dropdown 4: Section Filter */}
-            <select 
-              value={sectionFilter} 
-              onChange={e => setSectionFilter(e.target.value)} 
+            <select
+              value={sectionFilter}
+              onChange={e => setSectionFilter(e.target.value)}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <option value="">সকল সেকশন</option>
@@ -629,9 +629,9 @@ export default function PublicHomeworkPage() {
             </select>
 
             {/* Dropdown 5: Status Filter */}
-            <select 
-              value={statusFilter} 
-              onChange={e => setStatusFilter(e.target.value)} 
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <option value="">সকল স্ট্যাটাস</option>
@@ -641,17 +641,17 @@ export default function PublicHomeworkPage() {
 
             {/* Clear Filters Link */}
             {(classFilter || sectionFilter || subjectFilter || dateFilter !== 'today' || statusFilter || searchQuery) && (
-              <button 
-                onClick={() => { 
-                  setClassFilter(''); 
-                  setSectionFilter(''); 
-                  setSubjectFilter(''); 
-                  setDateFilter('today'); 
+              <button
+                onClick={() => {
+                  setClassFilter('');
+                  setSectionFilter('');
+                  setSubjectFilter('');
+                  setDateFilter('today');
                   setCustomDate('');
                   setStatusFilter('');
                   setSearch('');
                   setSearchQuery('');
-                }} 
+                }}
                 style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
               >
                 ফিল্টার মুছুন
@@ -674,14 +674,14 @@ export default function PublicHomeworkPage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px', alignItems: 'stretch' }}>
             {filteredHomeworks.map(hw => (
-              <div 
-                key={hw._id} 
-                style={{ 
-                  background: 'var(--bg-card)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '16px', 
-                  padding: '24px', 
-                  display: 'flex', 
+              <div
+                key={hw._id}
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  display: 'flex',
                   flexDirection: 'column',
                   height: '280px',
                   transition: 'transform 0.2s, border-color 0.2s',
@@ -712,7 +712,7 @@ export default function PublicHomeworkPage() {
                   )}
                 </h3>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: '0 0 20px 0', lineHeight: 1.6, flex: 1, whiteSpace: 'pre-line', overflowY: 'auto' }}>{hw.description}</p>
-                
+
                 <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Calendar size={13} />
@@ -731,7 +731,7 @@ export default function PublicHomeworkPage() {
 
       {/* Full Notice Modal */}
       {selectedPublicNotice && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: 0,
@@ -744,10 +744,10 @@ export default function PublicHomeworkPage() {
             justifyContent: 'center',
             zIndex: 1000,
             padding: '20px'
-          }} 
+          }}
           onClick={() => setSelectedPublicNotice(null)}
         >
-          <div 
+          <div
             onClick={e => e.stopPropagation()}
             style={{
               background: 'var(--bg-card)',
@@ -777,18 +777,18 @@ export default function PublicHomeworkPage() {
                   {selectedPublicNotice.title}
                 </h2>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedPublicNotice(null)}
-                style={{ 
-                  background: 'var(--bg-secondary)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '50%', 
-                  width: '36px', 
-                  height: '36px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  color: 'var(--text-primary)', 
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   flexShrink: 0
                 }}
@@ -802,17 +802,17 @@ export default function PublicHomeworkPage() {
             </div>
 
             <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
+              <button
                 onClick={() => setSelectedPublicNotice(null)}
-                style={{ 
-                  background: 'var(--primary)', 
-                  color: '#ffffff', 
-                  border: 'none', 
-                  padding: '10px 24px', 
-                  borderRadius: '8px', 
-                  fontWeight: 600, 
+                style={{
+                  background: 'var(--primary)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
                   fontSize: '0.9rem',
-                  cursor: 'pointer' 
+                  cursor: 'pointer'
                 }}
               >
                 বন্ধ করুন
