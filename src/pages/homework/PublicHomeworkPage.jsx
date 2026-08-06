@@ -353,7 +353,7 @@ export default function PublicHomeworkPage() {
                   padding: '0 20px',
                   borderRadius: '8px',
                   fontSize: '0.9rem',
-                  background: '#14b8a6',
+                  background: '#0259f9ff',
                   color: '#ffffff',
                   border: '1px solid #0d9488',
                   transition: 'all 0.2s ease',
