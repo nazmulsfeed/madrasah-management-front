@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v3'; // Changed version to bust old cache
+const CACHE_NAME = 'annur-academy-cache-v5'; // Bumped to bust stale cache after download button fix
 const urlsToCache = [
   '/',
   '/index.html',
