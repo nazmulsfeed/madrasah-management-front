@@ -4,7 +4,10 @@ import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 
 export default function NoticesPage() {
-  const { hasPermission } = useAuthStore();
+  const { user } = useAuthStore();
+  const permissions = user?.permissions || {};
+  const canManageNotice = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || permissions?.can_manage_notice;
+
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -80,7 +83,7 @@ export default function NoticesPage() {
           <h1 className="page-title">নোটিশ বোর্ড</h1>
           <p className="page-subtitle">মাদ্রাসার সমস্ত ঘোষণা এবং নোটিশ</p>
         </div>
-        {hasPermission('can_manage_notice') && (
+        {canManageNotice && (
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
             <Plus size={16} /> নতুন নোটিশ
           </button>
@@ -108,7 +111,7 @@ export default function NoticesPage() {
                   <span className={`badge badge-active`}>
                     {Array.isArray(notice.audience) && notice.audience.includes('all') ? 'সকলের জন্য' : Array.isArray(notice.audience) ? notice.audience.join(', ') : notice.audience}
                   </span>
-                  {hasPermission('can_manage_notice') && (
+                  {canManageNotice && (
                     <button className="btn btn-ghost btn-icon btn-sm text-danger" onClick={(e) => handleDelete(notice._id, e)} title="মুছুন">
                       <Trash2 size={16} />
                     </button>
