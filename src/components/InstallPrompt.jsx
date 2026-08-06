@@ -42,18 +42,18 @@ export default function InstallPrompt() {
       position: 'fixed',
       bottom: '24px',
       right: '24px',
-      backgroundColor: '#1e293b',
-      color: '#ffffff',
+      backgroundColor: 'var(--bg-card)',
+      color: 'var(--text-primary)',
       padding: '16px 20px',
       borderRadius: '12px',
-      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+      boxShadow: 'var(--shadow-lg)',
       zIndex: 99999,
       display: 'flex',
       flexDirection: 'column',
       gap: '12px',
       maxWidth: '320px',
       fontFamily: 'sans-serif',
-      border: '1px solid #334155'
+      border: '1px solid var(--border-color)'
     }}>
       <div style={{ fontSize: '15px', fontWeight: '500', lineHeight: '1.4' }}>
         সহজে ব্যবহার করতে এই ওয়েবসাইটটি অ্যাপ হিসেবে ইনস্টল করুন।
@@ -64,7 +64,7 @@ export default function InstallPrompt() {
           style={{ 
             background: 'transparent', 
             border: 'none', 
-            color: '#94a3b8', 
+            color: 'var(--text-secondary)', 
             cursor: 'pointer',
             fontSize: '14px',
             fontWeight: '500'
@@ -74,8 +74,9 @@ export default function InstallPrompt() {
         </button>
         <button 
           onClick={handleInstallClick}
+          className="btn"
           style={{ 
-            backgroundColor: '#3b82f6', 
+            backgroundColor: 'var(--primary-500)', 
             border: 'none', 
             color: '#ffffff', 
             padding: '8px 16px', 
@@ -85,8 +86,8 @@ export default function InstallPrompt() {
             fontWeight: '600',
             transition: 'background-color 0.2s'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
+          onMouseOver={(e) => e.target.style.backgroundColor = 'var(--primary-600)'}
+          onMouseOut={(e) => e.target.style.backgroundColor = 'var(--primary-500)'}
         >
           ইনস্টল করুন
         </button>
