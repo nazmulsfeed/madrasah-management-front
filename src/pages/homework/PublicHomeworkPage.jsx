@@ -352,9 +352,9 @@ export default function PublicHomeworkPage() {
                   fontSize: '0.9rem',
                   fontFamily: 'inherit',
                   fontWeight: 600,
-                  background: '#0259f9',
-                  color: '#ffffff',
-                  border: '1px solid #0040cc',
+                  background: theme === 'dark' ? '#0259f9' : 'var(--bg-card)',
+                  color: theme === 'dark' ? '#ffffff' : '#000000',
+                  border: theme === 'dark' ? '1px solid #0040cc' : '1px solid var(--border-color)',
                   transition: 'all 0.2s ease',
                   boxShadow: '0 2px 4px rgba(15, 23, 42, 0.08)',
                   whiteSpace: 'nowrap'
