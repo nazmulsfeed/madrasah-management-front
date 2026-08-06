@@ -377,7 +377,7 @@ export default function DashboardLayout() {
 
           <div className="topbar-breadcrumb">
             <Building2 size={16} />
-            {user?.institution?.name || 'দারুল উলূম মাদ্রাসা'}
+            {user?.institution || 'আন-নুর-ইসলামিক একাডেমি'}
             <ChevronLeft size={14} style={{ opacity: 0.4 }} />
             <span>{getPageTitle()}</span>
           </div>
