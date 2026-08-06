@@ -16,6 +16,7 @@
   --primary-700: #047857;
   --primary-800: #065F46;
   --primary-900: #064E3B;
+  --primary: var(--primary-500);
 
   /* Accent — Amber/Gold (Keeping for warnings, etc) */
   --accent-300: #fcd34d;
