@@ -345,9 +345,7 @@ export default function PublicHomeworkPage() {
                   borderRadius: '8px',
                   fontSize: '0.9rem',
                   color: 'var(--text-primary)',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <Download size={16} />
