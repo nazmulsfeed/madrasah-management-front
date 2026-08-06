@@ -14,8 +14,7 @@ export default function PublicHomeworkPage() {
   const [selectedPublicNotice, setSelectedPublicNotice] = useState(null);
   const [showAllNotices, setShowAllNotices] = useState(false);
 
-  // Theme State
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  // Theme: always light mode on public page
 
   // Filter States
   const [search, setSearch] = useState('');
@@ -156,9 +155,9 @@ export default function PublicHomeworkPage() {
   };
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    document.documentElement.setAttribute('data-theme', 'light');
+    localStorage.setItem('theme', 'light');
+  }, []);
 
   const [loadingHomeworks, setLoadingHomeworks] = useState(false);
 
