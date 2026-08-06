@@ -335,19 +335,16 @@ export default function PublicHomeworkPage() {
               <button
                 onClick={handleInstallClick}
                 title="অ্যাপ ইনস্টল করুন"
+                className="btn btn-secondary"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
                   height: '42px',
                   padding: '0 16px',
-                  border: '1px solid var(--primary-500)',
                   borderRadius: '8px',
-                  background: 'var(--primary-500)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
                   fontSize: '0.85rem',
+                  fontWeight: 600,
                   transition: 'all 0.2s',
                   boxShadow: 'var(--shadow-sm)'
                 }}
