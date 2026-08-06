@@ -377,7 +377,7 @@ export default function PublicHomeworkPage() {
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             <a href="/login" className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', height: '42px', padding: '0 20px', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              ড্যাশবোর্ডে লগ ইন
+              লগইন
             </a>
           </div>
         </div>
