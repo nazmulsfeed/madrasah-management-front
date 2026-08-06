@@ -300,7 +300,7 @@ export default function PublicHomeworkPage() {
             <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>আজকের হোমওয়ার্ক ও অ্যাসাইনমেন্ট</h1>
             <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0 0', fontSize: '0.95rem' }}>অফিসিয়াল ড্যাশবোর্ড থেকে রিয়েল-টাইমে প্রকাশিত ও উন্মুক্ত হোমওয়ার্কসমূহ</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Push Notification Toggle Button */}
             <button
               onClick={handleNotificationToggle}
@@ -337,6 +337,18 @@ export default function PublicHomeworkPage() {
                       'নোটিফিকেশন'}
               </span>
             </button>
+            <button
+              onClick={toggleTheme}
+              className="btn btn-icon"
+              style={{
+                width: '42px', height: '42px', borderRadius: '50%',
+                background: 'var(--bg-card)', color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
+              }}
+              title={theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             {showInstallBtn && (
               <button
                 onClick={handleInstallClick}
@@ -361,21 +373,9 @@ export default function PublicHomeworkPage() {
                 }}
               >
                 <Download size={16} />
-                <span>অ্যাপ ইনস্টল করুন</span>
+                <span>অ্যাপ ইনস্টল</span>
               </button>
             )}
-            <button
-              onClick={toggleTheme}
-              className="btn btn-icon"
-              style={{
-                width: '42px', height: '42px', borderRadius: '50%',
-                background: 'var(--bg-card)', color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)'
-              }}
-              title={theme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড'}
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
             <a href="/login" className="btn btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', height: '42px', padding: '0 20px', borderRadius: '8px', fontSize: '0.9rem', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               লগইন
             </a>
