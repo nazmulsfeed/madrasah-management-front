@@ -608,7 +608,7 @@ export default function PublicHomeworkPage() {
 
             {/* Custom Date Input */}
             {dateFilter === 'custom' && (
-              <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
+              <div style={{ position: 'relative', width: '200px' }}>
                 <input
                   type="date"
                   value={customDate}
