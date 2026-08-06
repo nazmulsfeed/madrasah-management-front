@@ -395,7 +395,7 @@ export default function DashboardLayout() {
 
           <div className="topbar-breadcrumb">
             <Building2 size={16} />
-            {user?.institution || 'আন-নুর-ইসলামিক একাডেমি'}
+            {(typeof user?.institution === 'object' ? user?.institution?.name : user?.institution) || 'আন-নুর-ইসলামিক একাডেমি'}
             <ChevronLeft size={14} style={{ opacity: 0.4 }} />
             <span>{getPageTitle()}</span>
           </div>
@@ -423,7 +423,7 @@ export default function DashboardLayout() {
                 onClick={() => setBranchMenuOpen(!branchMenuOpen)}
               >
                 <Building2 size={16} /> 
-                {user?.branch || 'ব্রাঞ্চ নির্বাচন'} 
+                {(typeof user?.branch === 'object' ? user?.branch?.name : user?.branch) || 'ব্রাঞ্চ নির্বাচন'} 
                 <ChevronDown size={14} />
               </button>
               {branchMenuOpen && (
