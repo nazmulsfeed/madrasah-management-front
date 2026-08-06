@@ -116,15 +116,25 @@ const menuItems = [
 ];
 
 export default function DashboardLayout() {
+  const { user, logout, getUserTypeLabel, fetchMe } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, getUserTypeLabel, fetchMe } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [myPermissions, setMyPermissions] = useState(() => {
     try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
   });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   const handleSwitchBranch = async (branchName) => {
     try {
@@ -378,6 +388,10 @@ export default function DashboardLayout() {
             <Search size={16} />
             <input type="text" placeholder="অনুসন্ধান করুন..." />
           </div>
+
+          <button className="topbar-icon-btn" onClick={toggleTheme} title="থিম পরিবর্তন করুন">
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
 
           <button className="topbar-icon-btn">
             <Bell size={20} />
