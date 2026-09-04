@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v6'; // Bumped to bust stale cache and update new logo
+const CACHE_NAME = 'annur-academy-cache-v7'; // Bumped to bust stale cache and load new attendance page
 const urlsToCache = [
   '/',
   '/index.html',
