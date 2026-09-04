@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v7'; // Bumped to bust stale cache and load new attendance page
+const CACHE_NAME = 'annur-academy-cache-v8'; // Bumped for multi-date attendance & all classes
 const urlsToCache = [
   '/',
   '/index.html',
