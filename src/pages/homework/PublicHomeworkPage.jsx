@@ -123,12 +123,29 @@ export default function PublicHomeworkPage() {
       }
     } catch (err) {
       console.error('[Push] Toggle error:', err);
+      console.error('[Push] Error name:', err.name);
+      console.error('[Push] Error message:', err.message);
       setNotifStatus('idle');
       const msg = err.response?.data?.message || err.message || 'নোটিফিকেশন সেটআপে সমস্যা হয়েছে।';
-      if (msg.includes('push service error') || msg.includes('Registration failed')) {
-        alert('ব্রাউজারের পুশ সার্ভিস সংযুক্ত করা যাচ্ছে না। আপনি যদি Brave ব্রাউজার ব্যবহার করেন, তবে Settings -> Privacy & Security এ গিয়ে "Use Google Services for Push Messaging" অপশনটি অন করুন। অথবা ব্রাউজারের অন্যান্য এক্সটেনশন/VPN বন্ধ করে চেষ্টা করুন।');
+      const errName = err.name || '';
+
+      // ব্রাউজার-নির্দিষ্ট error patterns চেক করা হচ্ছে
+      if (errName === 'AbortError' || msg.includes('push service error') || msg.includes('Registration failed') || msg.includes('AbortError')) {
+        // FCM সার্ভারে সংযোগ করা যাচ্ছে না
+        alert('পুশ সার্ভিসে সংযোগ করা যাচ্ছে না (FCM Unreachable)।\n\nসম্ভাব্য কারণ ও সমাধান:\n• VPN বা Proxy চালু থাকলে বন্ধ করুন\n• Ad-blocker / Privacy Extension বন্ধ করে try করুন\n• Incognito Mode (Ctrl+Shift+N) এ try করুন\n• Brave ব্রাউজার হলে: Settings → Privacy & Security → "Use Google Services for Push Messaging" অন করুন\n• Antivirus সফটওয়্যার সাময়িকভাবে বন্ধ করে দেখুন');
+      } else if (errName === 'NetworkError' || msg.includes('NetworkError') || msg.includes('network')) {
+        // নেটওয়ার্ক সমস্যা
+        alert('নেটওয়ার্ক সমস্যা: Google Push Service-এ সংযোগ করা যাচ্ছে না।\n\nআপনার ইন্টারনেট সংযোগ চেক করুন এবং VPN/Proxy বন্ধ করে আবার চেষ্টা করুন।');
+      } else if (errName === 'InvalidStateError' || msg.includes('InvalidStateError')) {
+        // Service Worker সমস্যা
+        alert('Service Worker সমস্যা হয়েছে।\n\nব্রাউজারের ক্যাশ ক্লিয়ার করে পেজ রিফ্রেশ করুন (Ctrl+Shift+R)।');
+      } else if (errName === 'NotAllowedError' || msg.includes('NotAllowedError')) {
+        setNotifStatus('denied');
+        alert('নোটিফিকেশনের অনুমতি ব্লক করা আছে।\n\nব্রাউজারের Address Bar-এর পাশের 🔒 আইকনে ক্লিক করে Notifications → Allow করুন।');
+      } else if (msg.includes('timeout') || msg.includes('Timeout')) {
+        alert('সংযোগ টাইমআউট হয়েছে।\n\nআপনার ইন্টারনেট সংযোগ ধীর হতে পারে। কিছুক্ষণ পর আবার চেষ্টা করুন।');
       } else {
-        alert(`নোটিফিকেশন সেটআপ সমস্যা: ${msg}`);
+        alert(`নোটিফিকেশন সেটআপ সমস্যা: ${msg}\n\nসমাধান না হলে: VPN/Extensions বন্ধ করুন, অথবা Incognito Mode-এ চেষ্টা করুন।`);
       }
     }
   };
