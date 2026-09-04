@@ -284,7 +284,8 @@ export default function AcademicsPage() {
       }
     } catch (error) {
       console.error('Failed to save academic year', error);
-      setToast({ type: 'error', message: 'শিক্ষাবর্ষ সংরক্ষণ করতে সমস্যা হয়েছে' });
+      const msg = error.response?.data?.message || 'শিক্ষাবর্ষ সংরক্ষণ করতে সমস্যা হয়েছে';
+      setToast({ type: 'error', message: msg });
     } finally {
       setAYSubmitting(false);
     }
@@ -300,7 +301,8 @@ export default function AcademicsPage() {
       }
     } catch (error) {
       console.error('Failed to delete academic year', error);
-      setToast({ type: 'error', message: 'শিক্ষাবর্ষ মুছতে সমস্যা হয়েছে' });
+      const msg = error.response?.data?.message || 'শিক্ষাবর্ষ মুছতে সমস্যা হয়েছে';
+      setToast({ type: 'error', message: msg });
     }
   };
 
@@ -314,7 +316,8 @@ export default function AcademicsPage() {
       }
     } catch (error) {
       console.error('Failed to toggle current academic year', error);
-      setToast({ type: 'error', message: 'চলতি শিক্ষাবর্ষ পরিবর্তন করতে সমস্যা হয়েছে' });
+      const msg = error.response?.data?.message || 'চলতি শিক্ষাবর্ষ পরিবর্তন করতে সমস্যা হয়েছে';
+      setToast({ type: 'error', message: msg });
     }
   };
 
