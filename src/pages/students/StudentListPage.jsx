@@ -396,7 +396,7 @@ export default function StudentListPage() {
                           </span>
                         </td>
                         <td>{enrollment?.classLevel?.name || '—'}</td>
-                        <td>{enrollment?.section?.name || '—'}</td>
+                        <td>{enrollment?.section?.name || (typeof enrollment?.section === 'string' ? enrollment.section : '—')}</td>
                         <td>
                           <span style={{ fontFamily: 'Inter' }}>
                             {enrollment?.rollNumber || '—'}

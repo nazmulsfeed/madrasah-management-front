@@ -5,6 +5,7 @@ import {
   ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle
 } from 'lucide-react';
 import api from '../../api/axios';
+import { SECTION_OPTIONS } from '../../utils/constants';
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -15,6 +16,8 @@ export default function StudentDetailPage() {
   const [activeTab, setActiveTab] = useState('info');
   const [toast, setToast] = useState(null);
   const [branches, setBranches] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
+  const [classLevels, setClassLevels] = useState([]);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -31,7 +34,11 @@ export default function StudentDetailPage() {
     bloodGroup: '',
     status: 'active',
     branchId: '',
-    residentialStatus: 'non-residential'
+    residentialStatus: 'non-residential',
+    academicYearId: '',
+    classLevelId: '',
+    sectionId: '',
+    rollNumber: ''
   });
 
   // Auto-hide toast
@@ -69,6 +76,12 @@ export default function StudentDetailPage() {
   useEffect(() => {
     fetchStudent();
     fetchBranches();
+    api.get('/students/academic-years').then(res => {
+      if (res.data.success) setAcademicYears(res.data.data.academicYears || []);
+    }).catch(err => console.error('Failed to load academic years', err));
+    api.get('/students/classes').then(res => {
+      if (res.data.success) setClassLevels(res.data.data.classes || []);
+    }).catch(err => console.error('Failed to load classes', err));
   }, [id]);
 
   useEffect(() => {
@@ -81,6 +94,7 @@ export default function StudentDetailPage() {
 
   const handleOpenEdit = () => {
     if (!student) return;
+    const curEnr = student.currentEnrollment;
     setEditFormData({
       firstName: student.user?.firstName || '',
       lastName: student.user?.lastName || '',
@@ -89,11 +103,15 @@ export default function StudentDetailPage() {
       username: student.user?.username || '',
       password: '',
       dateOfBirth: student.dateOfBirth ? student.dateOfBirth.split('T')[0] : '',
-      gender: student.gender || 'male',
+      gender: (student.gender === 'female' || student.gender === 'মহিলা') ? 'female' : 'male',
       bloodGroup: student.bloodGroup || '',
       status: student.status || 'active',
       branchId: student.branch?._id || student.branch || '',
-      residentialStatus: student.residentialStatus || 'non-residential'
+      residentialStatus: student.residentialStatus || 'non-residential',
+      academicYearId: curEnr?.academicYear?._id || curEnr?.academicYear || '',
+      classLevelId: curEnr?.classLevel?._id || curEnr?.classLevel || '',
+      sectionId: curEnr?.section?.name || (typeof curEnr?.section === 'string' ? curEnr.section : '') || '',
+      rollNumber: curEnr?.rollNumber || ''
     });
     setIsEditModalOpen(true);
   };
@@ -229,7 +247,7 @@ export default function StudentDetailPage() {
               <div className="flex gap-8" style={{ alignItems: 'center' }}>
                 <GraduationCap size={14} style={{ color: 'var(--text-muted)' }} />
                 <span className="text-sm">
-                  {enrollment?.classLevel?.name || '—'} ({enrollment?.section?.name || '—'})
+                  {enrollment?.classLevel?.name || '—'} ({enrollment?.section?.name || (typeof enrollment?.section === 'string' ? enrollment.section : '—')})
                 </span>
               </div>
               <div className="flex gap-8" style={{ alignItems: 'center' }}>
@@ -289,7 +307,7 @@ export default function StudentDetailPage() {
               </div>
               <div>
                 <div className="text-sm text-muted mb-4">লিঙ্গ</div>
-                <div className="font-semibold">{student.gender === 'male' ? 'ছাত্র (Male)' : student.gender === 'female' ? 'ছাত্রী (Female)' : '—'}</div>
+                <div className="font-semibold">{(student.gender === 'female' || student.gender === 'মহিলা') ? 'ছাত্রী (Female)' : (student.gender === 'male' || student.gender === 'পুরুষ') ? 'ছাত্র (Male)' : '—'}</div>
               </div>
               <div>
                 <div className="text-sm text-muted mb-4">রক্তের গ্রুপ</div>
@@ -327,7 +345,7 @@ export default function StudentDetailPage() {
               </div>
               <div>
                 <div className="text-sm text-muted mb-4">শ্রেণির সেকশন (Section)</div>
-                <div className="font-semibold">{enrollment?.section?.name || '—'}</div>
+                <div className="font-semibold">{enrollment?.section?.name || (typeof enrollment?.section === 'string' ? enrollment.section : '—')}</div>
               </div>
               <div>
                 <div className="text-sm text-muted mb-4">শাখা (Branch)</div>
@@ -483,6 +501,60 @@ export default function StudentDetailPage() {
                       <option value="residential">আবাসিক (Residential)</option>
                       <option value="day-care">ডে-কেয়ার (Day-Care)</option>
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Academic Enrollment Block */}
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '12px', color: 'var(--primary-400)' }}>একাডেমিক বিবরণী (Academic Enrollment)</h3>
+                <div className="grid grid-2" style={{ gap: '12px 16px' }}>
+                  <div>
+                    <label className="form-label">শিক্ষাবর্ষ</label>
+                    <select 
+                      className="form-select form-input" 
+                      value={editFormData.academicYearId} 
+                      onChange={e => setEditFormData({ ...editFormData, academicYearId: e.target.value })}
+                    >
+                      <option value="">-- শিক্ষাবর্ষ নির্বাচন করুন --</option>
+                      {academicYears.map(y => (
+                        <option key={y._id} value={y._id}>{y.name} {y.isCurrent ? '(চলতি)' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">শ্রেণি</label>
+                    <select 
+                      className="form-select form-input" 
+                      value={editFormData.classLevelId} 
+                      onChange={e => setEditFormData({ ...editFormData, classLevelId: e.target.value })}
+                    >
+                      <option value="">-- শ্রেণি নির্বাচন করুন --</option>
+                      {classLevels.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">সেকশন</label>
+                    <select 
+                      className="form-select form-input" 
+                      value={editFormData.sectionId} 
+                      onChange={e => setEditFormData({ ...editFormData, sectionId: e.target.value })}
+                    >
+                      <option value="">-- সেকশন নির্বাচন করুন --</option>
+                      {SECTION_OPTIONS.map((sec, idx) => (
+                        <option key={idx} value={sec}>{sec}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">রোল নম্বর</label>
+                    <input 
+                      type="text" className="form-input" placeholder="যেমন: 1"
+                      value={editFormData.rollNumber} 
+                      onChange={e => setEditFormData({ ...editFormData, rollNumber: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
