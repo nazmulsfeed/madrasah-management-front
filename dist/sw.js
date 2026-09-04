@@ -1,8 +1,11 @@
-const CACHE_NAME = 'annur-academy-cache-v5'; // Bumped to bust stale cache after download button fix
+const CACHE_NAME = 'annur-academy-cache-v6'; // Bumped to bust stale cache and update new logo
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json?v=2',
+  '/favicon.png?v=2',
+  '/icon-192.png?v=2',
+  '/icon-512.png?v=2'
 ];
 
 self.addEventListener('install', (event) => {
