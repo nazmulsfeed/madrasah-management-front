@@ -203,87 +203,89 @@ export default function DashboardLayout() {
           {menuItems.map((group) => {
             let items = group.items;
             
+            const isSuperOrAdmin = ['super_admin', 'co_super_admin', 'admin'].includes(user?.userType) || ['co_super_admin', 'admin'].includes(user?.adminRole);
+            
             // Apply permission-based filtering
             items = items.filter(item => {
               const isGuardianOrStudent = user?.userType === 'guardian' || user?.userType === 'student';
               
               if (item.path === '/students') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_students;
               }
               
               if (item.path === '/teachers') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 if (isGuardianOrStudent) return false;
                 return myPermissions.can_view_users;
               }
               
               if (item.path === '/guardians') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 if (isGuardianOrStudent) return false;
                 return myPermissions.can_view_users || myPermissions.can_communicate_parents;
               }
               
               if (item.path === '/academics') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 if (isGuardianOrStudent) return false;
                 return myPermissions.can_add_syllabus || myPermissions.can_view_users;
               }
 
               if (item.path === '/academics/class-subjects') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 if (isGuardianOrStudent) return false;
                 return myPermissions.can_add_syllabus || myPermissions.can_view_users;
               }
 
               if (item.path === '/attendance') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_all_attendance || myPermissions.can_mark_attendance || myPermissions.can_view_attendance;
               }
 
               if (item.path === '/exams') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_exams || myPermissions.can_manage_exams || myPermissions.can_grade_exams;
               }
               
               if (item.path === '/messaging') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_use_messaging;
               }
               
               if (item.path === '/hifz') {
-                if (user?.userType === 'super_admin' || myPermissions.can_manage_hifz) return true;
+                if (isSuperOrAdmin || myPermissions.can_manage_hifz) return true;
                 if (isGuardianOrStudent) return user?.isHifzEligible;
                 return false; 
               }
 
               if (item.path === '/homework') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_homework || myPermissions.can_view_all_homework;
               }
 
               if (item.path === '/fees' || item.path === '/daily-transactions' || item.path === '/income-categories' || item.path === '/incomes' || item.path === '/expense-vouchers' || item.path === '/chart-of-accounts' || item.path === '/journal-ledger' || item.path === '/finance/audit-logs' || item.path === '/finance/reports' || item.path === '/finance/custom-reports' || item.path === '/finance/backup-restore' || item.path === '/accounting-reports' || item.path === '/budget-management' || item.path === '/asset-management' || item.path === '/loan-management' || item.path === '/check-management' || item.path === '/advance-management' || item.path === '/refund-management' || item.path === '/bank-reconciliation' || item.path === '/financial-years' || item.path === '/madrasah-funds' || item.path === '/qurbani-skins') {
-                const hasFinanceAccess = (user.userType === 'super_admin' || user.userType === 'co_super_admin' || user.userType === 'admin' || user.userType === 'principal' || user.userType === 'accountant') || (myPermissions && myPermissions.finance && myPermissions.finance.view);
+                const hasFinanceAccess = isSuperOrAdmin || (user.userType === 'principal' || user.userType === 'accountant') || (myPermissions && myPermissions.finance && myPermissions.finance.view);
                 if (!hasFinanceAccess) return null;
               }
 
               if (item.path === '/notices') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_notice;
               }
 
               if (item.path === '/library') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_library;
               }
 
               if (item.path === '/hostel') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_hostel;
               }
 
               if (item.path === '/settings') {
-                if (user?.userType === 'super_admin') return true;
+                if (isSuperOrAdmin) return true;
                 return myPermissions.can_view_settings;
               }
 
@@ -291,7 +293,7 @@ export default function DashboardLayout() {
             });
 
             if (group.group === 'অন্যান্য') {
-              if (user?.userType === 'super_admin' || user?.userType === 'co_super_admin') {
+              if (isSuperOrAdmin) {
                 items = [
                   ...items,
                   { path: '/reports', label: 'রিপোর্ট ও বিশ্লেষণ', icon: BarChart2 },

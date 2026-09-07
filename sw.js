@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v12'; // Bumped for promoted role permissions & adminRole visibility
+const CACHE_NAME = 'annur-academy-cache-v13'; // Bumped for sidebar menu & promoted permissions fix
 const urlsToCache = [
   '/',
   '/index.html',
