@@ -376,13 +376,14 @@ export default function StudentDetailPage() {
                       } else {
                         setLoadingPassword(true);
                         try {
-                          const res = await api.get(`/users/${student.user._id || student.user}/show-password`);
+                          const res = await api.get(`/students/${id}/show-password`);
                           if (res.data.success) {
                             setVisiblePassword(res.data.data.plainPassword || '(সেট হয়নি)');
                             setShowPasswordVisible(true);
                           }
                         } catch (err) {
-                          setToast({ type: 'error', message: 'পাসওয়ার্ড দেখতে ব্যর্থ হয়েছে' });
+                          console.error('Show password error:', err);
+                          setToast({ type: 'error', message: err.response?.data?.message || 'পাসওয়ার্ড দেখতে ব্যর্থ হয়েছে' });
                         } finally {
                           setLoadingPassword(false);
                         }

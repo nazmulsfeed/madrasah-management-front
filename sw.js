@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v10'; // Bumped for student list id/username & edit button fix
+const CACHE_NAME = 'annur-academy-cache-v11'; // Bumped for show-password direct student endpoint
 const urlsToCache = [
   '/',
   '/index.html',
