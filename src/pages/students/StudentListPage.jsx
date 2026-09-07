@@ -342,7 +342,8 @@ export default function StudentListPage() {
                       />
                     </th>
                     <th style={{ textAlign: 'left' }}>ছাত্র/ছাত্রী</th>
-                    <th>ভর্তি নম্বর</th>
+                    <th>আইডি নম্বর</th>
+                    <th>ইউজারনেম</th>
                     <th>শ্রেণি</th>
                     <th>সেকশন</th>
                     <th>রোল</th>
@@ -391,8 +392,13 @@ export default function StudentListPage() {
                           </div>
                         </td>
                         <td>
-                          <span style={{ fontFamily: 'Inter', fontWeight: 500 }}>
-                            {student.admissionNumber}
+                          <span style={{ fontFamily: 'Inter', fontWeight: 600, color: 'var(--primary-600)' }}>
+                            {student.studentId || student.admissionNumber || '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ fontFamily: 'Inter', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                            {student.user?.username || '—'}
                           </span>
                         </td>
                         <td>{enrollment?.classLevel?.name || '—'}</td>

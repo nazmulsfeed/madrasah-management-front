@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v9'; // Bumped for student extra fields & password view
+const CACHE_NAME = 'annur-academy-cache-v10'; // Bumped for student list id/username & edit button fix
 const urlsToCache = [
   '/',
   '/index.html',

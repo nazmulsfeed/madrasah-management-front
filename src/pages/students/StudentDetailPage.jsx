@@ -211,7 +211,7 @@ export default function StudentDetailPage() {
             <p className="page-subtitle">বিস্তারিত একাডেমিক ও ব্যক্তিগত বিবরণী</p>
           </div>
         </div>
-        <button className="btn btn-primary btn-icon" onClick={handleOpenEdit}>
+        <button className="btn btn-primary" onClick={handleOpenEdit} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           <Edit size={16} /> তথ্য সম্পাদনা
         </button>
       </div>
