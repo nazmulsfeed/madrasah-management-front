@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Shield, Save, CheckCircle, AlertCircle, RefreshCw, Users, Search, GraduationCap, UserCheck, Check, RotateCcw, X } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import { permissionCategories, allPermissionKeys } from '../../utils/permissionCategories';
 
 const roles = [
   { value: 'co_super_admin', label: 'কো-সুপার অ্যাডমিন' },
@@ -11,290 +12,13 @@ const roles = [
   { value: 'teacher', label: 'শিক্ষক' },
   { value: 'hifz_teacher', label: 'হিফজ শিক্ষক' },
   { value: 'accountant', label: 'হিসাবরক্ষক' },
+  { value: 'cashier', label: 'ক্যাশিয়ার' },
   { value: 'admission_officer', label: 'ভর্তি কর্মকর্তা' },
   { value: 'hostel_manager', label: 'হোস্টেল ম্যানেজার' },
   { value: 'library_manager', label: 'লাইব্রেরি ম্যানেজার' },
   { value: 'student', label: 'ছাত্র/ছাত্রী' },
   { value: 'guardian', label: 'অভিভাবক' },
 ];
-
-const permissionCategories = [
-  {
-    category: 'হোমওয়ার্ক',
-    permissions: [
-      { key: 'can_view_homework', label: 'নিজের হোমওয়ার্ক দেখতে পারবে' },
-      { key: 'can_view_all_homework', label: 'সকলের হোমওয়ার্ক দেখতে পারবে' },
-      { key: 'can_create_homework', label: 'নতুন হোমওয়ার্ক তৈরি করতে পারবে' },
-      { key: 'can_edit_homework', label: 'হোমওয়ার্ক এডিট করতে পারবে' },
-      { key: 'can_delete_homework', label: 'হোমওয়ার্ক মুছতে পারবে' },
-    ]
-  },
-  {
-    category: 'উপস্থিতি (Attendance)',
-    permissions: [
-      { key: 'can_view_attendance', label: 'নিজের উপস্থিতি দেখতে পারবে' },
-      { key: 'can_view_all_attendance', label: 'সকলের উপস্থিতি দেখতে পারবে' },
-      { key: 'can_mark_attendance', label: 'উপস্থিতি নিতে পারবে' },
-    ]
-  },
-  {
-    category: 'পরীক্ষা ও ফলাফল',
-    permissions: [
-      { key: 'can_view_exams', label: 'পরীক্ষা দেখতে পারবে' },
-      { key: 'can_manage_exams', label: 'পরীক্ষা পরিচালনা করতে পারবে' },
-    ]
-  },
-  {
-    category: 'আর্থিক হিসাব (Finance)',
-    permissions: [
-      { key: 'can_view_finance', label: 'ফি / বেতন মডিউল দেখতে পারবে (অন/অফ)' },
-      { key: 'can_manage_finance', label: 'আর্থিক লেনদেন পরিচালনা করতে পারবে' },
-    ]
-  },
-  {
-    category: 'ব্যবহারকারী পরিচালনা',
-    permissions: [
-      { key: 'can_view_users', label: 'স্টাফ তালিকা দেখতে পারবে' },
-      { key: 'can_view_students', label: 'ছাত্র/ছাত্রী দেখতে পারবে' },
-      { key: 'can_manage_users', label: 'ব্যবহারকারী তৈরি/এডিট করতে পারবে' },
-    ]
-  },
-  {
-    category: 'নোটিশ বোর্ড',
-    permissions: [
-      { key: 'can_view_notice', label: 'নোটিশ মডিউল দেখতে পারবে (অন/অফ)' },
-      { key: 'can_manage_notice', label: 'নোটিশ তৈরি ও মুছতে পারবে' },
-    ]
-  },
-  {
-    category: 'হোস্টেল',
-    permissions: [
-      { key: 'can_view_hostel', label: 'হোস্টেল মডিউল দেখতে পারবে (অন/অফ)' },
-      { key: 'can_manage_hostel', label: 'হোস্টেল পরিচালনা করতে পারবে' },
-    ]
-  },
-  {
-    category: 'লাইব্রেরি',
-    permissions: [
-      { key: 'can_view_library', label: 'লাইব্রেরি মডিউল দেখতে পারবে (অন/অফ)' }
-    ]
-  },
-  {
-    category: 'সিস্টেম সেটিংস',
-    permissions: [
-      { key: 'can_view_settings', label: 'সেটিংস মডিউল দেখতে পারবে (অন/অফ)' }
-    ]
-  },
-  {
-    category: 'শিক্ষক ও যোগাযোগ মডিউল',
-    permissions: [
-      { key: 'can_grade_exams', label: 'খাতা মূল্যায়ন ও মার্কস দিতে পারবে' },
-      { key: 'can_add_syllabus', label: 'সিলেবাস যোগ করতে পারবে' },
-      { key: 'can_communicate_parents', label: 'অভিভাবকদের সাথে মেসেজ করতে পারবে' },
-      { key: 'can_take_live_class', label: 'অনলাইন লাইভ ক্লাস নিতে পারবে' },
-      { key: 'can_use_messaging', label: 'মেসেজিং সিস্টেম ব্যবহার করতে পারবে' },
-    ]
-  },
-  {
-    category: 'হিফজ মডিউল (Hifz Specific)',
-    permissions: [
-      { key: 'can_manage_hifz', label: 'হিফজ অগ্রগতি এডিট ও ডিলিট করতে পারবে' }
-    ]
-  },
-  {
-    category: 'রিপোর্ট ও বিশ্লেষণ (Reports)',
-    permissions: [
-      { key: 'can_view_reports', label: 'সকল রিপোর্ট দেখতে পারবে এবং PDF ডাউনলোড করতে পারবে' }
-    ]
-  }
-];
-
-const allPermissionKeys = permissionCategories.flatMap(cat => cat.permissions.map(p => p.key));
-
-const defaultRolePermissions = {
-  super_admin: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: true,
-    can_view_finance: true, can_manage_finance: true,
-    can_view_users: true, can_view_students: true, can_manage_users: true,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: true, can_manage_hostel: true,
-    can_view_library: true,
-    can_view_settings: true,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: true,
-    can_view_reports: true
-  },
-  co_super_admin: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: true,
-    can_view_finance: true, can_manage_finance: true,
-    can_view_users: true, can_view_students: true, can_manage_users: true,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: true, can_manage_hostel: true,
-    can_view_library: true,
-    can_view_settings: true,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: true,
-    can_view_reports: true
-  },
-  admin: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: true,
-    can_view_finance: true, can_manage_finance: true,
-    can_view_users: true, can_view_students: true, can_manage_users: true,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: true, can_manage_hostel: true,
-    can_view_library: true,
-    can_view_settings: true,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: true,
-    can_view_reports: true
-  },
-  principal: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: true,
-    can_view_finance: true, can_manage_finance: true,
-    can_view_users: true, can_view_students: true, can_manage_users: true,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: true, can_manage_hostel: true,
-    can_view_library: true,
-    can_view_settings: true,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: true,
-    can_view_reports: true
-  },
-  vice_principal: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: true,
-    can_view_finance: true, can_manage_finance: false,
-    can_view_users: true, can_view_students: true, can_manage_users: true,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: true, can_manage_hostel: true,
-    can_view_library: true,
-    can_view_settings: true,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: true,
-    can_view_reports: true
-  },
-  teacher: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: false,
-    can_view_finance: false, can_manage_finance: false,
-    can_view_users: false, can_view_students: true, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: false, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: false
-  },
-  hifz_teacher: {
-    can_view_homework: true, can_view_all_homework: true, can_create_homework: true, can_edit_homework: true, can_delete_homework: true,
-    can_view_attendance: true, can_view_all_attendance: true, can_mark_attendance: true,
-    can_view_exams: true, can_manage_exams: false,
-    can_view_finance: false, can_manage_finance: false,
-    can_view_users: false, can_view_students: true, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: true,
-    can_view_hostel: false, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: true, can_add_syllabus: true, can_communicate_parents: true, can_take_live_class: true, can_use_messaging: true,
-    can_manage_hifz: true,
-    can_view_reports: false
-  },
-  accountant: {
-    can_view_homework: false, can_view_all_homework: false, can_create_homework: false, can_edit_homework: false, can_delete_homework: false,
-    can_view_attendance: true, can_view_all_attendance: false, can_mark_attendance: false,
-    can_view_exams: false, can_manage_exams: false,
-    can_view_finance: true, can_manage_finance: true,
-    can_view_users: true, can_view_students: true, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: false,
-    can_view_hostel: false, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: false, can_add_syllabus: false, can_communicate_parents: false, can_take_live_class: false, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: true
-  },
-  admission_officer: {
-    can_view_homework: false, can_view_all_homework: false, can_create_homework: false, can_edit_homework: false, can_delete_homework: false,
-    can_view_attendance: true, can_view_all_attendance: false, can_mark_attendance: false,
-    can_view_exams: false, can_manage_exams: false,
-    can_view_finance: false, can_manage_finance: false,
-    can_view_users: false, can_view_students: true, can_manage_users: true,
-    can_view_notice: true, can_manage_notice: false,
-    can_view_hostel: false, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: false, can_add_syllabus: false, can_communicate_parents: false, can_take_live_class: false, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: false
-  },
-  hostel_manager: {
-    can_view_homework: false, can_view_all_homework: false, can_create_homework: false, can_edit_homework: false, can_delete_homework: false,
-    can_view_attendance: true, can_view_all_attendance: false, can_mark_attendance: false,
-    can_view_exams: false, can_manage_exams: false,
-    can_view_finance: false, can_manage_finance: false,
-    can_view_users: false, can_view_students: true, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: false,
-    can_view_hostel: true, can_manage_hostel: true,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: false, can_add_syllabus: false, can_communicate_parents: false, can_take_live_class: false, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: false
-  },
-  library_manager: {
-    can_view_homework: false, can_view_all_homework: false, can_create_homework: false, can_edit_homework: false, can_delete_homework: false,
-    can_view_attendance: true, can_view_all_attendance: false, can_mark_attendance: false,
-    can_view_exams: false, can_manage_exams: false,
-    can_view_finance: false, can_manage_finance: false,
-    can_view_users: false, can_view_students: true, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: false,
-    can_view_hostel: false, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: false, can_add_syllabus: false, can_communicate_parents: false, can_take_live_class: false, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: false
-  },
-  student: {
-    can_view_homework: true, can_view_all_homework: false, can_create_homework: false, can_edit_homework: false, can_delete_homework: false,
-    can_view_attendance: true, can_view_all_attendance: false, can_mark_attendance: false,
-    can_view_exams: true, can_manage_exams: false,
-    can_view_finance: true, can_manage_finance: false,
-    can_view_users: false, can_view_students: false, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: false,
-    can_view_hostel: true, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: false, can_add_syllabus: false, can_communicate_parents: false, can_take_live_class: false, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: false
-  },
-  guardian: {
-    can_view_homework: true, can_view_all_homework: false, can_create_homework: false, can_edit_homework: false, can_delete_homework: false,
-    can_view_attendance: true, can_view_all_attendance: false, can_mark_attendance: false,
-    can_view_exams: true, can_manage_exams: false,
-    can_view_finance: true, can_manage_finance: false,
-    can_view_users: false, can_view_students: false, can_manage_users: false,
-    can_view_notice: true, can_manage_notice: false,
-    can_view_hostel: true, can_manage_hostel: false,
-    can_view_library: true,
-    can_view_settings: false,
-    can_grade_exams: false, can_add_syllabus: false, can_communicate_parents: false, can_take_live_class: false, can_use_messaging: true,
-    can_manage_hifz: false,
-    can_view_reports: false
-  }
-};
 
 export default function RoleManagementPage() {
   const { user: currentUser } = useAuthStore();
@@ -305,7 +29,6 @@ export default function RoleManagementPage() {
   const [permissions, setPermissions] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   
   // Role Update State
   const [usersList, setUsersList] = useState([]);
@@ -398,12 +121,10 @@ export default function RoleManagementPage() {
   };
 
   const handleRestoreDefault = () => {
-    const defaults = defaultRolePermissions[selectedRole] || {};
-    const updated = {};
-    allPermissionKeys.forEach(key => {
-      updated[key] = defaults[key] || false;
-    });
-    setPermissions(updated);
+    // Will implement backend default fetch if needed, 
+    // for now we just select all or deselect all.
+    // In a real scenario, you can create a GET /permissions/defaults API.
+    setToast({ type: 'info', message: 'Default restore is currently handled via API if you leave fields empty.' });
   };
 
   const handleSavePermissions = async () => {
@@ -423,7 +144,6 @@ export default function RoleManagementPage() {
   };
 
   const handleUpdateRole = async (userId, targetUserType, targetAdminRole, newAdminRole) => {
-    // Basic Rules Validation (super_admin check, self check)
     if (userId === currentUser._id) {
       setToast({ type: 'error', message: 'আপনি নিজের রোল পরিবর্তন করতে পারবেন না' });
       return;
@@ -468,7 +188,6 @@ export default function RoleManagementPage() {
 
   return (
     <div className="animate-fade-in" style={{ position: 'relative', paddingBottom: '40px' }}>
-      {/* Toast Notification */}
       {toast && (
         <div style={{
           position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
@@ -495,7 +214,6 @@ export default function RoleManagementPage() {
         )}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-8 mb-24" style={{ borderBottom: '1px solid var(--border-color)' }}>
         <button
           className="btn btn-ghost"
@@ -527,7 +245,6 @@ export default function RoleManagementPage() {
 
       {activeTab === 'permissions' ? (
         <div className="grid" style={{ gridTemplateColumns: '260px 1fr', gap: '24px' }}>
-          {/* Sidebar: Role List */}
           <div className="card" style={{ padding: '16px' }}>
             <h3 style={{ fontSize: '1rem', marginBottom: '16px', fontWeight: 700 }}>রোল নির্বাচন করুন</h3>
             <div className="flex flex-col gap-4">
@@ -553,22 +270,12 @@ export default function RoleManagementPage() {
             </div>
           </div>
 
-          {/* Main Content: Permissions List */}
           <div className="card" style={{ padding: '24px' }}>
             <div className="flex-between mb-24 pb-16" style={{ borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
                 {roles.find(r => r.value === selectedRole)?.label} এর পারমিশন সেটআপ
               </h2>
               <div className="flex gap-8" style={{ alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleRestoreDefault}
-                  style={{ border: '1px solid var(--border-color)', padding: '6px 12px', fontSize: '0.813rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  title="ডিফল্ট পারমিশন রিস্টোর করুন"
-                >
-                  <RotateCcw size={14} /> ডিফল্ট সেট করুন
-                </button>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -596,17 +303,19 @@ export default function RoleManagementPage() {
               <div className="grid" style={{ gap: '24px' }}>
                 {permissionCategories.map(cat => {
                   const isSpecial = cat.category.includes('Hifz') || cat.category.includes('Teacher');
+                  const isFinancial = ['Fee Management', 'Student Fee / Assignment', 'Payment Collection', 'Payment Transaction', 'Due Management', 'Discount / Scholarship / Waiver', 'Refund', 'Invoice & Receipt', 'Payment Method & Gateway', 'Financial Reports'].includes(cat.category);
+                  
                   return (
                     <div key={cat.category} style={{
-                      background: isSpecial ? 'rgba(20, 184, 166, 0.03)' : 'var(--bg-secondary)', 
+                      background: isFinancial ? 'rgba(59, 130, 246, 0.03)' : isSpecial ? 'rgba(20, 184, 166, 0.03)' : 'var(--bg-secondary)', 
                       padding: '20px', 
                       borderRadius: '12px',
-                      border: isSpecial ? '1px solid var(--primary-600)' : '1px solid var(--border-color)'
+                      border: isFinancial ? '1px solid rgba(59, 130, 246, 0.3)' : isSpecial ? '1px solid var(--primary-600)' : '1px solid var(--border-color)'
                     }}>
                       <h3 style={{ 
                         fontSize: '0.95rem', 
                         marginBottom: '16px', 
-                        color: isSpecial ? 'var(--primary-400)' : 'var(--text-color)',
+                        color: isFinancial ? '#2563EB' : isSpecial ? 'var(--primary-400)' : 'var(--text-color)',
                         fontWeight: 700
                       }}>
                         {cat.category}
@@ -638,7 +347,6 @@ export default function RoleManagementPage() {
       ) : (
         /* Tab: Promote / Demote */
         <div>
-          {/* Sub tabs to separate Teacher, Guardian and Student */}
           <div className="flex gap-8 mb-20" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0px' }}>
             {[
               { id: 'staff', label: 'শিক্ষক ও স্টাফ (Staff/Teachers)', icon: Users },
@@ -705,10 +413,6 @@ export default function RoleManagementPage() {
                       const isSuper = u.userType === 'super_admin';
                       const isCoSuper = u.adminRole === 'co_super_admin' || u.userType === 'co_super_admin';
                       
-                      // Disable conditions: 
-                      // 1. Yourself
-                      // 2. The super admin
-                      // 3. Co-super admins if you are not super_admin yourself
                       const isDisabled = isSelf || isSuper || (isCoSuper && currentUser?.userType !== 'super_admin');
 
                       return (
