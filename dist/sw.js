@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v8'; // Bumped for multi-date attendance & all classes
+const CACHE_NAME = 'annur-academy-cache-v9'; // Bumped for student extra fields & password view
 const urlsToCache = [
   '/',
   '/index.html',
