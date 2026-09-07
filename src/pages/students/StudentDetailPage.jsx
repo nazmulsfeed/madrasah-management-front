@@ -21,7 +21,7 @@ export default function StudentDetailPage() {
   const [academicYears, setAcademicYears] = useState([]);
   const [classLevels, setClassLevels] = useState([]);
   const { user: currentUser } = useAuthStore();
-  const isAdminOrHigher = ['super_admin', 'co_super_admin'].includes(currentUser?.userType) || currentUser?.adminRole === 'co_super_admin' || currentUser?.userType === 'admin';
+  const isAdminOrHigher = ['super_admin', 'co_super_admin', 'admin'].includes(currentUser?.userType) || ['co_super_admin', 'admin'].includes(currentUser?.adminRole);
 
   // Password show state
   const [showPasswordVisible, setShowPasswordVisible] = useState(false);

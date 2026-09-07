@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v11'; // Bumped for show-password direct student endpoint
+const CACHE_NAME = 'annur-academy-cache-v12'; // Bumped for promoted role permissions & adminRole visibility
 const urlsToCache = [
   '/',
   '/index.html',
