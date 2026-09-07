@@ -11,8 +11,14 @@ import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { SECTION_OPTIONS } from '../../utils/constants';
 
 export default function AttendancePage() {
-  const { user, permissions } = useAuthStore();
-  const canMarkAttendance = user?.userType === 'super_admin' || permissions?.can_mark_attendance;
+  const { user } = useAuthStore();
+  const userPerms = user?.permissions || (() => {
+    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
+  })();
+  const isSuperOrAdmin = ['super_admin', 'co_super_admin', 'admin', 'principal', 'vice_principal'].includes(user?.userType) || 
+    ['co_super_admin', 'admin'].includes(user?.adminRole);
+  const isTeacherRole = ['teacher', 'hifz_teacher'].includes(user?.userType);
+  const canMarkAttendance = isSuperOrAdmin || isTeacherRole || userPerms?.can_mark_attendance || userPerms?.can_view_attendance || userPerms?.can_view_all_attendance;
 
   // Date selection mode: 'single' | 'range'
   const [dateMode, setDateMode] = useState('single');

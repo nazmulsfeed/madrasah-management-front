@@ -414,7 +414,9 @@ export default function RoleManagementPage() {
         setToast({ type: 'success', message: `${roles.find(r => r.value === selectedRole)?.label} এর পারমিশন সফলভাবে সেভ হয়েছে!` });
       }
     } catch (error) {
-      setToast({ type: 'error', message: 'পারমিশন সেভ করতে সমস্যা হয়েছে' });
+      console.error('Error saving permissions:', error);
+      const errMsg = error.response?.data?.message || 'পারমিশন সেভ করতে সমস্যা হয়েছে';
+      setToast({ type: 'error', message: errMsg });
     } finally {
       setSaving(false);
     }
