@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Mail, Phone, Calendar, BookOpen, CreditCard,
-  ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle
+  ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle,
+  Eye, EyeOff, Key
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
+import useAuthStore from '../../store/authStore';
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -18,6 +20,13 @@ export default function StudentDetailPage() {
   const [branches, setBranches] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
   const [classLevels, setClassLevels] = useState([]);
+  const { user: currentUser } = useAuthStore();
+  const isAdminOrHigher = ['super_admin', 'co_super_admin'].includes(currentUser?.userType) || currentUser?.adminRole === 'co_super_admin' || currentUser?.userType === 'admin';
+
+  // Password show state
+  const [showPasswordVisible, setShowPasswordVisible] = useState(false);
+  const [visiblePassword, setVisiblePassword] = useState('');
+  const [loadingPassword, setLoadingPassword] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -111,7 +120,11 @@ export default function StudentDetailPage() {
       academicYearId: curEnr?.academicYear?._id || curEnr?.academicYear || '',
       classLevelId: curEnr?.classLevel?._id || curEnr?.classLevel || '',
       sectionId: curEnr?.section?.name || (typeof curEnr?.section === 'string' ? curEnr.section : '') || '',
-      rollNumber: curEnr?.rollNumber || ''
+      rollNumber: curEnr?.rollNumber || '',
+      fatherName: student.fatherName || '',
+      motherName: student.motherName || '',
+      village: student.village || '',
+      nationalIdOrBirthCertNo: student.nationalIdOrBirthCertNo || ''
     });
     setIsEditModalOpen(true);
   };
@@ -324,10 +337,68 @@ export default function StudentDetailPage() {
               <div>
                 <div className="text-sm text-muted mb-4">আবাসিক অবস্থা (Residential Status)</div>
                 <div className="font-semibold">
-                  {student.residentialStatus === 'residential' ? 'আবাসিক (Residential)' : student.residentialStatus === 'non-residential' ? 'অনাবাসিক (Non-Residential)' : student.residentialStatus === 'day-care' ? 'ডে-কেয়ার (Day-Care)' : '—'}
+                  {student.residentialStatus === 'residential' ? 'আবাসিক (Residential)' : student.residentialStatus === 'non-residential' ? 'অনাবাসিক (Non-Residential)' : student.residentialStatus === 'day-care' ? 'ডে-কেয়ার (Day-Care)' : '—'}
                 </div>
               </div>
+              <div>
+                <div className="text-sm text-muted mb-4">পিতার নাম</div>
+                <div className="font-semibold">{student.fatherName || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">মায়ের নাম</div>
+                <div className="font-semibold">{student.motherName || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">গ্রাম</div>
+                <div className="font-semibold">{student.village || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">আইডি/জন্ম নিবন্ধন নাম্বার</div>
+                <div className="font-semibold">{student.nationalIdOrBirthCertNo || '—'}</div>
+              </div>
             </div>
+
+            {/* Password Show (Admin Only) */}
+            {isAdminOrHigher && student.user && (
+              <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(20,184,166,0.04)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div className="flex gap-12" style={{ alignItems: 'center' }}>
+                  <Key size={16} style={{ color: 'var(--primary)' }} />
+                  <span className="text-sm font-semibold">পাসওয়ার্ড (শুধুমাত্র অ্যাডমিন)</span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '6px 14px' }}
+                    disabled={loadingPassword}
+                    onClick={async () => {
+                      if (showPasswordVisible) {
+                        setShowPasswordVisible(false);
+                        setVisiblePassword('');
+                      } else {
+                        setLoadingPassword(true);
+                        try {
+                          const res = await api.get(`/users/${student.user._id || student.user}/show-password`);
+                          if (res.data.success) {
+                            setVisiblePassword(res.data.data.plainPassword || '(সেট হয়নি)');
+                            setShowPasswordVisible(true);
+                          }
+                        } catch (err) {
+                          setToast({ type: 'error', message: 'পাসওয়ার্ড দেখতে ব্যর্থ হয়েছে' });
+                        } finally {
+                          setLoadingPassword(false);
+                        }
+                      }
+                    }}
+                  >
+                    {loadingPassword ? <Loader className="animate-spin" size={14} /> : showPasswordVisible ? <><EyeOff size={14} /> লুকান</> : <><Eye size={14} /> দেখুন</>}
+                  </button>
+                </div>
+                {showPasswordVisible && (
+                  <div style={{ marginTop: '10px', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', fontFamily: 'Inter, monospace', fontSize: '1rem', letterSpacing: '1px', fontWeight: 600 }}>
+                    {visiblePassword}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -501,6 +572,38 @@ export default function StudentDetailPage() {
                       <option value="residential">আবাসিক (Residential)</option>
                       <option value="day-care">ডে-কেয়ার (Day-Care)</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="form-label">পিতার নাম (ঐচ্ছিক)</label>
+                    <input 
+                      type="text" className="form-input" placeholder="পিতার নাম"
+                      value={editFormData.fatherName} 
+                      onChange={e => setEditFormData({ ...editFormData, fatherName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">মায়ের নাম (ঐচ্ছিক)</label>
+                    <input 
+                      type="text" className="form-input" placeholder="মায়ের নাম"
+                      value={editFormData.motherName} 
+                      onChange={e => setEditFormData({ ...editFormData, motherName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">গ্রাম (ঐচ্ছিক)</label>
+                    <input 
+                      type="text" className="form-input" placeholder="গ্রাম"
+                      value={editFormData.village} 
+                      onChange={e => setEditFormData({ ...editFormData, village: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">আইডি/জন্ম নিবন্ধন নাম্বার (ঐচ্ছিক)</label>
+                    <input 
+                      type="text" className="form-input" placeholder="আইডি/জন্ম নিবন্ধন নাম্বার"
+                      value={editFormData.nationalIdOrBirthCertNo} 
+                      onChange={e => setEditFormData({ ...editFormData, nationalIdOrBirthCertNo: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>

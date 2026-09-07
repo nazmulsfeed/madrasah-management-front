@@ -40,7 +40,11 @@ export default function StudentCreatePage() {
     branchId: '',
     residentialStatus: 'non-residential',
     hifzProgramType: '',
-    department: ''
+    department: '',
+    fatherName: '',
+    motherName: '',
+    village: '',
+    nationalIdOrBirthCertNo: ''
   });
 
   // Auto-hide toast
@@ -172,6 +176,10 @@ export default function StudentCreatePage() {
       setToast({ type: 'error', message: 'অনুগ্রহ করে ছাত্র/ছাত্রীর নাম প্রদান করুন' });
       return;
     }
+    if (!formData.phone || formData.phone.trim() === '') {
+      setToast({ type: 'error', message: 'ফোন নম্বর প্রদান আবশ্যক (এটি ডিফল্ট পাসওয়ার্ড হিসেবে ব্যবহৃত হবে)' });
+      return;
+    }
     if (!formData.academicYearId) {
       setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শিক্ষাবর্ষ" নির্বাচন করা আবশ্যক' });
       return;
@@ -270,24 +278,25 @@ export default function StudentCreatePage() {
                 </div>
 
                 <div>
-                  <label className="form-label">পাসওয়ার্ড (খালি রাখলে default: madrasah123)</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="******"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="form-label">ফোন নম্বর</label>
+                  <label className="form-label">ফোন নম্বর * <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(ডিফল্ট পাসওয়ার্ড হিসেবে ব্যবহৃত হবে)</span></label>
                   <input
                     type="text"
                     className="form-input"
                     placeholder="01XXXXXXXXX"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">পাসওয়ার্ড (ঐচ্ছিক — খালি রাখলে ফোন নম্বর পাসওয়ার্ড হবে)</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="******"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
                 </div>
               </div>
@@ -337,11 +346,11 @@ export default function StudentCreatePage() {
                 </div>
 
                 <div>
-                  <label className="form-label">ছাত্র আইডি (ঐচ্ছিক, স্বয়ংক্রিয়ভাবে তৈরি হবে)</label>
+                  <label className="form-label">ছাত্র আইডি (ঐচ্ছিক, স্বয়ংক্রিয়ভাবে ৫ ডিজিট তৈরি হবে)</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="যেমন: ST26001"
+                    placeholder="যেমন: 10001"
                     value={formData.studentId}
                     onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
                     onBlur={handleAutoFill}
@@ -395,6 +404,51 @@ export default function StudentCreatePage() {
                     <option value="O+">O+</option>
                     <option value="O-">O-</option>
                   </select>
+                </div>
+
+                {/* নতুন ঐচ্ছিক ফিল্ড */}
+                <div>
+                  <label className="form-label">পিতার নাম (ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="যেমন: মোহাম্মদ আলী"
+                    value={formData.fatherName}
+                    onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">মায়ের নাম (ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="যেমন: ফাতেমা খাতুন"
+                    value={formData.motherName}
+                    onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">গ্রাম (ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="যেমন: কমলাপুর"
+                    value={formData.village}
+                    onChange={(e) => setFormData({ ...formData, village: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">আইডি/জন্ম নিবন্ধন নাম্বার (ঐচ্ছিক)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="যেমন: 1234567890123"
+                    value={formData.nationalIdOrBirthCertNo}
+                    onChange={(e) => setFormData({ ...formData, nationalIdOrBirthCertNo: e.target.value })}
+                  />
                 </div>
               </div>
             </div>

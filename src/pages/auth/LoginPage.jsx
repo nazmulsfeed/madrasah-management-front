@@ -146,13 +146,13 @@ export default function LoginPage() {
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label" htmlFor="login-email">
-                ইমেইল, ফোন নম্বর বা ইউজারনেম
+                ইমেইল, ফোন নম্বর, ইউজারনেম বা ছাত্র আইডি
               </label>
               <input
                 id="login-email"
                 type="text"
                 className="form-input"
-                placeholder="আপনার ইমেইল, ফোন নম্বর বা ইউজারনেম দিন"
+                placeholder="আপনার ইমেইল, ফোন নম্বর, ইউজারনেম বা ছাত্র আইডি দিন"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
