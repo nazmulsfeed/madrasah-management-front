@@ -62,14 +62,22 @@ export default function SettingsPage() {
 
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const sections = [
+  const isSuperOrAdmin = user?.userType === 'super_admin' || 
+                         user?.userType === 'co_super_admin' || 
+                         user?.userType === 'admin' || 
+                         user?.adminRole === 'co_super_admin' || 
+                         user?.adminRole === 'admin';
+
+  const allSections = [
     { key: 'profile', label: 'ব্যক্তিগত প্রোফাইল', icon: UserIcon },
-    { key: 'institution', label: 'প্রতিষ্ঠান তথ্য', icon: Building2 },
+    ...(isSuperOrAdmin ? [{ key: 'institution', label: 'প্রতিষ্ঠান তথ্য', icon: Building2 }] : []),
     { key: 'appearance', label: 'ডিজাইন ও থিম', icon: Palette },
     { key: 'notifications', label: 'নোটিফিকেশন', icon: Bell },
     { key: 'security', label: 'নিরাপত্তা ও পাসওয়ার্ড', icon: Shield },
-    { key: 'backup', label: 'ব্যাকআপ ও ডেটা', icon: Database },
+    ...(isSuperOrAdmin ? [{ key: 'backup', label: 'ব্যাকআপ ও ডেটা', icon: Database }] : []),
   ];
+
+  const sections = allSections;
 
   // Handle Profile Update Submit
   const handleProfileSubmit = async (e) => {

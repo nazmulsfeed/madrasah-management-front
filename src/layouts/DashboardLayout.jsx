@@ -285,8 +285,7 @@ export default function DashboardLayout() {
               }
 
               if (item.path === '/settings') {
-                if (isSuperOrAdmin) return true;
-                return myPermissions.can_view_settings;
+                return true;
               }
 
               return true;
@@ -328,7 +327,12 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="sidebar-user">
+          <div 
+            className="sidebar-user"
+            onClick={() => navigate('/settings')}
+            title="প্রোফাইল ও পাসওয়ার্ড পরিবর্তন করতে ক্লিক করুন"
+            style={{ cursor: 'pointer' }}
+          >
             <div className="sidebar-user-avatar">{userInitial}</div>
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">
