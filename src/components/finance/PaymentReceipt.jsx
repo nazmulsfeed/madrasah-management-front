@@ -1,6 +1,16 @@
-import React from 'react';
-import { format } from 'date-fns';
 import { Printer, X } from 'lucide-react';
+
+const formatDate = (dateString) => {
+  if (!dateString) return '—';
+  const d = new Date(dateString);
+  return d.toLocaleDateString('bn-BD', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 const formatTaka = (amount) => {
   return new Intl.NumberFormat('bn-BD', { style: 'currency', currency: 'BDT' }).format(amount || 0);
@@ -48,7 +58,7 @@ export default function PaymentReceipt({ invoice, payment, onClose }) {
             <div className="text-right">
               <p className="text-sm text-slate-500 mb-1">তারিখ</p>
               <p className="font-semibold text-slate-900">
-                {format(new Date(payment.createdAt || payment.paymentDate), 'dd MMM yyyy, hh:mm a')}
+                {formatDate(payment.createdAt || payment.paymentDate)}
               </p>
             </div>
           </div>
