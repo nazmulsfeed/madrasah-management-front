@@ -86,7 +86,9 @@ export default function FeesPage() {
     'co_super_admin', 'admin'
   ].includes(user?.adminRole);
 
-  const isSuperAdmin = user?.userType === 'super_admin';
+  const isSuperAdmin = user?.userType === 'super_admin' || 
+                       user?.userType === 'co_super_admin' || 
+                       user?.adminRole === 'co_super_admin';
 
   // Auto-hide toast
   useEffect(() => {

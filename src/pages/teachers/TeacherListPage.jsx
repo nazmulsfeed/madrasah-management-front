@@ -547,7 +547,7 @@ export default function TeacherListPage() {
                 <div className="form-group">
                   <label className="form-label">সিস্টেম রোল (Role) *</label>
                   <select name="userType" className="form-input" required value={formData.userType} onChange={handleChange}>
-                    {user?.userType === 'super_admin' && (
+                    {(user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin') && (
                       <option value="co_super_admin">কো-সুপার অ্যাডমিন (Co-Super Admin)</option>
                     )}
                     <option value="admin">অ্যাডমিন (Admin)</option>

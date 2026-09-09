@@ -292,7 +292,9 @@ export default function SettingsPage() {
     }
   };
 
-  const isSuperAdmin = user?.userType === 'super_admin';
+  const isSuperAdmin = user?.userType === 'super_admin' || 
+                       user?.userType === 'co_super_admin' || 
+                       user?.adminRole === 'co_super_admin';
 
   return (
     <div className="animate-fade-in">

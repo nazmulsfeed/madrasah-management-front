@@ -176,8 +176,11 @@ export default function RoleManagementPage() {
       setToast({ type: 'error', message: 'কাউকে সুপার অ্যাডমিন রোলে উন্নীত করা সম্ভব নয়' });
       return;
     }
-    if (targetAdminRole === 'co_super_admin' && currentUser.userType !== 'super_admin') {
-      setToast({ type: 'error', message: 'কো-সুপার অ্যাডমিনকে ডিমোট করার ক্ষমতা শুধুমাত্র সুপার অ্যাডমিনের আছে' });
+    const isCallerSuperOrCoSuper = currentUser?.userType === 'super_admin' || 
+                                   currentUser?.userType === 'co_super_admin' || 
+                                   currentUser?.adminRole === 'co_super_admin';
+    if (!isCallerSuperOrCoSuper) {
+      setToast({ type: 'error', message: 'রোল পরিবর্তন করার ক্ষমতা শুধুমাত্র সুপার অ্যাডমিন এবং কো-সুপার অ্যাডমিনের আছে' });
       return;
     }
 
@@ -495,7 +498,10 @@ export default function RoleManagementPage() {
                       const isSuper = u.userType === 'super_admin';
                       const isCoSuper = u.adminRole === 'co_super_admin' || u.userType === 'co_super_admin';
                       
-                      const isDisabled = isSelf || isSuper || (isCoSuper && currentUser?.userType !== 'super_admin');
+                      const isCallerSuperOrCoSuper = currentUser?.userType === 'super_admin' || 
+                                                     currentUser?.userType === 'co_super_admin' || 
+                                                     currentUser?.adminRole === 'co_super_admin';
+                      const isDisabled = isSelf || isSuper || (!isCallerSuperOrCoSuper);
 
                       return (
                         <tr key={u._id}>
