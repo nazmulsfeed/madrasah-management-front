@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Calendar, BookOpen, FileText, X, CheckCircle, AlertCircle, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, BookOpen, FileText, X, CheckCircle, AlertCircle, Trash2, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
@@ -58,7 +58,9 @@ export default function HomeworkPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [filterOptions, setFilterOptions] = useState({ classes: [], sections: [], subjects: [] });
 
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState(() => {
+    return (user?.userType === 'student' || user?.userType === 'guardian') ? 'today' : 'all';
+  });
   const [customDate, setCustomDate] = useState('');
 
   // Classes & Subjects for mapping inside the Modal form
@@ -340,7 +342,7 @@ export default function HomeworkPage() {
             <select
               className="form-input form-select"
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
               style={{ width: '150px', padding: '8px 32px 8px 12px' }}
             >
               <option value="today">আজকের হোমওয়ার্ক</option>
@@ -353,7 +355,7 @@ export default function HomeworkPage() {
                 type="date"
                 className="form-input"
                 value={customDate}
-                onChange={(e) => setCustomDate(e.target.value)}
+                onChange={(e) => { setCustomDate(e.target.value); setPage(1); }}
                 style={{ width: '150px', padding: '6px 12px' }}
               />
             )}
@@ -361,7 +363,7 @@ export default function HomeworkPage() {
             <select
               className="form-input form-select"
               value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
+              onChange={(e) => { setSubjectFilter(e.target.value); setPage(1); }}
               style={{ width: '130px', padding: '8px 32px 8px 12px' }}
             >
               <option value="">সকল বিষয়</option>
@@ -373,7 +375,7 @@ export default function HomeworkPage() {
             <select
               className="form-input form-select"
               value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
+              onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}
               style={{ width: '120px', padding: '8px 32px 8px 12px' }}
             >
               <option value="">সকল শ্রেণী</option>
@@ -385,7 +387,7 @@ export default function HomeworkPage() {
             <select
               className="form-input form-select"
               value={sectionFilter}
-              onChange={(e) => setSectionFilter(e.target.value)}
+              onChange={(e) => { setSectionFilter(e.target.value); setPage(1); }}
               style={{ width: '110px', padding: '8px 32px 8px 12px' }}
             >
               <option value="">সকল সেকশন</option>
@@ -397,7 +399,7 @@ export default function HomeworkPage() {
             <select
               className="form-input form-select"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               style={{ width: '120px', padding: '8px 32px 8px 12px' }}
             >
               <option value="">সকল স্ট্যাটাস</option>
@@ -485,6 +487,56 @@ export default function HomeworkPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && homeworks.length > 0 && pagination.pages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0', flexWrap: 'wrap', gap: '16px' }}>
+          <div className="text-sm text-muted">
+            মোট <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{pagination.total}</span> টি হোমওয়ার্কের মধ্যে <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{(page - 1) * 10 + 1}-{Math.min(page * 10, pagination.total)}</span> দেখানো হচ্ছে
+          </div>
+          <div className="pagination" style={{ margin: 0 }}>
+            <button
+              className="pagination-btn"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              title="পূর্ববর্তী পেজ"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === pagination.pages || Math.abs(p - page) <= 2)
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) {
+                  acc.push('ellipsis-' + p);
+                }
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item) => {
+                if (typeof item === 'string') {
+                  return <span key={item} style={{ padding: '0 6px', color: 'var(--text-muted)' }}>...</span>;
+                }
+                return (
+                  <button
+                    key={item}
+                    className={`pagination-btn ${item === page ? 'active' : ''}`}
+                    onClick={() => setPage(item)}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            <button
+              className="pagination-btn"
+              disabled={page >= pagination.pages}
+              onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+              title="পরবর্তী পেজ"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
