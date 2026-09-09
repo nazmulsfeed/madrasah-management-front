@@ -83,6 +83,45 @@ export default function SettingsPage() {
 
   const sections = allSections;
 
+  // Compress image client-side keeping HD quality but under ~500KB - 1MB
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+
+          // Keep crisp high definition (max 1200px width/height for profile photos)
+          const MAX_DIMENSION = 1200;
+          if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+            if (width > height) {
+              height = Math.round((height * MAX_DIMENSION) / width);
+              width = MAX_DIMENSION;
+            } else {
+              width = Math.round((width * MAX_DIMENSION) / height);
+              height = MAX_DIMENSION;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with high quality 0.85 (brings 5-10MB files down to ~150-400KB while preserving sharp HD details)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   // Handle Profile Update Submit
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
@@ -411,7 +450,7 @@ export default function SettingsPage() {
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 600 }}>প্রোফাইল ছবি</h4>
                     <p className="text-muted" style={{ margin: '0 0 12px 0', fontSize: '0.825rem' }}>
-                      JPG, PNG বা WEBP ফরম্যাট (সর্বোচ্চ ২ মেগাবাইট)
+                      JPG, PNG বা WEBP (সর্বোচ্চ ১০MB পর্যন্ত নির্বাচন করা যাবে, স্বয়ংক্রিয়ভাবে হাই-কোয়ালিটি রেখে অপ্টিমাইজ হবে)
                     </p>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <label 
@@ -431,18 +470,21 @@ export default function SettingsPage() {
                           type="file" 
                           accept="image/*" 
                           style={{ display: 'none' }} 
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files[0];
                             if (file) {
-                              if (file.size > 2 * 1024 * 1024) {
-                                setProfileAlert({ type: 'error', message: 'ছবির আকার ২ মেগাবাইটের বেশি হতে পারবে না' });
+                              if (file.size > 12 * 1024 * 1024) {
+                                setProfileAlert({ type: 'error', message: 'ছবির আকার ১২ মেগাবাইটের বেশি হতে পারবে না' });
                                 return;
                               }
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setProfileData(prev => ({ ...prev, photo: reader.result }));
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                setProfileAlert(null);
+                                const compressedPhoto = await compressImage(file);
+                                setProfileData(prev => ({ ...prev, photo: compressedPhoto }));
+                              } catch (err) {
+                                console.error('Image compression failed:', err);
+                                setProfileAlert({ type: 'error', message: 'ছবি প্রসেস করতে ব্যর্থ হয়েছে' });
+                              }
                             }
                           }}
                         />
