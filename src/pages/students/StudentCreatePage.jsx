@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, ArrowLeft, GraduationCap, Save, CheckCircle, 
-  AlertCircle, Loader, User, BookOpen, Key, Calendar 
+  AlertCircle, Loader, User, BookOpen, Key, Calendar, Camera, Trash2 
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
+import ImageCropModal from '../../components/common/ImageCropModal';
 
 export default function StudentCreatePage() {
   const navigate = useNavigate();
@@ -44,8 +45,13 @@ export default function StudentCreatePage() {
     fatherName: '',
     motherName: '',
     village: '',
-    nationalIdOrBirthCertNo: ''
+    nationalIdOrBirthCertNo: '',
+    photo: ''
   });
+
+  // Photo Crop Modal state
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
 
   // Auto-hide toast
   useEffect(() => {
@@ -308,6 +314,81 @@ export default function StudentCreatePage() {
                 <User size={18} style={{ color: 'var(--primary)' }} />
                 ব্যক্তিগত তথ্য (Personal Profile)
               </h2>
+
+              {/* Optional Student Photo */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                marginBottom: '22px',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border-color)'
+              }}>
+                <div style={{
+                  width: '76px',
+                  height: '76px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid var(--primary-500)',
+                  flexShrink: 0
+                }}>
+                  {formData.photo ? (
+                    <img src={formData.photo} alt="Student Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <User size={36} style={{ opacity: 0.35 }} />
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.92rem', marginBottom: '4px' }}>
+                    শিক্ষার্থীর ছবি <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>(ঐচ্ছিক)</span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    JPG, PNG বা WEBP (স্বয়ংক্রিয়ভাবে রিসাইজ ও অপ্টিমাইজ হবে)
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '5px 12px' }}>
+                      <Camera size={14} />
+                      <span>{formData.photo ? 'ছবি পরিবর্তন করুন' : 'ছবি নির্বাচন করুন'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: 'none' }} 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setRawImageSrc(event.target.result);
+                              setIsCropModalOpen(true);
+                            };
+                            reader.readAsDataURL(file);
+                            e.target.value = '';
+                          }
+                        }} 
+                      />
+                    </label>
+
+                    {formData.photo && (
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', padding: '5px 12px' }}
+                        onClick={() => setFormData({ ...formData, photo: '' })}
+                      >
+                        <Trash2 size={14} />
+                        <span>মুছে ফেলুন</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-2" style={{ gap: '16px 20px' }}>
                 <div>
@@ -599,6 +680,14 @@ export default function StudentCreatePage() {
 
         </div>
       </form>
+
+      <ImageCropModal 
+        isOpen={isCropModalOpen}
+        imageSrc={rawImageSrc}
+        onClose={() => { setIsCropModalOpen(false); setRawImageSrc(null); }}
+        onCropComplete={(croppedPhoto) => setFormData(prev => ({ ...prev, photo: croppedPhoto }))}
+        title="শিক্ষার্থীর ছবি রিসাইজ ও ক্রপ করুন"
+      />
 
       <style>{`
         @keyframes slideDown {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, UserCheck, Phone, Users, Trash2, X, CheckCircle, AlertCircle, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, UserCheck, Phone, Users, Trash2, X, CheckCircle, AlertCircle, Edit, ChevronLeft, ChevronRight, Camera, User } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import ImageCropModal from '../../components/common/ImageCropModal';
 
 export default function GuardianListPage() {
   const { user } = useAuthStore();
@@ -70,7 +71,12 @@ export default function GuardianListPage() {
     nationalId: '',
     relationshipLabel: 'পিতা',
     studentId: '',
+    photo: '',
   });
+
+  // Photo Crop Modal state
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
 
   const fetchGuardians = async () => {
     setLoading(true);
@@ -128,6 +134,7 @@ export default function GuardianListPage() {
       nationalId: '',
       relationshipLabel: 'পিতা',
       studentId: '',
+      photo: '',
     });
   };
 
@@ -144,6 +151,7 @@ export default function GuardianListPage() {
       nationalId: guardian.nationalId || '',
       relationshipLabel: guardian.relationshipLabel || 'পিতা',
       studentId: guardian.students && guardian.students.length > 0 ? guardian.students[0].student?._id || guardian.students[0].student : '',
+      photo: guardian.user?.photo || '',
     });
     setEditingId(guardian._id);
     setIsEditing(true);
@@ -166,6 +174,7 @@ export default function GuardianListPage() {
         occupation: formData.occupation,
         nationalId: formData.nationalId,
         relationshipLabel: formData.relationshipLabel,
+        photo: formData.photo || '',
       };
 
       if (formData.studentId) {
@@ -381,8 +390,19 @@ export default function GuardianListPage() {
                     </td>
                   )}
                   <td>
-                    <div className="font-semibold">{guardian.user?.firstName} {guardian.user?.lastName}</div>
-                    <div className="text-sm text-muted">{guardian.guardianId}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--bg-secondary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border-color)' }}>
+                        {guardian.user?.photo ? (
+                          <img src={guardian.user.photo} alt={guardian.user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <User size={18} style={{ opacity: 0.4 }} />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold">{guardian.user?.firstName} {guardian.user?.lastName}</div>
+                        <div className="text-sm text-muted">{guardian.guardianId}</div>
+                      </div>
+                    </div>
                   </td>
                   <td>{guardian.user?.phone || '-'}</td>
                   <td>{guardian.occupation || '-'}</td>
@@ -537,6 +557,76 @@ export default function GuardianListPage() {
             </div>
             
             <form onSubmit={handleSubmit}>
+              {/* Optional Photo Upload */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '20px',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border-color)'
+              }}>
+                <div style={{
+                  width: '68px',
+                  height: '68px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid var(--primary-500)',
+                  flexShrink: 0
+                }}>
+                  {formData.photo ? (
+                    <img src={formData.photo} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <User size={30} style={{ opacity: 0.35 }} />
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '2px' }}>
+                    অভিভাবকের ছবি <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>(ঐচ্ছিক)</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: '4px 10px' }}>
+                      <Camera size={14} />
+                      <span>{formData.photo ? 'ছবি পরিবর্তন করুন' : 'ছবি আপলোড করুন'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: 'none' }} 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setRawImageSrc(event.target.result);
+                              setIsCropModalOpen(true);
+                            };
+                            reader.readAsDataURL(file);
+                            e.target.value = '';
+                          }
+                        }} 
+                      />
+                    </label>
+                    {formData.photo && (
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: '4px 10px' }}
+                        onClick={() => setFormData({ ...formData, photo: '' })}
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছে ফেলুন</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-2" style={{ gap: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">নামের প্রথমাংশ *</label>
@@ -614,6 +704,15 @@ export default function GuardianListPage() {
           </div>
         </div>
       )}
+
+      {/* Photo Crop Modal for Guardian */}
+      <ImageCropModal 
+        isOpen={isCropModalOpen}
+        imageSrc={rawImageSrc}
+        onClose={() => { setIsCropModalOpen(false); setRawImageSrc(null); }}
+        onCropComplete={(croppedPhoto) => setFormData(prev => ({ ...prev, photo: croppedPhoto }))}
+        title="অভিভাবকের ছবি রিসাইজ ও ক্রপ করুন"
+      />
 
       <style>{`
         @keyframes slideDown {

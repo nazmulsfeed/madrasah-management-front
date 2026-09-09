@@ -3,11 +3,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Mail, Phone, Calendar, BookOpen, CreditCard,
   ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle,
-  Eye, EyeOff, Key
+  Eye, EyeOff, Key, Camera, Trash2
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
+import ImageCropModal from '../../components/common/ImageCropModal';
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -47,8 +48,13 @@ export default function StudentDetailPage() {
     academicYearId: '',
     classLevelId: '',
     sectionId: '',
-    rollNumber: ''
+    rollNumber: '',
+    photo: ''
   });
+
+  // Photo Crop Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
 
   // Auto-hide toast
   useEffect(() => {
@@ -124,7 +130,8 @@ export default function StudentDetailPage() {
       fatherName: student.fatherName || '',
       motherName: student.motherName || '',
       village: student.village || '',
-      nationalIdOrBirthCertNo: student.nationalIdOrBirthCertNo || ''
+      nationalIdOrBirthCertNo: student.nationalIdOrBirthCertNo || '',
+      photo: student.photo || student.user?.photo || ''
     });
     setIsEditModalOpen(true);
   };
@@ -226,9 +233,21 @@ export default function StudentDetailPage() {
               background: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))',
               fontSize: '2rem',
               flexShrink: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {name.charAt(0)}
+            {(student.photo || student.user?.photo) ? (
+              <img 
+                src={student.photo || student.user?.photo} 
+                alt={name} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+            ) : (
+              name.charAt(0)
+            )}
           </div>
 
           {/* তথ্য */}
@@ -483,6 +502,77 @@ export default function StudentDetailPage() {
               {/* Profile Details Block */}
               <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '12px', color: 'var(--primary-400)' }}>ব্যক্তিগত বিবরণী</h3>
+                
+                {/* Photo upload in edit modal */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  marginBottom: '16px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px dashed var(--border-color)'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--primary-500)',
+                    flexShrink: 0
+                  }}>
+                    {editFormData.photo ? (
+                      <img src={editFormData.photo} alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <User size={28} style={{ opacity: 0.35 }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '2px' }}>
+                      শিক্ষার্থীর ছবি <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>(ঐচ্ছিক)</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                      <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: '4px 10px' }}>
+                        <Camera size={14} />
+                        <span>{editFormData.photo ? 'ছবি পরিবর্তন করুন' : 'ছবি আপলোড করুন'}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          style={{ display: 'none' }} 
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                setRawImageSrc(event.target.result);
+                                setIsCropModalOpen(true);
+                              };
+                              reader.readAsDataURL(file);
+                              e.target.value = '';
+                            }
+                          }} 
+                        />
+                      </label>
+                      {editFormData.photo && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: '4px 10px' }}
+                          onClick={() => setEditFormData({ ...editFormData, photo: '' })}
+                        >
+                          <Trash2 size={13} />
+                          <span>মুছে ফেলুন</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-2" style={{ gap: '12px 16px' }}>
                   <div>
                     <label className="form-label">নামের প্রথম অংশ *</label>
@@ -716,6 +806,15 @@ export default function StudentDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Photo Crop Modal for Student Edit */}
+      <ImageCropModal 
+        isOpen={isCropModalOpen}
+        imageSrc={rawImageSrc}
+        onClose={() => { setIsCropModalOpen(false); setRawImageSrc(null); }}
+        onCropComplete={(croppedPhoto) => setEditFormData(prev => ({ ...prev, photo: croppedPhoto }))}
+        title="শিক্ষার্থীর ছবি রিসাইজ ও ক্রপ করুন"
+      />
 
       <style>{`
         @keyframes fadeIn {
