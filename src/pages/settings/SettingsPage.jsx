@@ -9,6 +9,10 @@ import {
   Camera,
   Upload,
   Trash2,
+  ZoomIn,
+  ZoomOut,
+  Check,
+  Crop,
   X
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
@@ -64,6 +68,14 @@ export default function SettingsPage() {
   const [backupAlert, setBackupAlert] = useState(null);
   const [resetAlert, setResetAlert] = useState(null);
 
+  // Photo Crop/Resize Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const isSuperOrAdmin = user?.userType === 'super_admin' || 
@@ -83,43 +95,64 @@ export default function SettingsPage() {
 
   const sections = allSections;
 
-  // Compress image client-side keeping HD quality but under ~500KB - 1MB
-  const compressImage = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
+  // Handle Image Selection and open interactive crop/resize modal
+  const handlePhotoSelect = (file) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      setProfileAlert({ type: 'error', message: 'ছবির আকার ১৫ মেগাবাইটের বেশি হতে পারবে না' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setRawImageSrc(event.target.result);
+      setCropZoom(1);
+      setCropOffset({ x: 0, y: 0 });
+      setIsCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
 
-          // Keep crisp high definition (max 1200px width/height for profile photos)
-          const MAX_DIMENSION = 1200;
-          if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-            if (width > height) {
-              height = Math.round((height * MAX_DIMENSION) / width);
-              width = MAX_DIMENSION;
-            } else {
-              width = Math.round((width * MAX_DIMENSION) / height);
-              height = MAX_DIMENSION;
-            }
-          }
+  // Generate cropped and compressed image from canvas (500x500 high-res avatar)
+  const applyCroppedImage = () => {
+    if (!rawImageSrc) return;
+    const img = new Image();
+    img.src = rawImageSrc;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 500; // 500x500 square HD profile avatar
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
+      // Fill clean background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
 
-          // Compress to JPEG with high quality 0.85 (brings 5-10MB files down to ~150-400KB while preserving sharp HD details)
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          resolve(compressedDataUrl);
-        };
-        img.onerror = (err) => reject(err);
-      };
-      reader.onerror = (err) => reject(err);
-    });
+      // Crop viewport preview size is 280x280px in modal
+      const previewBox = 280;
+      const scaleToCanvas = size / previewBox;
+
+      // Base scaling to fit image inside container
+      const baseScale = Math.max(previewBox / img.width, previewBox / img.height);
+      const totalScale = baseScale * cropZoom * scaleToCanvas;
+
+      const drawW = img.width * totalScale;
+      const drawH = img.height * totalScale;
+
+      const centerX = size / 2;
+      const centerY = size / 2;
+
+      const drawX = centerX - (drawW / 2) + (cropOffset.x * scaleToCanvas);
+      const drawY = centerY - (drawH / 2) + (cropOffset.y * scaleToCanvas);
+
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      // High quality JPEG (keeps sharp details while only taking ~40-70KB)
+      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      setProfileData(prev => ({ ...prev, photo: croppedDataUrl }));
+      setIsCropModalOpen(false);
+      setRawImageSrc(null);
+    };
   };
 
   // Handle Profile Update Submit
@@ -465,26 +498,16 @@ export default function SettingsPage() {
                         }}
                       >
                         <Camera size={16} />
-                        <span>ছবি পরিবর্তন করুন</span>
+                        <span>ছবি নির্বাচন / রিসাইজ করুন</span>
                         <input 
                           type="file" 
                           accept="image/*" 
                           style={{ display: 'none' }} 
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             const file = e.target.files[0];
                             if (file) {
-                              if (file.size > 12 * 1024 * 1024) {
-                                setProfileAlert({ type: 'error', message: 'ছবির আকার ১২ মেগাবাইটের বেশি হতে পারবে না' });
-                                return;
-                              }
-                              try {
-                                setProfileAlert(null);
-                                const compressedPhoto = await compressImage(file);
-                                setProfileData(prev => ({ ...prev, photo: compressedPhoto }));
-                              } catch (err) {
-                                console.error('Image compression failed:', err);
-                                setProfileAlert({ type: 'error', message: 'ছবি প্রসেস করতে ব্যর্থ হয়েছে' });
-                              }
+                              handlePhotoSelect(file);
+                              e.target.value = ''; // reset so same file can be reselected
                             }
                           }}
                         />
@@ -1098,6 +1121,189 @@ export default function SettingsPage() {
                 disabled={isActionLoading}
               >
                 {isActionLoading ? 'রিস্টোর হচ্ছে...' : 'হ্যাঁ, রিস্টোর করুন'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PHOTO CROP & RESIZE MODAL */}
+      {isCropModalOpen && rawImageSrc && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card, #1e293b)',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '440px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.08))'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '1.05rem' }}>
+                <Crop size={20} style={{ color: 'var(--primary-500)' }} />
+                <span>প্রোফাইল ছবি রিসাইজ ও পজিশন করুন</span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setIsCropModalOpen(false); setRawImageSrc(null); }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body: Interactive Viewport */}
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '16px', textAlign: 'center' }}>
+                ছবিটি ড্র্যাগ (Drag) করে ডানে-বামে বা উপরে-নিচে সরান এবং জুম স্লাইডার দিয়ে সাইজ এডজাস্ট করুন
+              </p>
+
+              {/* Square / Circular crop viewport */}
+              <div 
+                style={{
+                  width: '280px',
+                  height: '280px',
+                  borderRadius: '50%',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55), 0 0 0 3px #10b981',
+                  background: '#0f172a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  userSelect: 'none',
+                  touchAction: 'none'
+                }}
+                onMouseDown={(e) => {
+                  setIsDragging(true);
+                  setDragStart({ x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y });
+                }}
+                onMouseMove={(e) => {
+                  if (!isDragging) return;
+                  setCropOffset({
+                    x: e.clientX - dragStart.x,
+                    y: e.clientY - dragStart.y
+                  });
+                }}
+                onMouseUp={() => setIsDragging(false)}
+                onMouseLeave={() => setIsDragging(false)}
+                onTouchStart={(e) => {
+                  if (e.touches.length === 1) {
+                    setIsDragging(true);
+                    setDragStart({ x: e.touches[0].clientX - cropOffset.x, y: e.touches[0].clientY - cropOffset.y });
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (!isDragging || e.touches.length !== 1) return;
+                  setCropOffset({
+                    x: e.touches[0].clientX - dragStart.x,
+                    y: e.touches[0].clientY - dragStart.y
+                  });
+                }}
+                onTouchEnd={() => setIsDragging(false)}
+              >
+                <img 
+                  src={rawImageSrc} 
+                  alt="Crop preview" 
+                  draggable={false}
+                  style={{
+                    position: 'absolute',
+                    transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
+                    transformOrigin: 'center center',
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    pointerEvents: 'none'
+                  }} 
+                />
+              </div>
+
+              {/* Zoom Controls */}
+              <div style={{ width: '100%', marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={() => setCropZoom(prev => Math.max(0.5, prev - 0.1))}
+                  style={{ padding: '6px 8px' }}
+                  title="জুম আউট"
+                >
+                  <ZoomOut size={18} />
+                </button>
+                <input 
+                  type="range" 
+                  min="0.5" 
+                  max="3" 
+                  step="0.05"
+                  value={cropZoom}
+                  onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                  style={{ flex: 1, accentColor: 'var(--primary-500)' }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={() => setCropZoom(prev => Math.min(3, prev + 0.1))}
+                  style={{ padding: '6px 8px' }}
+                  title="জুম ইন"
+                >
+                  <ZoomIn size={18} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <span>ছোট করুন (0.5x)</span>
+                <span>সাধারণ (1x)</span>
+                <span>বড় করুন (3x)</span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '12px',
+              padding: '14px 20px',
+              borderTop: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+              background: 'rgba(0,0,0,0.1)'
+            }}>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-sm"
+                onClick={() => { setIsCropModalOpen(false); setRawImageSrc(null); }}
+              >
+                বাতিল
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                onClick={applyCroppedImage}
+              >
+                <Check size={16} />
+                <span>ক্রপ ও রিসাইজ সম্পন্ন করুন</span>
               </button>
             </div>
           </div>
