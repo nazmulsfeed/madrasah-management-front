@@ -108,13 +108,15 @@ export default function HomeworkPage() {
     }
   };
 
-  const fetchFilterOptions = async () => {
+  const fetchFilterOptions = async (classList = classes) => {
     try {
       const res = await api.get('/homework', { params: { limit: 1000 } });
       if (res.data.success && res.data.data) {
         const list = res.data.data;
+        const hwClasses = list.map(h => h.classLevel).filter(Boolean);
+        const apiClasses = (classList || []).map(c => c.name).filter(Boolean);
         setFilterOptions({
-          classes: Array.from(new Set(list.map(h => h.classLevel).filter(Boolean))),
+          classes: Array.from(new Set([...apiClasses, ...hwClasses])),
           sections: Array.from(new Set(list.map(h => h.section).filter(Boolean))),
           subjects: Array.from(new Set(list.map(h => h.subject).filter(Boolean)))
         });
@@ -126,16 +128,20 @@ export default function HomeworkPage() {
 
   // Fetch unique options once on load to populate filter dropdowns dynamically
   useEffect(() => {
-    fetchFilterOptions();
-    // Load classes for the creation form dropdown
+    // Load classes for the creation form dropdown & filter dropdown
     const fetchClasses = async () => {
       try {
         const res = await api.get('/students/classes');
         if (res.data.success) {
-          setClasses(res.data.data.classes || []);
+          const loadedClasses = res.data.data.classes || [];
+          setClasses(loadedClasses);
+          fetchFilterOptions(loadedClasses);
+        } else {
+          fetchFilterOptions([]);
         }
       } catch (err) {
         console.error('Failed to fetch classes:', err);
+        fetchFilterOptions([]);
       }
     };
     fetchClasses();
