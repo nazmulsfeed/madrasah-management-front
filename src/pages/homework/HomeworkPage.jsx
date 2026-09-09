@@ -58,7 +58,7 @@ export default function HomeworkPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [filterOptions, setFilterOptions] = useState({ classes: [], sections: [], subjects: [] });
 
-  const [dateFilter, setDateFilter] = useState('today');
+  const [dateFilter, setDateFilter] = useState('all');
   const [customDate, setCustomDate] = useState('');
 
   // Classes & Subjects for mapping inside the Modal form
