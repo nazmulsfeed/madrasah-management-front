@@ -49,6 +49,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import ProtectedRoute from './components/shared/ProtectedRoute';
 import RoleManagementPage from './pages/admin/RoleManagementPage';
 import ReportsPage from './pages/reports/ReportsPage';
+import MyPaymentsPage from './pages/finance/MyPaymentsPage';
 
 export default function App() {
   return (
@@ -113,6 +114,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/role-management" element={<RoleManagementPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/my-payments" element={<MyPaymentsPage />} />
         </Route>
 
         {/* রিডাইরেক্ট */}

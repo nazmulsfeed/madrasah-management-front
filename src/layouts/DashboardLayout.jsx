@@ -68,6 +68,7 @@ const menuItems = [
   {
     group: 'আর্থিক',
     items: [
+      { path: '/my-payments', label: 'আমার পেমেন্ট', icon: CreditCard },
       { path: '/fees', label: 'ফি / বেতন', icon: CreditCard },
       { path: '/bank-wallets', label: 'ব্যাংক ও ওয়ালেট', icon: Wallet },
       { path: '/daily-transactions', label: 'দৈনিক লেনদেন (Cash Book)', icon: Activity },
@@ -264,9 +265,13 @@ export default function DashboardLayout() {
                 return myPermissions.can_view_homework || myPermissions.can_view_all_homework;
               }
 
-              if (item.path === '/fees' || item.path === '/daily-transactions' || item.path === '/income-categories' || item.path === '/incomes' || item.path === '/expense-vouchers' || item.path === '/chart-of-accounts' || item.path === '/journal-ledger' || item.path === '/finance/audit-logs' || item.path === '/finance/reports' || item.path === '/finance/custom-reports' || item.path === '/finance/backup-restore' || item.path === '/accounting-reports' || item.path === '/budget-management' || item.path === '/asset-management' || item.path === '/loan-management' || item.path === '/check-management' || item.path === '/advance-management' || item.path === '/refund-management' || item.path === '/bank-reconciliation' || item.path === '/financial-years' || item.path === '/madrasah-funds' || item.path === '/qurbani-skins') {
+              if (item.path === '/my-payments') {
+                return isGuardianOrStudent;
+              }
+
+              if (item.path === '/fees' || item.path === '/bank-wallets' || item.path === '/daily-transactions' || item.path === '/income-categories' || item.path === '/incomes' || item.path === '/expense-vouchers' || item.path === '/chart-of-accounts' || item.path === '/journal-ledger' || item.path === '/finance/audit-logs' || item.path === '/finance/reports' || item.path === '/finance/custom-reports' || item.path === '/finance/backup-restore' || item.path === '/accounting-reports' || item.path === '/budget-management' || item.path === '/asset-management' || item.path === '/loan-management' || item.path === '/check-management' || item.path === '/advance-management' || item.path === '/refund-management' || item.path === '/bank-reconciliation' || item.path === '/financial-years' || item.path === '/madrasah-funds' || item.path === '/qurbani-skins') {
                 const hasFinanceAccess = isSuperOrAdmin || (user.userType === 'principal' || user.userType === 'accountant') || (myPermissions && myPermissions.finance && myPermissions.finance.view);
-                if (!hasFinanceAccess) return null;
+                if (!hasFinanceAccess) return false;
               }
 
               if (item.path === '/notices') {

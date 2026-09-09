@@ -116,52 +116,81 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* পরিসংখ্যান কার্ড */}
-      <div className="grid grid-4 mb-24">
-        <div className="stats-card animate-slide-up stagger-1">
-          <div className="stats-card-icon teal">
-            <GraduationCap size={24} />
+      {/* পরিসংখ্যান কার্ড (শুধুমাত্র অ্যাডমিন/স্টাফদের জন্য) */}
+      {!['student', 'guardian'].includes(user?.userType) && (
+        <div className="grid grid-4 mb-24">
+          <div className="stats-card animate-slide-up stagger-1">
+            <div className="stats-card-icon teal">
+              <GraduationCap size={24} />
+            </div>
+            <div className="stats-card-value">{dashboardData.stats.totalStudents}</div>
+            <div className="stats-card-label">মোট ছাত্র/ছাত্রী</div>
+            <div className="stats-card-trend up">
+              <TrendingUp size={12} /> বাস্তব তথ্য
+            </div>
           </div>
-          <div className="stats-card-value">{dashboardData.stats.totalStudents}</div>
-          <div className="stats-card-label">মোট ছাত্র/ছাত্রী</div>
-          <div className="stats-card-trend up">
-            <TrendingUp size={12} /> বাস্তব তথ্য
-          </div>
-        </div>
 
-        <div className="stats-card animate-slide-up stagger-2">
-          <div className="stats-card-icon green">
-            <UserCheck size={24} />
+          <div className="stats-card animate-slide-up stagger-2">
+            <div className="stats-card-icon green">
+              <UserCheck size={24} />
+            </div>
+            <div className="stats-card-value">{dashboardData.stats.activeStudents}</div>
+            <div className="stats-card-label">সক্রিয় ছাত্র/ছাত্রী</div>
+            <div className="stats-card-trend up">
+              <TrendingUp size={12} /> বাস্তব তথ্য
+            </div>
           </div>
-          <div className="stats-card-value">{dashboardData.stats.activeStudents}</div>
-          <div className="stats-card-label">সক্রিয় ছাত্র/ছাত্রী</div>
-          <div className="stats-card-trend up">
-            <TrendingUp size={12} /> বাস্তব তথ্য
-          </div>
-        </div>
 
-        <div className="stats-card animate-slide-up stagger-3">
-          <div className="stats-card-icon blue">
-            <Users size={24} />
+          <div className="stats-card animate-slide-up stagger-3">
+            <div className="stats-card-icon blue">
+              <Users size={24} />
+            </div>
+            <div className="stats-card-value">{dashboardData.stats.totalTeachers}</div>
+            <div className="stats-card-label">মোট শিক্ষক</div>
+            <div className="stats-card-trend up">
+              <TrendingUp size={12} /> বাস্তব তথ্য
+            </div>
           </div>
-          <div className="stats-card-value">{dashboardData.stats.totalTeachers}</div>
-          <div className="stats-card-label">মোট শিক্ষক</div>
-          <div className="stats-card-trend up">
-            <TrendingUp size={12} /> বাস্তব তথ্য
-          </div>
-        </div>
 
-        <div className="stats-card animate-slide-up stagger-4">
-          <div className="stats-card-icon amber">
-            <CreditCard size={24} />
-          </div>
-          <div className="stats-card-value">৳{Number(dashboardData.stats.monthlyCollection).toLocaleString('en-IN')}</div>
-          <div className="stats-card-label">এ মাসের আদায়</div>
-          <div className="stats-card-trend up">
-            <TrendingUp size={12} /> বাস্তব তথ্য
+          <div className="stats-card animate-slide-up stagger-4">
+            <div className="stats-card-icon amber">
+              <CreditCard size={24} />
+            </div>
+            <div className="stats-card-value">৳{Number(dashboardData.stats.monthlyCollection).toLocaleString('en-IN')}</div>
+            <div className="stats-card-label">এ মাসের আদায়</div>
+            <div className="stats-card-trend up">
+              <TrendingUp size={12} /> বাস্তব তথ্য
+            </div>
           </div>
         </div>
+      )}
+
+      {/* ছাত্র/অভিভাবকদের জন্য বিশেষ ড্যাশবোর্ড কার্ড */}
+      {['student', 'guardian'].includes(user?.userType) && (
+        <div className="grid grid-3 mb-24">
+          <div className="stats-card animate-slide-up" style={{ borderLeft: '4px solid var(--primary-500)', cursor: 'pointer' }} onClick={() => navigate('/my-payments')}>
+            <div className="stats-card-icon blue">
+              <CreditCard size={24} />
+            </div>
+            <div className="stats-card-value font-mono">আমার পেমেন্ট</div>
+            <div className="stats-card-label mt-2">বকেয়া ও পেমেন্ট হিস্ট্রি দেখুন</div>
+          </div>
+          <div className="stats-card animate-slide-up stagger-1" style={{ borderLeft: '4px solid var(--success)', cursor: 'pointer' }} onClick={() => navigate('/homework')}>
+            <div className="stats-card-icon green">
+              <BookOpenCheck size={24} />
+            </div>
+            <div className="stats-card-value font-mono">হোমওয়ার্ক</div>
+            <div className="stats-card-label mt-2">আজকের বাড়ির কাজ দেখুন</div>
+          </div>
+          <div className="stats-card animate-slide-up stagger-2" style={{ borderLeft: '4px solid #8b5cf6', cursor: 'pointer' }} onClick={() => navigate('/attendance')}>
+            <div className="stats-card-icon purple">
+              <UserCheck size={24} />
+            </div>
+            <div className="stats-card-value font-mono">উপস্থিতি</div>
+            <div className="stats-card-label mt-2">মাসিক উপস্থিতির রেকর্ড</div>
+          </div>
         </div>
+      )}
 
       {/* Finance Specific Section (Only for Admins and Accountants) */}
       {['super_admin', 'co_super_admin', 'admin', 'accountant', 'principal'].includes(user?.userType) && (
