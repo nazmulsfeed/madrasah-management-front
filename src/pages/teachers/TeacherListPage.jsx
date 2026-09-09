@@ -5,6 +5,12 @@ import useAuthStore from '../../store/authStore';
 
 export default function TeacherListPage() {
   const { user } = useAuthStore();
+  const canManageStaff = user?.userType === 'super_admin' || 
+                         user?.userType === 'co_super_admin' || 
+                         user?.userType === 'admin' || 
+                         user?.adminRole === 'co_super_admin' || 
+                         user?.adminRole === 'admin';
+
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -254,7 +260,7 @@ export default function TeacherListPage() {
           <h1 className="page-title">শিক্ষকমণ্ডলী ও স্টাফ</h1>
           <p className="page-subtitle">মাদ্রাসার সকল শিক্ষক ও কর্মকর্তা-কর্মচারীদের তালিকা</p>
         </div>
-        {(user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.userType === 'admin' || user?.adminRole === 'co_super_admin' || user?.adminRole === 'admin') && (
+        {canManageStaff && (
           <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={16} /> নতুন স্টাফ/শিক্ষক
           </button>
@@ -317,7 +323,7 @@ export default function TeacherListPage() {
         </div>
       </div>
 
-      {(user?.userType === 'super_admin' || user?.userType === 'admin') && filteredTeachers.length > 0 && (
+      {canManageStaff && filteredTeachers.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px', background: 'var(--bg-card)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', marginBottom: 0 }}>
             <input 
@@ -356,7 +362,7 @@ export default function TeacherListPage() {
         <div className="grid grid-3">
           {paginatedTeachers.map((teacher) => (
             <div key={teacher._id} className="card animate-slide-up" style={{ textAlign: 'center', position: 'relative' }}>
-              {(user?.userType === 'super_admin' || user?.userType === 'admin') && (
+              {canManageStaff && (
                 <div style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 10 }}>
                   <input 
                     type="checkbox" 
@@ -372,7 +378,7 @@ export default function TeacherListPage() {
                   />
                 </div>
               )}
-              {(user?.userType === 'super_admin' || user?.userType === 'admin') && (
+              {canManageStaff && (
                 <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '4px' }}>
                   <button
                     onClick={() => handleEditClick(teacher)}
