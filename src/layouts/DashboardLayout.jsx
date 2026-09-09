@@ -327,24 +327,46 @@ export default function DashboardLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div 
-            className="sidebar-user"
-            onClick={() => navigate('/settings')}
-            title="প্রোফাইল ও পাসওয়ার্ড পরিবর্তন করতে ক্লিক করুন"
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="sidebar-user-avatar">{userInitial}</div>
-            <div className="sidebar-user-info">
-              <div className="sidebar-user-name">
-                {user?.fullName || user?.firstName || user?.username}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div 
+              className="sidebar-user"
+              onClick={() => {
+                setMobileOpen(false);
+                navigate('/settings');
+              }}
+              title="প্রোফাইল ও পাসওয়ার্ড পরিবর্তন করতে ক্লিক করুন"
+              style={{ 
+                cursor: 'pointer', 
+                flex: 1, 
+                padding: '8px 10px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div className="sidebar-user-avatar">{userInitial}</div>
+              <div className="sidebar-user-info" style={{ overflow: 'hidden' }}>
+                <div className="sidebar-user-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  {user?.fullName || user?.firstName || user?.username}
+                </div>
+                <div className="sidebar-user-role" style={{ fontSize: '0.72rem', opacity: 0.75 }}>
+                  {getUserTypeLabel()}
+                </div>
               </div>
-              <div className="sidebar-user-role">{getUserTypeLabel()}</div>
             </div>
+
             <button
               className="btn-ghost btn-icon"
-              onClick={handleLogout}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogout();
+              }}
               title="লগ আউট"
-              style={{ marginRight: 'auto' }}
+              style={{ padding: '8px', borderRadius: '8px', flexShrink: 0 }}
             >
               <LogOut size={18} />
             </button>
