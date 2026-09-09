@@ -348,7 +348,17 @@ export default function DashboardLayout() {
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
-              <div className="sidebar-user-avatar">{userInitial}</div>
+              <div className="sidebar-user-avatar" style={{ overflow: 'hidden' }}>
+                {user?.photo ? (
+                  <img 
+                    src={user.photo} 
+                    alt="User" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                  />
+                ) : (
+                  userInitial
+                )}
+              </div>
               <div className="sidebar-user-info" style={{ overflow: 'hidden' }}>
                 <div className="sidebar-user-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                   {user?.fullName || user?.firstName || user?.username}

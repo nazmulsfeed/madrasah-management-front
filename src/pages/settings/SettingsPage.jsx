@@ -6,6 +6,9 @@ import {
   Database, 
   Bell, 
   User as UserIcon,
+  Camera,
+  Upload,
+  Trash2,
   X
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
@@ -20,6 +23,7 @@ export default function SettingsPage() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     phone: user?.phone || '',
+    photo: user?.photo || '',
   });
 
   // Institution Form State
@@ -366,6 +370,105 @@ export default function SettingsPage() {
               )}
 
               <form onSubmit={handleProfileSubmit}>
+                {/* Profile Photo Upload */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '24px',
+                  marginBottom: '28px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px dashed var(--border-color)'
+                }}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      width: '90px',
+                      height: '90px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '3px solid var(--primary-500)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}>
+                      {profileData.photo ? (
+                        <img 
+                          src={profileData.photo} 
+                          alt="Profile" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>
+                          {(profileData.firstName || user?.username || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 600 }}>প্রোফাইল ছবি</h4>
+                    <p className="text-muted" style={{ margin: '0 0 12px 0', fontSize: '0.825rem' }}>
+                      JPG, PNG বা WEBP ফরম্যাট (সর্বোচ্চ ২ মেগাবাইট)
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ 
+                          cursor: 'pointer', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          fontSize: '0.85rem',
+                          padding: '6px 14px'
+                        }}
+                      >
+                        <Camera size={16} />
+                        <span>ছবি পরিবর্তন করুন</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          style={{ display: 'none' }} 
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                setProfileAlert({ type: 'error', message: 'ছবির আকার ২ মেগাবাইটের বেশি হতে পারবে না' });
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setProfileData(prev => ({ ...prev, photo: reader.result }));
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      
+                      {profileData.photo && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '6px', 
+                            fontSize: '0.85rem',
+                            padding: '6px 14px' 
+                          }}
+                          onClick={() => setProfileData(prev => ({ ...prev, photo: '' }))}
+                        >
+                          <Trash2 size={15} />
+                          <span>মুছে ফেলুন</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-2" style={{ gap: '20px' }}>
                   <div className="form-group">
                     <label className="form-label">ব্যবহারকারীর নাম (Username)</label>
