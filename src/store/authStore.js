@@ -57,6 +57,9 @@ const useAuthStore = create((set, get) => ({
   isAuthenticated: () => !!get().token,
 
   getUserTypeLabel: () => {
+    const user = get().user;
+    if (!user) return '';
+
     const labels = {
       super_admin: 'সুপার অ্যাডমিন',
       co_super_admin: 'কো-সুপার অ্যাডমিন',
@@ -72,7 +75,27 @@ const useAuthStore = create((set, get) => ({
       student: 'ছাত্র/ছাত্রী',
       guardian: 'অভিভাবক',
     };
-    return labels[get().user?.userType] || '';
+
+    const primaryType = user.userType;
+    const adminRole = user.adminRole;
+
+    const primaryLabel = labels[primaryType] || primaryType || '';
+
+    // If primary role is super_admin, directly return it
+    if (primaryType === 'super_admin') {
+      return labels.super_admin;
+    }
+
+    // If has an extra adminRole and it's different from the primary role
+    if (adminRole && adminRole !== primaryType) {
+      const adminRoleLabel = labels[adminRole] || adminRole;
+      if (primaryLabel) {
+        return `${primaryLabel} + ${adminRoleLabel}`;
+      }
+      return adminRoleLabel;
+    }
+
+    return primaryLabel;
   },
 
   updateProfile: async (profileData) => {

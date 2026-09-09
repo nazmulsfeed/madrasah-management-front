@@ -35,7 +35,7 @@ export default function TeacherListPage() {
 
     const matchesType = !typeFilter || teacher.teacherType === typeFilter;
     const matchesDesignation = !designationFilter || teacher.designation === designationFilter;
-    const matchesRole = !roleFilter || teacher.user?.userType === roleFilter;
+    const matchesRole = !roleFilter || teacher.user?.userType === roleFilter || teacher.user?.adminRole === roleFilter;
 
     return matchesSearch && matchesType && matchesDesignation && matchesRole;
   });
@@ -74,6 +74,8 @@ export default function TeacherListPage() {
   });
 
   const userTypeLabels = {
+    co_super_admin: 'কো-সুপার অ্যাডমিন',
+    admin: 'অ্যাডমিন',
     principal: 'প্রিন্সিপাল',
     vice_principal: 'ভাইস প্রিন্সিপাল',
     teacher: 'শিক্ষক',
@@ -82,6 +84,20 @@ export default function TeacherListPage() {
     admission_officer: 'ভর্তি কর্মকর্তা',
     hostel_manager: 'হোস্টেল ম্যানেজার',
     library_manager: 'লাইব্রেরি ম্যানেজার',
+  };
+
+  const getCombinedRoleBadge = (targetUser) => {
+    if (!targetUser) return 'শিক্ষক';
+    const pType = targetUser.userType;
+    const aRole = targetUser.adminRole;
+    const pLabel = userTypeLabels[pType] || pType || 'স্টাফ';
+
+    if (pType === 'super_admin') return 'সুপার অ্যাডমিন';
+    if (aRole && aRole !== pType) {
+      const aLabel = userTypeLabels[aRole] || aRole;
+      return `${pLabel} + ${aLabel}`;
+    }
+    return pLabel;
   };
 
   const teacherTypeLabels = {
@@ -238,7 +254,7 @@ export default function TeacherListPage() {
           <h1 className="page-title">শিক্ষকমণ্ডলী ও স্টাফ</h1>
           <p className="page-subtitle">মাদ্রাসার সকল শিক্ষক ও কর্মকর্তা-কর্মচারীদের তালিকা</p>
         </div>
-        {(user?.userType === 'super_admin' || user?.userType === 'admin') && (
+        {(user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.userType === 'admin' || user?.adminRole === 'co_super_admin' || user?.adminRole === 'admin') && (
           <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={16} /> নতুন স্টাফ/শিক্ষক
           </button>
@@ -407,7 +423,7 @@ export default function TeacherListPage() {
               <p className="text-sm text-primary mb-4">{teacher.designation || userTypeLabels[teacher.user?.userType] || 'স্টাফ'}</p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                 <span className="badge badge-info" style={{ fontSize: '0.688rem', padding: '2px 8px' }}>
-                  রোল: {userTypeLabels[teacher.user?.userType] || 'শিক্ষক'}
+                  রোল: {getCombinedRoleBadge(teacher.user)}
                 </span>
                 <span className="badge badge-muted" style={{ fontSize: '0.688rem', padding: '2px 8px' }}>
                   বিভাগ: {teacherTypeLabels[teacher.teacherType] || 'জেনারেল'}
@@ -531,6 +547,10 @@ export default function TeacherListPage() {
                 <div className="form-group">
                   <label className="form-label">সিস্টেম রোল (Role) *</label>
                   <select name="userType" className="form-input" required value={formData.userType} onChange={handleChange}>
+                    {user?.userType === 'super_admin' && (
+                      <option value="co_super_admin">কো-সুপার অ্যাডমিন (Co-Super Admin)</option>
+                    )}
+                    <option value="admin">অ্যাডমিন (Admin)</option>
                     <option value="teacher">শিক্ষক (Teacher)</option>
                     <option value="hifz_teacher">হিফজ শিক্ষক (Hifz Teacher)</option>
                     <option value="principal">প্রিন্সিপাল (Principal)</option>
