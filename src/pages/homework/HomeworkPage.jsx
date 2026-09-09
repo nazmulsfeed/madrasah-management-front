@@ -114,7 +114,9 @@ export default function HomeworkPage() {
       if (res.data.success && res.data.data) {
         const list = res.data.data;
         const hwClasses = list.map(h => h.classLevel).filter(Boolean);
-        const apiClasses = (classList || []).map(c => c.name).filter(Boolean);
+        // For students, restrict class filter options only to their enrolled class homeworks
+        const isStudent = user?.userType === 'student';
+        const apiClasses = (!isStudent && classList) ? classList.map(c => c.name).filter(Boolean) : [];
         setFilterOptions({
           classes: Array.from(new Set([...apiClasses, ...hwClasses])),
           sections: Array.from(new Set(list.map(h => h.section).filter(Boolean))),
