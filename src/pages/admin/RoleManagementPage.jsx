@@ -120,6 +120,26 @@ export default function RoleManagementPage() {
     setPermissions(updated);
   };
 
+  const handleSelectCategory = (categoryPermissions) => {
+    setPermissions(prev => {
+      const updated = { ...prev };
+      categoryPermissions.forEach(p => {
+        updated[p.key] = true;
+      });
+      return updated;
+    });
+  };
+
+  const handleDeselectCategory = (categoryPermissions) => {
+    setPermissions(prev => {
+      const updated = { ...prev };
+      categoryPermissions.forEach(p => {
+        updated[p.key] = false;
+      });
+      return updated;
+    });
+  };
+
   const handleRestoreDefault = () => {
     // Will implement backend default fetch if needed, 
     // for now we just select all or deselect all.
@@ -312,14 +332,76 @@ export default function RoleManagementPage() {
                       borderRadius: '12px',
                       border: isFinancial ? '1px solid rgba(59, 130, 246, 0.3)' : isSpecial ? '1px solid var(--primary-600)' : '1px solid var(--border-color)'
                     }}>
-                      <h3 style={{ 
-                        fontSize: '0.95rem', 
-                        marginBottom: '16px', 
-                        color: isFinancial ? '#2563EB' : isSpecial ? 'var(--primary-400)' : 'var(--text-color)',
-                        fontWeight: 700
-                      }}>
-                        {cat.category}
-                      </h3>
+                      {(() => {
+                        const allChecked = cat.permissions.length > 0 && cat.permissions.every(p => permissions[p.key]);
+                        const noneChecked = cat.permissions.every(p => !permissions[p.key]);
+
+                        return (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                            marginBottom: '16px'
+                          }}>
+                            <h3 style={{ 
+                              fontSize: '0.95rem', 
+                              margin: 0,
+                              color: isFinancial ? '#2563EB' : isSpecial ? 'var(--primary-400)' : 'var(--text-color)',
+                              fontWeight: 700
+                            }}>
+                              {cat.category}
+                            </h3>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => handleSelectCategory(cat.permissions)}
+                                disabled={allChecked}
+                                style={{
+                                  padding: '3px 8px',
+                                  fontSize: '0.75rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  borderRadius: '6px',
+                                  background: allChecked ? 'transparent' : 'rgba(16, 185, 129, 0.1)',
+                                  color: allChecked ? 'var(--text-muted)' : 'var(--success)',
+                                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                                  cursor: allChecked ? 'not-allowed' : 'pointer'
+                                }}
+                                title="এই টপিকের সব পারমিশন সিলেক্ট করুন"
+                              >
+                                <Check size={12} /> সিলেক্ট অল
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => handleDeselectCategory(cat.permissions)}
+                                disabled={noneChecked}
+                                style={{
+                                  padding: '3px 8px',
+                                  fontSize: '0.75rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  borderRadius: '6px',
+                                  background: noneChecked ? 'transparent' : 'rgba(239, 68, 68, 0.1)',
+                                  color: noneChecked ? 'var(--text-muted)' : 'var(--danger)',
+                                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                                  cursor: noneChecked ? 'not-allowed' : 'pointer'
+                                }}
+                                title="এই টপিকের সব পারমিশন আন-সিলেক্ট করুন"
+                              >
+                                <X size={12} /> আন-সিলেক্ট
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <div className="grid grid-2" style={{ gap: '16px' }}>
                         {cat.permissions.map(perm => (
                           <label key={perm.key} style={{
