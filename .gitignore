@@ -1,29 +1,9 @@
-# Dependencies
-node_modules/
-**/node_modules/
+# Ignore everything
+*
 
-# Production/Build
-# dist/
-# **/dist/
-build/
-**/build/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.production
-**/.env
-**/.env.*
-
-# System / IDEs
-.DS_Store
-.vscode/
-Thumbs.db
-
-# Archives
-*.zip
-*.tar.gz
-*.rar
+# But track these
+!.gitignore
+!.agents/
+!.agents/**
+!dist/
+!dist/**
