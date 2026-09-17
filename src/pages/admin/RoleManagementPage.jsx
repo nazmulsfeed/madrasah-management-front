@@ -205,7 +205,7 @@ export default function RoleManagementPage() {
   const getCombinedRoleLabel = (primaryRole, adminRole) => {
     const pLabel = roles.find(r => r.value === primaryRole)?.label || primaryRole;
     if (!adminRole) return pLabel;
-    const aLabel = adminRole === 'co_super_admin' ? 'কো-সুপার অ্যাডমিন' : 'অ্যাডমিন';
+    const aLabel = roles.find(r => r.value === adminRole)?.label || adminRole;
     return `${pLabel} + ${aLabel}`;
   };
 
@@ -532,8 +532,17 @@ export default function RoleManagementPage() {
                                 onChange={e => handleUpdateRole(u._id, u.userType, u.adminRole || '', e.target.value)}
                               >
                                 <option value="">None (কোনো অতিরিক্ত রোল নেই)</option>
-                                <option value="admin">অ্যাডমিন (Admin)</option>
                                 <option value="co_super_admin">কো-সুপার অ্যাডমিন (Co-Super Admin)</option>
+                                <option value="admin">অ্যাডমিন (Admin)</option>
+                                <option value="principal">প্রিন্সিপাল (Principal)</option>
+                                <option value="vice_principal">ভাইস প্রিন্সিপাল (Vice Principal)</option>
+                                <option value="teacher">শিক্ষক (Teacher)</option>
+                                <option value="hifz_teacher">হিফজ শিক্ষক (Hifz Teacher)</option>
+                                <option value="accountant">হিসাবরক্ষক (Accountant)</option>
+                                <option value="cashier">ক্যাশিয়ার (Cashier)</option>
+                                <option value="admission_officer">ভর্তি কর্মকর্তা (Admission Officer)</option>
+                                <option value="hostel_manager">হোস্টেল ম্যানেজার (Hostel Manager)</option>
+                                <option value="library_manager">লাইব্রেরি ম্যানেজার (Library Manager)</option>
                               </select>
                             )}
                           </td>

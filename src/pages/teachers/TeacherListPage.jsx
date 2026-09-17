@@ -93,6 +93,7 @@ export default function TeacherListPage() {
     teacher: 'শিক্ষক',
     hifz_teacher: 'হিফজ শিক্ষক',
     accountant: 'হিসাবরক্ষক',
+    cashier: 'ক্যাশিয়ার',
     admission_officer: 'ভর্তি কর্মকর্তা',
     hostel_manager: 'হোস্টেল ম্যানেজার',
     library_manager: 'লাইব্রেরি ম্যানেজার',

@@ -146,7 +146,8 @@ export default function StudentListPage() {
       setSelectedIds(prev => prev.filter(item => item !== id));
       fetchStudents();
     } catch (err) {
-      alert('মুছে ফেলা ব্যর্থ হয়েছে');
+      const errMsg = err.response?.data?.message || 'মুছে ফেলা ব্যর্থ হয়েছে';
+      alert(errMsg);
     }
   };
 
@@ -158,7 +159,8 @@ export default function StudentListPage() {
       setSelectedIds([]);
       fetchStudents();
     } catch (err) {
-      alert('কিছু ছাত্র/ছাত্রী মুছে ফেলা যায়নি');
+      const errMsg = err.response?.data?.message || 'কিছু ছাত্র/ছাত্রী মুছে ফেলা যায়নি';
+      alert(errMsg);
       fetchStudents();
     }
   };
