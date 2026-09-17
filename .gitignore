@@ -1,9 +1,16 @@
-# Ignore everything
-*
+# Source code & build tools (local only)
+src/
+public/
+dist/
+node_modules/
+package.json
+package-lock.json
+vite.config.js
+*.config.js
+*.config.ts
 
-# But track these
-!.gitignore
-!.agents/
-!.agents/**
-!dist/
-!dist/**
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
