@@ -1,10 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, CheckCircle, AlertCircle, Save, Users, Plus, Edit, Trash2, X, Settings } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 
 export default function ClassSubjectsPage() {
   const { user } = useAuthStore();
+
+  // Read cached permissions (populated by DashboardLayout from /permissions/me)
+  const myPermissions = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
+  }, []);
+
+  // Helper: check if user has elevated role OR specific granular permission
+  const canManageClasses = useMemo(() => {
+    const isSuperOrAdmin = ['super_admin', 'co_super_admin', 'admin', 'principal'].includes(user?.userType) ||
+                           ['co_super_admin', 'admin'].includes(user?.adminRole);
+    if (isSuperOrAdmin) return true;
+    return !!(myPermissions['class.create'] || myPermissions['class.update'] || myPermissions['class.delete']);
+  }, [user, myPermissions]);
+
+  const canManageSubjects = useMemo(() => {
+    const isSuperOrAdmin = ['super_admin', 'co_super_admin', 'admin', 'principal'].includes(user?.userType) ||
+                           ['co_super_admin', 'admin'].includes(user?.adminRole);
+    if (isSuperOrAdmin) return true;
+    return !!(myPermissions['subject.create'] || myPermissions['subject.update'] || myPermissions['subject.delete']);
+  }, [user, myPermissions]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -300,7 +320,7 @@ export default function ClassSubjectsPage() {
           <h1 className="page-title">শ্রেণি ও বিষয় কনফিগারেশন</h1>
           <p className="page-subtitle">নতুন শ্রেণি তৈরি করুন, বিষয় ম্যাপিং করুন এবং শিক্ষার্থীদের অর্পিত বিষয়সমূহ দেখুন</p>
         </div>
-        {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+        {canManageClasses && (
           <button className="btn btn-primary" onClick={handleAddClassClick}>
             <Plus size={16} /> নতুন শ্রেণি তৈরি
           </button>
@@ -346,7 +366,7 @@ export default function ClassSubjectsPage() {
                         <div className="text-xs text-muted mt-2">কোড: {cls.code} • ক্রম: {cls.order}</div>
                       </div>
                       
-                      {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                      {canManageClasses && (
                         <div className="flex gap-4" onClick={(e) => e.stopPropagation()}>
                           <button 
                             className="btn btn-ghost btn-sm" 
@@ -383,7 +403,7 @@ export default function ClassSubjectsPage() {
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 0 }}>
                       <BookOpen size={20} className="text-primary" /> {selectedClass?.name} - এর বিষয় ম্যাপিং
                     </h3>
-                    {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                    {canManageSubjects && (
                       <button 
                         className="btn btn-secondary btn-sm" 
                         onClick={() => {
@@ -453,7 +473,7 @@ export default function ClassSubjectsPage() {
                             </label>
                             
                             {/* Action Buttons for Subject */}
-                            {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                            {canManageSubjects && (
                               <div style={{ display: 'flex', gap: '4px' }}>
                                 <button 
                                   className="btn btn-ghost btn-sm" 
