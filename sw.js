@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v16'; // Fix Bell icon import in DashboardLayout
+const CACHE_NAME = 'annur-academy-cache-v17'; // Fix desktop menu toggle and mobile overlay
 const urlsToCache = [
   '/',
   '/index.html',
