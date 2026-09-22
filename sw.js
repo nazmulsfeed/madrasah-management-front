@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v15'; // Bumped for student export filter & institution name update
+const CACHE_NAME = 'annur-academy-cache-v16'; // Fix Bell icon import in DashboardLayout
 const urlsToCache = [
   '/',
   '/index.html',
