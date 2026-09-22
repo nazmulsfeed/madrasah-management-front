@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v14'; // Bumped for attendance & role permission save fix
+const CACHE_NAME = 'annur-academy-cache-v15'; // Bumped for student export filter & institution name update
 const urlsToCache = [
   '/',
   '/index.html',
