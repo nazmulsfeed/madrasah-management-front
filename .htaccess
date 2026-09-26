@@ -2,8 +2,8 @@
   RewriteEngine On
   RewriteBase /
 
-  # 1. Let Passenger handle /api requests without any interference
-  RewriteRule ^api/ - [L]
+  # 1. Let Passenger handle /api and /iclock requests without any interference
+  RewriteRule ^(api|iclock) - [L]
 
   # 2. Route all other requests to index.html (React Router)
   RewriteRule ^index\.html$ - [L]
