@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v17'; // Fix desktop menu toggle and mobile overlay
+const CACHE_NAME = 'annur-academy-cache-v18'; // Advanced salary management module
 const urlsToCache = [
   '/',
   '/index.html',
