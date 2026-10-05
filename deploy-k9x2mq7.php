@@ -7,6 +7,7 @@
 
 set_time_limit(90);
 ini_set('max_execution_time', 90);
+ignore_user_abort(true); // ✅ Browser বন্ধ হলেও script শেষ পর্যন্ত চলবে!
 
 // Disable output buffering so browser gets live output
 if (ob_get_level()) ob_end_clean();
