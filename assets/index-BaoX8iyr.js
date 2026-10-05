@@ -1299,15 +1299,62 @@ ${r}
     </tbody>
   </table>
 
+  <div class="print-bottom-spacer"></div>
   ${ya(C)}
     </div>
   </div>
 
   <script>
+    function adjustFooterToBottom() {
+      try {
+        const table = document.querySelector('table');
+        const header = document.querySelector('.official-header');
+        const spacer = document.querySelector('.print-bottom-spacer');
+        const footer = document.querySelector('.print-footer-signatures');
+        if (!table || !spacer || !footer) return;
+
+        // Measure printable height in pixels using a 1mm probe
+        const probe = document.createElement('div');
+        probe.style.height = '100mm';
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        document.body.appendChild(probe);
+        const pxPerMm = probe.offsetHeight / 100;
+        document.body.removeChild(probe);
+
+        // A4 page height minus top/bottom margins (6mm * 2 = 12mm)
+        const isLandscape = ${ye==="landscape"};
+        const pageHeightMm = isLandscape ? 210 : 297;
+        const pageUsableMm = pageHeightMm - 12; // 6mm top + 6mm bottom
+        const pageUsablePx = pageUsableMm * pxPerMm;
+
+        // Reset spacer
+        spacer.style.height = '0px';
+
+        // Content height before footer
+        const contentHeight = (table.offsetTop + table.offsetHeight);
+        const footerHeight = footer.offsetHeight || 80;
+
+        // Find remaining space on current page
+        const totalHeight = contentHeight + footerHeight;
+        const currentPageOffset = contentHeight % pageUsablePx;
+        const spaceLeftOnPage = pageUsablePx - currentPageOffset;
+
+        if (spaceLeftOnPage > footerHeight + 10) {
+          const pushDownPx = spaceLeftOnPage - footerHeight - 5;
+          spacer.style.height = pushDownPx + 'px';
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+      adjustFooterToBottom();
       setTimeout(() => {
+        adjustFooterToBottom();
         window.print();
-      }, 500);
+      }, 400);
     });
   <\/script>
 </body>
