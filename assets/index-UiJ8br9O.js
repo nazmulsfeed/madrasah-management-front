@@ -718,7 +718,7 @@ Error generating stack: `+i.message+`
     }
     @page {
       size: A4 ${t};
-      margin: ${t==="landscape"?"8mm 12mm":"10mm 14mm"};
+      margin: 6mm 10mm !important;
     }
     * { box-sizing: border-box; }
     body {
@@ -756,29 +756,42 @@ Error generating stack: `+i.message+`
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
+        background: #ffffff !important;
       }
       .print-sheet-container {
+        position: relative !important;
         width: 100% !important;
         min-width: 100% !important;
-        min-height: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
         box-sizing: border-box !important;
         margin: 0 !important;
         padding: 0 !important;
+        overflow: hidden !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        min-height: ${t==="landscape"?"196.5mm":"283.5mm"} !important;
+        height: ${t==="landscape"?"196.5mm":"283.5mm"} !important;
+        max-height: ${t==="landscape"?"196.5mm":"283.5mm"} !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        background: #ffffff !important;
       }
       .print-content-layer {
+        position: relative !important;
+        z-index: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         flex: 1 1 auto !important;
+        height: 100% !important;
         min-height: 100% !important;
         width: 100% !important;
         justify-content: space-between !important;
       }
       .print-footer-signatures {
+        position: relative !important;
+        z-index: 2 !important;
         margin-top: auto !important;
-        padding-top: 24px !important;
+        padding-top: 10px !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         page-break-after: avoid !important;
@@ -804,7 +817,7 @@ Error generating stack: `+i.message+`
       pointer-events: none;
       user-select: none;
       z-index: 0;
-      opacity: 0.065;
+      opacity: 0.085;
       object-fit: contain;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
