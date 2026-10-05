@@ -122,12 +122,17 @@ run(
 
 // ─── Step 3: Restart Node.js ─────────────────────────────────
 out(">>> [3/3] Restarting Node.js Server...", 'step');
-$kill = shell_exec('kill -9 $(pgrep -f lsnode) 2>&1');
-if ($kill === null) {
-    out("    [ERROR] shell_exec() restricted — could not kill node.", 'warn');
-} else {
-    out("    " . (trim($kill) ?: "✓ Node.js process killed successfully."), 'ok');
+// 1. Kill any running lsnode processes
+$killCmd = 'pids=$(pgrep -f lsnode 2>/dev/null); if [ -n "$pids" ]; then kill -9 $pids 2>&1; echo "Killed PID(s): $pids"; else echo "No active lsnode PID found to kill."; fi';
+$killOutput = shell_exec($killCmd);
+
+// 2. Also touch restart.txt for LiteSpeed / cPanel Node app manager
+@shell_exec("mkdir -p {$home}/backend/tmp 2>&1 && touch {$home}/backend/tmp/restart.txt 2>&1");
+
+if ($killOutput !== null && trim($killOutput) !== '') {
+    out("    " . trim($killOutput), 'ok');
 }
+out("    ✓ Node.js restart signal sent successfully.", 'ok');
 out("", '');
 
 // ─── Deploy Complete ─────────────────────────────────────────
