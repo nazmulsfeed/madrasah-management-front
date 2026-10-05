@@ -765,12 +765,11 @@ Error generating stack: `+i.message+`
         box-sizing: border-box !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        min-height: ${t==="landscape"?"196.5mm":"283.5mm"} !important;
-        height: ${t==="landscape"?"196.5mm":"283.5mm"} !important;
-        max-height: ${t==="landscape"?"196.5mm":"283.5mm"} !important;
+        overflow: visible !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        min-height: 100% !important;
+        height: auto !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
@@ -782,7 +781,7 @@ Error generating stack: `+i.message+`
         display: flex !important;
         flex-direction: column !important;
         flex: 1 1 auto !important;
-        height: 100% !important;
+        height: auto !important;
         min-height: 100% !important;
         width: 100% !important;
         justify-content: space-between !important;
@@ -791,18 +790,18 @@ Error generating stack: `+i.message+`
         position: relative !important;
         z-index: 2 !important;
         margin-top: auto !important;
-        padding-top: 10px !important;
+        padding-top: 16px !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       thead {
-        display: table-header-group;
+        display: table-header-group !important;
       }
       tr {
-        page-break-inside: avoid;
-        break-inside: avoid;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
     .print-watermark {
