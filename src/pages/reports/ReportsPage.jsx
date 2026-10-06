@@ -617,7 +617,418 @@ export default function ReportsPage() {
   const getStatusLabel = (s) => ({ present: 'উপস্থিত', absent: 'অনুপস্থিত', late: 'বিলম্ব', on_leave: 'ছুটি', not_assigned: 'নির্ধারিত নয়' }[s] || s);
   const getStatusColor = (s) => ({ present: '#10b981', absent: '#ef4444', late: '#f59e0b', on_leave: '#3b82f6', not_assigned: '#94a3b8' }[s] || '#94a3b8');
 
-  const handlePrint = () => { window.print(); };
+  const printConsolidatedReport = (targetOrientation = orientation) => {
+    if (!data) return;
+    const printWindow = window.open('', '_blank', 'width=1000,height=850');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const students = data.students || { total: 0, active: 0, male: 0, female: 0, byClass: [] };
+    const teachers = data.teachers || { total: 0, active: 0, regular: 0, hifz: 0 };
+    const attendance = data.attendance || { today: {}, month: {}, byClass: [] };
+    const exams = data.exams || { total: 0, upcoming: 0, ongoing: 0, completed: 0, grades: {}, recent: [] };
+    const finance = data.finance || { invoiced: 0, paid: 0, outstanding: 0, collectionRate: 0 };
+    const grades = exams.grades || { totalEntries: 0, avgMarks: 0, passCount: 0, failCount: 0 };
+    const todayAtt = attendance.today || { present: 0, absent: 0, late: 0, rate: 0 };
+
+    // Pair class data for compact side-by-side display
+    const classMap = {};
+    (students.byClass || []).forEach(c => {
+      classMap[c.className] = {
+        name: c.className,
+        total: c.count,
+        present: '—',
+        rate: '—'
+      };
+    });
+    (attendance.byClass || []).forEach(a => {
+      if (classMap[a.className]) {
+        classMap[a.className].present = a.present;
+        classMap[a.className].rate = a.rate ? `${a.rate}%` : '—';
+      } else {
+        classMap[a.className] = {
+          name: a.className,
+          total: a.total || 0,
+          present: a.present,
+          rate: a.rate ? `${a.rate}%` : '—'
+        };
+      }
+    });
+    const classList = Object.values(classMap);
+    const splitNeeded = classList.length > 6;
+    const half = Math.ceil(classList.length / 2);
+    const leftClasses = splitNeeded ? classList.slice(0, half) : classList;
+    const rightClasses = splitNeeded ? classList.slice(half) : [];
+
+    const html = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>${madrasahName} — সার্বিক সমন্বিত প্রতিবেদন ও পরিসংখ্যান</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style id="page-orientation-style">
+    ${getMadrasahPrintStyles(targetOrientation, { wrap: false })}
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    .no-print-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .metric-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 8px;
+      background: #f8fafc;
+      text-align: center;
+    }
+    .metric-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .metric-num {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f766e;
+      line-height: 1.2;
+      font-family: 'Inter', sans-serif;
+    }
+    .metric-sub {
+      font-size: 8.5px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+    .sec-header {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #0f172a;
+      background: #f1f5f9;
+      border-left: 3px solid #0f766e;
+      padding: 2.5px 8px;
+      margin: 6px 0 4px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    table.compact-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 6px;
+    }
+    table.compact-tbl th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 3px 5px;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+      font-size: 8.5pt;
+    }
+    table.compact-tbl td {
+      padding: 2.5px 5px;
+      border: 1px solid #cbd5e1;
+      font-size: 8.2pt;
+      vertical-align: middle;
+    }
+    table.compact-tbl tr:nth-child(even) { background: #f8fafc; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .badge-status {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 700;
+    }
+    .badge-published { background: #dcfce7; color: #15803d; }
+    .badge-completed { background: #e0f2fe; color: #0369a1; }
+    .badge-ongoing { background: #fef3c7; color: #b45309; }
+    .badge-upcoming { background: #f1f5f9; color: #475569; }
+    
+    @media print {
+      .no-print { display: none !important; }
+      body { padding: 0 !important; }
+      .print-sheet-container {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100% !important;
+        justify-content: space-between !important;
+      }
+      .print-content-layer {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100% !important;
+        justify-content: space-between !important;
+      }
+      .print-footer-signatures {
+        margin-top: auto !important;
+        padding-top: 16px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print no-print-bar">
+    <div style="font-weight: 700;">🖨️ সার্বিক সমন্বিত প্রাতিষ্ঠানিক প্রতিবেদন — প্রিন্ট প্রিভিউ</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button onclick="changeOrientation('portrait')" id="btn-portrait" style="padding: 5px 12px; border-radius: 6px; border: 1px solid #475569; background: ${targetOrientation === 'portrait' ? '#0f766e' : '#1e293b'}; color: #fff; cursor: pointer; font-size: 12px;">📄 পোর্ট্রেট</button>
+      <button onclick="changeOrientation('landscape')" id="btn-landscape" style="padding: 5px 12px; border-radius: 6px; border: 1px solid #475569; background: ${targetOrientation === 'landscape' ? '#0f766e' : '#1e293b'}; color: #fff; cursor: pointer; font-size: 12px;">🖼️ ল্যান্ডস্কেপ</button>
+      <button onclick="window.print()" style="padding: 5px 16px; border-radius: 6px; border: none; background: #10b981; color: #fff; cursor: pointer; font-weight: 700; font-size: 12px;">🖨️ প্রিন্ট করুন</button>
+      <button onclick="window.close()" style="padding: 5px 12px; border-radius: 6px; border: none; background: #475569; color: #fff; cursor: pointer; font-size: 12px;">✕ বন্ধ</button>
+    </div>
+  </div>
+
+  <div class="print-sheet-container">
+    <div class="print-content-layer">
+      <div>
+        ${getMadrasahHeaderHtml({
+          title: 'সার্বিক সমন্বিত প্রাতিষ্ঠানিক প্রতিবেদন ও পরিসংখ্যান',
+          orientation: targetOrientation,
+          metaLeft: `<strong>শাখা:</strong> ${branchName} | <strong>প্রতিবেদন:</strong> প্রাতিষ্ঠানিক সমন্বিত সারসংক্ষেপ`,
+          metaRight: `<strong>তারিখ:</strong> ${new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}`
+        })}
+
+        <!-- ১. প্রধান ৪টি মেট্রিক্স বার -->
+        <div class="metrics-bar">
+          <div class="metric-card">
+            <div class="metric-title">শিক্ষার্থী পরিসংখ্যান</div>
+            <div class="metric-num">${students.total} জন</div>
+            <div class="metric-sub">সক্রিয়: ${students.active} | ছাত্র: ${students.male} | ছাত্রী: ${students.female}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">শিক্ষক ও স্টাফ</div>
+            <div class="metric-num">${teachers.total} জন</div>
+            <div class="metric-sub">সক্রিয়: ${teachers.active} | জেনারেল: ${teachers.regular} | হিফজ: ${teachers.hifz}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">দৈনিক উপস্থিতি হার</div>
+            <div class="metric-num" style="color: #16a34a;">${todayAtt.rate}%</div>
+            <div class="metric-sub">উপস্থিত: ${todayAtt.present} | অনুপস্থিত: ${todayAtt.absent} | বিলম্ব: ${todayAtt.late}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">ফি আদায় হার</div>
+            <div class="metric-num" style="color: #0284c7;">${finance.collectionRate}%</div>
+            <div class="metric-sub">আদায়: ${formatTaka(finance.paid)} | বকেয়া: ${formatTaka(finance.outstanding)}</div>
+          </div>
+        </div>
+
+        <!-- ২. শ্রেণিভিত্তিক শিক্ষার্থী ও উপস্থিতি টেবিল (পাশাপাশি ২টি কলামে সাজানো যাতে উল্লম্বভাবে অর্ধেক জায়গা নেয়) -->
+        <div class="sec-header">
+          <span>📊 শ্রেণি-ভিত্তিক শিক্ষার্থী সংখ্যা ও উপস্থিতি বিবরণী</span>
+          <span style="font-size: 9px; font-weight: normal; color: #64748b;">মোট শ্রেণি: ${classList.length} টি</span>
+        </div>
+        <table class="compact-tbl">
+          <thead>
+            <tr>
+              <th style="width: 25px;">#</th>
+              <th style="text-align: left;">শ্রেণি</th>
+              <th style="width: 55px;">শিক্ষার্থী</th>
+              <th style="width: 55px;">উপস্থিত</th>
+              <th style="width: 50px;">হার</th>
+              ${rightClasses.length > 0 ? `
+                <th style="width: 25px; border-left: 2px solid #94a3b8;">#</th>
+                <th style="text-align: left;">শ্রেণি</th>
+                <th style="width: 55px;">শিক্ষার্থী</th>
+                <th style="width: 55px;">উপস্থিত</th>
+                <th style="width: 50px;">হার</th>
+              ` : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${leftClasses.length === 0 ? `
+              <tr><td colspan="5" style="text-align:center; color:#64748b; padding:8px;">কোনো শ্রেণির তথ্য পাওয়া যায়নি</td></tr>
+            ` : leftClasses.map((lc, idx) => {
+              const rc = rightClasses[idx];
+              return `
+                <tr>
+                  <td style="text-align: center; color: #64748b;">${idx + 1}</td>
+                  <td style="font-weight: 600;">${lc.name}</td>
+                  <td style="text-align: center; font-weight: 700;">${lc.total}</td>
+                  <td style="text-align: center; color: #16a34a; font-weight: 700;">${lc.present}</td>
+                  <td style="text-align: center; font-weight: 700;">${lc.rate}</td>
+                  ${rc ? `
+                    <td style="text-align: center; color: #64748b; border-left: 2px solid #94a3b8;">${half + idx + 1}</td>
+                    <td style="font-weight: 600;">${rc.name}</td>
+                    <td style="text-align: center; font-weight: 700;">${rc.total}</td>
+                    <td style="text-align: center; color: #16a34a; font-weight: 700;">${rc.present}</td>
+                    <td style="text-align: center; font-weight: 700;">${rc.rate}</td>
+                  ` : rightClasses.length > 0 ? `
+                    <td colspan="5" style="border-left: 2px solid #94a3b8; background: #f8fafc;"></td>
+                  ` : ''}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <!-- ৩. পরীক্ষা ও আর্থিক সারসংক্ষেপ (২ কলামে পাশাপাশি) -->
+        <div class="grid-2">
+          <!-- বাম কলাম: পরীক্ষা ও ফলাফল -->
+          <div>
+            <div class="sec-header">
+              <span>📝 পরীক্ষা ও ফলাফল সারসংক্ষেপ</span>
+              <span style="font-size: 9px; font-weight: normal; color: #64748b;">মোট পরীক্ষা: ${exams.total} টি</span>
+            </div>
+            <table class="compact-tbl">
+              <tbody>
+                <tr>
+                  <td style="font-weight: 600; width: 38%;">পরীক্ষা পরিসংখ্যান</td>
+                  <td colspan="2">চলমান: <strong>${exams.ongoing}</strong> | সমাপ্ত: <strong>${exams.completed}</strong> | আসন্ন: <strong>${exams.upcoming}</strong></td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600;">ফলাফল সারসংক্ষেপ</td>
+                  <td colspan="2">উত্তীর্ণ: <strong style="color: #16a34a;">${grades.passCount}</strong> | অনুত্তীর্ণ: <strong style="color: #dc2626;">${grades.failCount}</strong> | গড়: <strong>${grades.avgMarks}</strong></td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600;">গ্রেড বণ্টন</td>
+                  <td colspan="2" style="font-size: 7.8pt;">
+                    A+: <strong>${grades.aPlus || 0}</strong> | A: <strong>${grades.a || 0}</strong> | A-: <strong>${grades.aMinus || 0}</strong> | B: <strong>${grades.b || 0}</strong> | C: <strong>${grades.c || 0}</strong> | F: <strong style="color: #dc2626;">${grades.failCount || 0}</strong>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            ${exams.recent && exams.recent.length > 0 ? `
+              <div style="font-size: 9px; font-weight: 700; margin-bottom: 2px; color: #475569;">সাম্প্রতিক পরীক্ষাসমূহ:</div>
+              <table class="compact-tbl">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">পরীক্ষার নাম</th>
+                    <th>শ্রেণি</th>
+                    <th>তারিখ</th>
+                    <th>অবস্থা</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${exams.recent.slice(0, 3).map(ex => `
+                    <tr>
+                      <td style="font-weight: 600;">${ex.name}</td>
+                      <td style="text-align: center;">${ex.classLevel?.name || 'সকল শ্রেণি'}</td>
+                      <td style="text-align: center; white-space: nowrap;">${ex.startDate ? formatDateDDMMYYYY(ex.startDate) : '—'}</td>
+                      <td style="text-align: center;">
+                        <span class="badge-status badge-${ex.status}">
+                          ${ex.status === 'upcoming' ? 'আসন্ন' : ex.status === 'ongoing' ? 'চলমান' : ex.status === 'completed' ? 'সমাপ্ত' : 'প্রকাশিত'}
+                        </span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : ''}
+          </div>
+
+          <!-- ডান কলাম: আর্থিক সারসংক্ষেপ -->
+          <div>
+            <div class="sec-header">
+              <span>💳 আর্থিক সংক্ষেপ ও ফি আদায়ের অগ্রগতি</span>
+              <span style="font-size: 9px; font-weight: normal; color: #16a34a;">হার: ${finance.collectionRate}%</span>
+            </div>
+            <table class="compact-tbl">
+              <tbody>
+                <tr>
+                  <td style="font-weight: 600; width: 48%;">মোট ধার্যকৃত বিল (Invoiced)</td>
+                  <td style="text-align: right; font-weight: 700;">${formatTaka(finance.invoiced)}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600; color: #16a34a;">আদায়কৃত ফি (Paid)</td>
+                  <td style="text-align: right; font-weight: 700; color: #16a34a;">${formatTaka(finance.paid)}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600; color: #dc2626;">বকেয়া পরিমাণ (Outstanding)</td>
+                  <td style="text-align: right; font-weight: 700; color: #dc2626;">${formatTaka(finance.outstanding)}</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600;">আদায়ের অগ্রগতি (Collection Rate)</td>
+                  <td style="text-align: right; font-weight: 800; color: #0284c7;">${finance.collectionRate}%</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; margin-top: 4px;">
+              <div style="display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; margin-bottom: 3px;">
+                <span>আদায় অগ্রগতি (${finance.collectionRate}%)</span>
+                <span>বকেয়া (${100 - (finance.collectionRate || 0)}%)</span>
+              </div>
+              <div style="background: #e2e8f0; border-radius: 4px; height: 8px; overflow: hidden; display: flex;">
+                <div style="background: #10b981; width: ${finance.collectionRate || 0}%; height: 100%;"></div>
+                <div style="background: #ef4444; width: ${100 - (finance.collectionRate || 0)}%; height: 100%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 8px; color: #64748b; margin-top: 3px;">
+                <span>🟢 আদায়: ${formatTaka(finance.paid)}</span>
+                <span>🔴 বকেয়া: ${formatTaka(finance.outstanding)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ৪. অফিসিয়াল ফুটার সিগনেচার (সরাসরি পেজের নিচে স্থিতিশীল থাকবে স্টুডেন্ট লিস্ট পেজের মতো) -->
+      <div style="margin-top: auto; padding-top: 14px;">
+        ${getMadrasahFooterSignaturesHtml(selectedSignatureRoles)}
+        <div style="margin-top: 8px; font-size: 8pt; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+          <span>মুদ্রণের তারিখ ও সময়: ${new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
+          <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function changeOrientation(mode) {
+      var styleTag = document.getElementById('page-orientation-style');
+      var btnPort = document.getElementById('btn-portrait');
+      var btnLand = document.getElementById('btn-landscape');
+      if (mode === 'landscape') {
+        styleTag.innerHTML = '@page { size: A4 landscape; margin: 6mm 8mm; }';
+        btnLand.style.background = '#0f766e';
+        btnPort.style.background = '#1e293b';
+      } else {
+        styleTag.innerHTML = '@page { size: A4 portrait; margin: 6mm 10mm; }';
+        btnPort.style.background = '#0f766e';
+        btnLand.style.background = '#1e293b';
+      }
+    }
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 400);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  const handlePrint = () => {
+    printConsolidatedReport(orientation);
+  };
 
   const printStudentMarksReport = () => {
     if (!studentMarksData) return;
@@ -1098,7 +1509,7 @@ export default function ReportsPage() {
       </section>
 
       {/* Official A4 Print Footer Signatures (Immediately after Main Report) */}
-      <div className="print-only" style={{ marginTop: '28px', pageBreakInside: 'avoid' }}>
+      <div className="print-only print-footer-signatures-wrap" style={{ marginTop: 'auto', paddingTop: '20px', pageBreakInside: 'avoid' }}>
         <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '16px' }} />
         <div style={{ marginTop: '14px', fontSize: '10px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
           <span>মুদ্রণের তারিখ: {new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
@@ -1785,9 +2196,15 @@ export default function ReportsPage() {
             padding: 1px 5px !important;
             font-size: 7.5pt !important;
           }
+          .page-container {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 100vh !important;
+            justify-content: space-between !important;
+          }
           .print-footer-signatures-wrap {
-            margin-top: 18px !important;
-            padding-top: 10px !important;
+            margin-top: auto !important;
+            padding-top: 18px !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
