@@ -13,14 +13,18 @@ import {
   ZoomOut,
   Check,
   Crop,
-  X
+  X,
+  FileText,
+  Scroll
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
+import MadrasahBlankLetterheadModal from '../../components/common/MadrasahBlankLetterheadModal';
 
 export default function SettingsPage() {
   const { user, updateProfile, updatePassword, isLoading } = useAuthStore();
   const [activeSection, setActiveSection] = useState('profile');
+  const [isLetterheadModalOpen, setIsLetterheadModalOpen] = useState(false);
 
   // Profile Form State
   const [profileData, setProfileData] = useState({
@@ -784,6 +788,49 @@ export default function SettingsPage() {
                   </div>
                 )}
               </form>
+
+              {/* অফিশিয়াল প্যাড ও লেটারহেড ডাউনলোড সেকশন */}
+              <div 
+                style={{ 
+                  marginTop: '36px', 
+                  padding: '20px 24px', 
+                  background: 'linear-gradient(135deg, rgba(5, 150, 105, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%)', 
+                  border: '1.5px dashed var(--border-color, #cbd5e1)', 
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px'
+                }}
+              >
+                <div>
+                  <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>📜 অফিশিয়াল প্যাড / লেটারহেড ডাউনলোড (PDF ও Word)</span>
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-muted, #64748b)', maxWidth: '580px', lineHeight: 1.5 }}>
+                    মাদরাসার নোটিশ, প্রত্যয়নপত্র, দাওয়াতপত্র বা অফিসিয়াল চিঠিপত্র টাইপ করার জন্য খালি প্যাড। ব্রাউজার থেকেই পছন্দমতো <strong>স্বাক্ষরকারী রোল নির্বাচন</strong> করে সরাসরি <strong>PDF</strong> প্রিন্ট এবং মাইক্রোসফট <strong>Word (.docx)</strong> ফাইল ডাউনলোড করতে পারবেন।
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLetterheadModalOpen(true)}
+                  className="btn btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontWeight: 700,
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    background: '#059669',
+                    borderColor: '#059669'
+                  }}
+                >
+                  <FileText size={18} />
+                  <span>প্যাড ডাউনলোড করুন</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -1384,6 +1431,12 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Madrasah Blank Letterhead Download Modal */}
+      <MadrasahBlankLetterheadModal
+        isOpen={isLetterheadModalOpen}
+        onClose={() => setIsLetterheadModalOpen(false)}
+      />
 
     </div>
   );
