@@ -157,6 +157,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const printRef = useRef(null);
+  const [orientation, setOrientation] = useState('portrait');
   const [selectedSignatureRoles, setSelectedSignatureRoles] = useState(() => {
     try {
       const saved = localStorage.getItem('annur_footer_roles__reports');
@@ -618,6 +619,134 @@ export default function ReportsPage() {
 
   const handlePrint = () => { window.print(); };
 
+  const printStudentMarksReport = () => {
+    if (!studentMarksData) return;
+    const printWindow = window.open('', '_blank', 'width=950,height=800');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const studentName = studentMarksData.student?.name || '—';
+    const studentId = studentMarksData.student?.studentId || '—';
+    const examResults = studentMarksData.examResults || [];
+
+    const html = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>${madrasahName} — শিক্ষার্থীর পরীক্ষার নম্বর (${studentName})</title>
+  <style id="page-orientation-style">
+    ${getMadrasahPrintStyles('portrait', { wrap: false })}
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    .student-badge-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px 14px;
+      margin-bottom: 12px;
+      font-size: 11.5px;
+    }
+    .student-badge-box strong { color: #0f172a; }
+    .exam-block {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      page-break-inside: avoid;
+    }
+    .exam-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+    .exam-title { font-size: 13px; font-weight: 700; color: #0f172a; }
+    .exam-meta { font-size: 11px; font-weight: 700; color: #0369a1; }
+    table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin: 0; }
+    th, td { border: 1px solid #cbd5e1; padding: 4px 6px; vertical-align: middle; }
+    th { background: #f1f5f9; color: #0f172a; font-weight: 700; text-align: center; }
+    .text-center { text-align: center; }
+    .grade-pill { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 700; background: #f1f5f9; color: #334155; }
+    @media print {
+      .no-print { display: none !important; }
+      body { padding: 0 !important; }
+      .exam-block { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="background: #0f172a; color: #fff; padding: 10px 16px; margin-bottom: 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="font-weight: 700; font-size: 13px;">🖨️ শিক্ষার্থীর পরীক্ষার নম্বর — প্রিন্ট প্রিভিউ</div>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="window.print()" style="padding: 6px 18px; border-radius: 6px; border: none; background: #10b981; color: #fff; cursor: pointer; font-size: 13px; font-weight: 700;">🖨️ প্রিন্ট করুন</button>
+      <button onclick="window.close()" style="padding: 6px 14px; border-radius: 6px; border: none; background: #475569; color: #fff; cursor: pointer; font-size: 13px;">✕ বন্ধ করুন</button>
+    </div>
+  </div>
+
+  <div class="print-sheet-container">
+    <div class="print-content-layer">
+      ${getMadrasahHeaderHtml({
+        title: 'শিক্ষার্থীর পরীক্ষার নম্বর ও ফলাফল বিবরণী',
+        orientation: 'portrait',
+        metaLeft: `শিক্ষার্থীর নাম: <strong>${studentName}</strong> (আইডি: <strong>${studentId}</strong>)`,
+        metaRight: `মোট পরীক্ষা: <strong>${examResults.length} টি</strong>`
+      })}
+
+      <div class="student-badge-box">
+        <div>শিক্ষার্থী: <strong>${studentName}</strong> | আইডি: <strong>${studentId}</strong></div>
+        <div>প্রিন্ট তারিখ: <strong>${new Date().toLocaleDateString('bn-BD')}</strong></div>
+      </div>
+
+      ${examResults.length === 0 ? '<p style="text-align: center; color: #64748b; padding: 20px;">কোনো পরীক্ষার নম্বর পাওয়া যায়নি</p>' : examResults.map(er => `
+        <div class="exam-block">
+          <div class="exam-header">
+            <span class="exam-title">📖 ${er.exam?.name || 'পরীক্ষা'}</span>
+            <span class="exam-meta">মোট প্রাপ্ত: ${er.totalObtained}/${er.totalMarks} (শতকরা: ${er.overallPercentage}%)</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: left; width: 40%;">বিষয়</th>
+                <th>প্রাপ্ত নম্বর</th>
+                <th>মোট নম্বর</th>
+                <th>শতাংশ</th>
+                <th>গ্রেড</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(er.subjects || []).map(sub => `
+                <tr>
+                  <td style="font-weight: 600;">${sub.subject?.name || '—'}</td>
+                  <td class="text-center" style="font-weight: 700; color: #047857;">${sub.marksObtained}</td>
+                  <td class="text-center">${sub.totalMarks}</td>
+                  <td class="text-center">${sub.percentage}%</td>
+                  <td class="text-center"><span class="grade-pill">${sub.grade || '—'}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('')}
+
+      ${getMadrasahFooterSignaturesHtml(selectedSignatureRoles)}
+    </div>
+  </div>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const changeMonth = (setter, yearSetter, currentMonth, currentYear, delta) => {
     let m = currentMonth + delta;
     let y = currentYear;
@@ -684,11 +813,66 @@ export default function ReportsPage() {
             শাখা: {branchName} • সকল বিভাগের একত্রিত পরিসংখ্যান • সর্বশেষ আপডেট: {new Date(data.generatedAt).toLocaleString('bn-BD')}
           </p>
         </div>
-        <div className="flex gap-12">
+        <div className="flex gap-12" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={fetchReport}>
             <RefreshCw size={16} /> রিফ্রেশ
           </button>
-          <button className="btn btn-primary" onClick={handlePrint}>
+
+          {/* Orientation Toggle Buttons */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'var(--bg-tertiary, #f1f5f9)',
+            padding: '2px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color, #e2e8f0)',
+            gap: '2px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setOrientation('portrait')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 11px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: orientation === 'portrait' ? '#0f766e' : 'transparent',
+                color: orientation === 'portrait' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                transition: 'all 0.15s ease'
+              }}
+              title="A4 Portrait মোডে প্রিন্ট করুন"
+            >
+              <span>📄</span> পোর্ট্রেট (A4)
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrientation('landscape')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 11px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: orientation === 'landscape' ? '#0f766e' : 'transparent',
+                color: orientation === 'landscape' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                transition: 'all 0.15s ease'
+              }}
+              title="A4 Landscape মোডে প্রিন্ট করুন"
+            >
+              <span>🖼️</span> ল্যান্ডস্কেপ (A4)
+            </button>
+          </div>
+
+          <button className="btn btn-primary" onClick={handlePrint} style={{ background: '#0f766e', borderColor: '#0f766e' }}>
             <Printer size={16} /> প্রিন্ট ও PDF
           </button>
         </div>
@@ -913,11 +1097,21 @@ export default function ReportsPage() {
         </div>
       </section>
 
-      {/* ═══════════ INDIVIDUAL REPORTS ═══════════ */}
-      <div style={{ borderTop: '2px solid var(--primary-500)', marginBottom: '32px', paddingTop: '8px' }}>
-        <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-400)' }}>📋 ব্যক্তিগত রিপোর্ট</h2>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>নির্দিষ্ট শিক্ষার্থী/শিক্ষকের উপস্থিতি ও নম্বর দেখুন</p>
+      {/* Official A4 Print Footer Signatures (Immediately after Main Report) */}
+      <div className="print-only" style={{ marginTop: '28px', pageBreakInside: 'avoid' }}>
+        <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '16px' }} />
+        <div style={{ marginTop: '14px', fontSize: '10px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
+          <span>মুদ্রণের তারিখ: {new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
+          <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
+        </div>
       </div>
+
+      {/* ═══════════ INDIVIDUAL REPORTS (SCREEN-ONLY / INTERACTIVE LOOKUP) ═══════════ */}
+      <div className="no-print">
+        <div style={{ borderTop: '2px solid var(--primary-500)', marginBottom: '32px', paddingTop: '8px' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--primary-400)' }}>📋 ব্যক্তিগত রিপোর্ট</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>নির্দিষ্ট শিক্ষার্থী/শিক্ষকের উপস্থিতি ও নম্বর দেখুন</p>
+        </div>
 
       {/* ── Individual Student Attendance ── */}
       <section style={{ marginBottom: '32px' }}>
@@ -1094,9 +1288,19 @@ export default function ReportsPage() {
 
           {studentMarksData && (
             <div style={{ animation: 'slideDown 0.3s ease-out' }}>
-              <div style={{ padding: '12px 16px', background: 'rgba(168,85,247,0.1)', borderRadius: '10px', marginBottom: '16px' }}>
-                <span style={{ fontWeight: 700, fontSize: '1rem' }}>{studentMarksData.student?.name}</span>
-                <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>({studentMarksData.student?.studentId})</span>
+              <div style={{ padding: '12px 16px', background: 'rgba(168,85,247,0.1)', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <span style={{ fontWeight: 700, fontSize: '1rem' }}>{studentMarksData.student?.name}</span>
+                  <span style={{ marginLeft: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>({studentMarksData.student?.studentId})</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline"
+                  onClick={printStudentMarksReport}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fff', borderColor: '#a855f7', color: '#7e22ce', fontWeight: 600, padding: '5px 12px' }}
+                >
+                  <Printer size={15} /> নম্বর বিবরণী প্রিন্ট করুন
+                </button>
               </div>
 
               {studentMarksData.examResults.length === 0 ? (
@@ -1491,15 +1695,7 @@ export default function ReportsPage() {
               </div>
             </div>
           )}
-</section>
-
-      {/* Print Signatures */}
-      <div className="print-only" style={{ marginTop: '48px', pageBreakInside: 'avoid' }}>
-        <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '20px' }} />
-        <div style={{ marginTop: '16px', fontSize: '10px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '6px' }}>
-          <span>মুদ্রণের তারিখ: {new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
-          <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
-        </div>
+        </section>
       </div>
 
       <style>{`
@@ -1509,20 +1705,92 @@ export default function ReportsPage() {
         }
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 12mm 15mm;
+            size: A4 ${orientation};
+            margin: ${orientation === 'landscape' ? '6mm 8mm 6mm 8mm' : '8mm 10mm 8mm 10mm'};
           }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
-          body { background: white !important; color: black !important; }
+          body, html, #root, .main-content, .page-container {
+            background: #ffffff !important;
+            color: #000000 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
           .sidebar, .topbar { display: none !important; }
-          .main-content { margin: 0 !important; padding: 0 !important; }
-          .page-container { padding: 0 !important; max-width: 100% !important; }
-          .card { background: white !important; border: 1px solid #e2e8f0 !important; break-inside: avoid; box-shadow: none !important; margin-bottom: 16px !important; }
-          .stats-card { background: #f8fafc !important; border: 1px solid #cbd5e1 !important; break-inside: avoid; }
-          .stats-card-value { -webkit-text-fill-color: black !important; color: black !important; }
-          .badge { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-          section { break-inside: avoid; margin-bottom: 24px !important; }
+          section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 12px !important;
+          }
+          .card {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            box-shadow: none !important;
+            margin-bottom: 10px !important;
+            padding: 10px 14px !important;
+            border-radius: 6px !important;
+          }
+          .stats-card {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            padding: 8px 10px !important;
+            border-radius: 6px !important;
+          }
+          .stats-card-value {
+            -webkit-text-fill-color: #000000 !important;
+            color: #000000 !important;
+            font-size: 1.3rem !important;
+          }
+          .stats-card-label {
+            font-size: 0.76rem !important;
+          }
+          .stats-card-icon {
+            display: none !important;
+          }
+          .grid {
+            gap: 8px !important;
+          }
+          .grid-4 {
+            grid-template-columns: repeat(4, 1fr) !important;
+          }
+          .grid-2 {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          h2 {
+            font-size: 1rem !important;
+            margin-bottom: 6px !important;
+          }
+          h3 {
+            font-size: 0.88rem !important;
+            margin-bottom: 6px !important;
+          }
+          table {
+            font-size: 8.5pt !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          th, td {
+            padding: 3px 6px !important;
+            border: 1px solid #94a3b8 !important;
+          }
+          .badge {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+            padding: 1px 5px !important;
+            font-size: 7.5pt !important;
+          }
+          .print-footer-signatures-wrap {
+            margin-top: 18px !important;
+            padding-top: 10px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
         }
         .print-only { display: none; }
       `}</style>
