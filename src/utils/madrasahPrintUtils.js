@@ -141,17 +141,16 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
       width: 100%;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
     .header-top-left {
-      display: flex;
-      justify-content: flex-start;
-      align-items: center;
+      /* Left empty dummy column to maintain dead-center optical balance above the circular logo */
     }
     .header-top-center {
       text-align: center;
       display: flex;
       justify-content: center;
+      align-items: center;
       padding: 0 8px;
     }
     .header-top-right {
@@ -159,42 +158,12 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
       justify-content: flex-end;
       align-items: center;
     }
-    .arabic-title {
-      text-align: center;
-      direction: rtl;
-      unicode-bidi: isolate;
-      padding: 0;
-      margin: 0;
-      display: inline-block;
-    }
-    .arabic-title span {
-      font-family: 'DecoTypeThuluthII', 'Traditional Arabic', serif;
-      font-size: ${orientation === 'landscape' ? '26px' : '32px'};
-      line-height: 1.15;
-      color: #020617;
-      white-space: nowrap;
-      letter-spacing: 0.5px;
-      word-spacing: 8px;
-    }
-    .slogan-highlight-box-left {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      text-align: left;
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%);
-      border: 1px solid #86efac;
-      border-left: 3.5px solid #059669;
-      border-radius: 6px;
-      padding: 2.5px 9px;
-      box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.05);
-      line-height: 1.3;
-    }
-    .slogan-text-line-left {
-      font-family: 'Noto Serif Bengali', serif;
-      font-size: ${orientation === 'landscape' ? '8.5px' : '9.5px'};
-      font-weight: 700;
-      color: #065f46;
-      white-space: nowrap;
+    .header-arabic-img {
+      height: ${orientation === 'landscape' ? '54px' : '68px'};
+      max-width: ${orientation === 'landscape' ? '350px' : '440px'};
+      width: auto;
+      object-fit: contain;
+      display: block;
     }
     .slogan-highlight-box {
       display: inline-flex;
@@ -425,18 +394,11 @@ export function getMadrasahHeaderHtml({
       <img src="/images/madrasah_logo.png" class="print-watermark" alt="Watermark" onerror="this.src='/madrasah_logo.png'" />
     ` : ''}
     <header class="official-header">
-      <!-- Top Row: Left Slogan, Center Arabic, Right Slogan -->
+      <!-- Top Row: Balanced Empty Left, Center Arabic Image (68px), Right Slogan -->
       <div class="header-top-row">
-        <div class="header-top-left">
-          <div class="slogan-highlight-box-left">
-            <div class="slogan-text-line-left">❝ আন্ নূরের পথে এসো, ইলমের আলোয় নিজেকে গড়ো,</div>
-            <div class="slogan-text-line-left">আদর্শ জীবনের স্বপ্ন গড়ো, সত্য ও ন্যায়ের পথে চলো। ❞</div>
-          </div>
-        </div>
+        <div class="header-top-left"></div>
         <div class="header-top-center">
-          <div class="arabic-title">
-            <span dir="rtl">النُّورُ إِسْلَامِكْ أَكَادِيمِي</span>
-          </div>
+          <img src="/images/arabic_title.png" alt="النُّورُ إِسْلَامِكْ أَكَادِيمِي" class="header-arabic-img" onerror="this.src='/arabic_title.png'" />
         </div>
         <div class="header-top-right">
           <div class="slogan-highlight-box">

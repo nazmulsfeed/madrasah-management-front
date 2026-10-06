@@ -18,23 +18,22 @@ export function getMadrasahHeaderCss() {
       box-sizing: border-box;
     }
 
-    /* Top Row: Left Slogan, Center Arabic, Right Slogan */
+    /* Top Row: Arabic Calligraphy (Center) & 2-Line Highlighted Slogan (Upper-Right) in Same Line */
     .madrasah-top-row {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
       width: 100%;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
     .madrasah-top-left {
-      display: flex;
-      justify-content: flex-start;
-      align-items: center;
+      /* Empty balanced space so center remains perfectly centered over logo */
     }
     .madrasah-top-center {
       text-align: center;
       display: flex;
       justify-content: center;
+      align-items: center;
       padding: 0 8px;
     }
     .madrasah-top-right {
@@ -42,37 +41,12 @@ export function getMadrasahHeaderCss() {
       justify-content: flex-end;
       align-items: center;
     }
-    .madrasah-arabic-text {
-      font-family: 'DecoTypeThuluthII', 'Traditional Arabic', serif;
-      font-size: 32px;
-      line-height: 1.15;
-      color: #020617;
-      white-space: nowrap;
-      letter-spacing: 0.5px;
-      word-spacing: 8px;
-      margin: 0;
-      direction: rtl;
-      display: inline-block;
-    }
-    .madrasah-slogan-box-left {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      text-align: left;
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%);
-      border: 1px solid #86efac;
-      border-left: 3.5px solid #059669;
-      border-radius: 6px;
-      padding: 2.5px 9px;
-      box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.05);
-      line-height: 1.3;
-    }
-    .madrasah-slogan-line-left {
-      font-family: 'Noto Serif Bengali', 'SolaimanLipi', serif;
-      font-size: 9.5px;
-      font-weight: 700;
-      color: #065f46;
-      white-space: nowrap;
+    .madrasah-arabic-img {
+      height: 68px;
+      max-width: 440px;
+      width: auto;
+      object-fit: contain;
+      display: block;
     }
     .madrasah-slogan-box {
       display: inline-flex;
@@ -243,17 +217,11 @@ export function getMadrasahHeaderHtml({
   return `
     <header class="madrasah-letterhead-container" id="madrasah-letterhead">
       <!-- Top Row: Left Slogan, Center Arabic, Right Slogan -->
+      <!-- Top Row: Balanced Empty Left, Center Arabic Image (68px), Right Slogan -->
       <div class="madrasah-top-row">
-        <div class="madrasah-top-left">
-          <div class="madrasah-slogan-box-left">
-            <div class="madrasah-slogan-line-left">❝ আন্ নূরের পথে এসো, ইলমের আলোয় নিজেকে গড়ো,</div>
-            <div class="madrasah-slogan-line-left">আদর্শ জীবনের স্বপ্ন গড়ো, সত্য ও ন্যায়ের পথে চলো। ❞</div>
-          </div>
-        </div>
+        <div class="madrasah-top-left"></div>
         <div class="madrasah-top-center">
-          <div class="madrasah-arabic-text" dir="rtl">
-            النُّورُ إِسْلَامِكْ أَكَادِيمِي
-          </div>
+          <img src="/images/arabic_title.png" alt="النُّورُ إِسْلَامِكْ أَكَادِيمِي" class="madrasah-arabic-img" onerror="this.src='/arabic_title.png'" />
         </div>
         <div class="madrasah-top-right">
           <div class="madrasah-slogan-box">

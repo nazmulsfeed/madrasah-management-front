@@ -25,59 +25,33 @@ export default function MadrasahLetterhead({
         printColorAdjust: 'exact'
       }}
     >
-      {/* Top Row: Left Slogan, Center Arabic, Right Slogan */}
+      {/* Top Row: Balanced Empty Left, Center Arabic Image (68px), Right Slogan */}
       <div 
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
           width: '100%',
-          marginBottom: '6px'
+          marginBottom: '12px'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-          <div 
-            style={{ 
-              display: 'inline-flex', 
-              flexDirection: 'column',
-              alignItems: 'flex-start', 
-              textAlign: 'left', 
-              background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%)', 
-              border: '1px solid #86efac', 
-              borderLeft: '3.5px solid #059669', 
-              borderRadius: '6px', 
-              padding: '2.5px 9px', 
-              boxShadow: '0 1.5px 3px rgba(0,0,0,0.05)', 
-              lineHeight: 1.3
-            }}
-          >
-            <div style={{ fontFamily: "'Noto Serif Bengali', serif", fontSize: compact ? '8.5px' : '9.5px', fontWeight: 700, color: '#065f46', whiteSpace: 'nowrap' }}>
-              ❝ আন্ নূরের পথে এসো, ইলমের আলোয় নিজেকে গড়ো,
-            </div>
-            <div style={{ fontFamily: "'Noto Serif Bengali', serif", fontSize: compact ? '8.5px' : '9.5px', fontWeight: 700, color: '#065f46', whiteSpace: 'nowrap' }}>
-              আদর্শ জীবনের স্বপ্ন গড়ো, সত্য ও ন্যায়ের পথে চলো। ❞
-            </div>
-          </div>
+          {/* Left empty dummy space for balanced center alignment above the circular logo */}
         </div>
 
-        <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', padding: '0 8px' }}>
-          <div 
+        <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '0 8px' }}>
+          <img 
+            src="/images/arabic_title.png" 
+            alt="النُّورُ إِسْلَامِكْ أَكَادِيمِي" 
             style={{
-              fontFamily: "'DecoTypeThuluthII', 'Traditional Arabic', serif",
-              fontSize: compact ? '26px' : '32px',
-              lineHeight: 1.15,
-              color: '#020617',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.5px',
-              wordSpacing: '8px',
-              margin: 0,
-              direction: 'rtl',
-              display: 'inline-block'
+              height: compact ? '54px' : '68px',
+              maxWidth: compact ? '350px' : '440px',
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block'
             }}
-            dir="rtl"
-          >
-            النُّورُ إِسْلَامِكْ أَكَادِيمِي
-          </div>
+            onError={(e) => { e.currentTarget.src = '/arabic_title.png'; }}
+          />
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
