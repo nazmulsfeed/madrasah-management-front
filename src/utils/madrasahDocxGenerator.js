@@ -10,13 +10,12 @@ import {
   BorderStyle, 
   ImageRun, 
   TextRun, 
-  VerticalAlign 
+  VerticalAlign,
+  Header
 } from 'docx';
+import { ImageWatermark } from 'docx/watermarks';
 import { saveAs } from 'file-saver';
 
-/**
- * Utility to fetch an image and convert to Uint8Array for docx ImageRun
- */
 async function fetchImageBuffer(url) {
   try {
     const res = await fetch(url);
@@ -32,69 +31,61 @@ async function fetchImageBuffer(url) {
  * Generate and download a pixel-perfect .docx file matching the A4 Universal Madrasah Letterhead
  * @param {Array<string>} selectedRoles - Array of signature role names
  */
-export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরিচালক', 'প্রতিষ্ঠান প্রধান']) {
+export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরিচালক', 'প্রতিষ্ঠান প্রধান / সভাপতি']) {
   const arabicImgBuffer = await fetchImageBuffer('/images/arabic_title.png');
   const logoImgBuffer = await fetchImageBuffer('/images/madrasah_logo.png');
 
+  // Complete border-none definitions including internal gridlines
   const borderNone = {
+    top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+  };
+
+  const borderCellNone = {
     top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
     bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
     left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
     right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
   };
 
-  // 1. Top Row Table: Left spacer, Center Arabic, Right Slogan
-  const topRowTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: borderNone,
+  // Compact Slogan Pill Box (nested table to prevent stretching)
+  const sloganBox = new Table({
+    alignment: AlignmentType.RIGHT,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: '86efac' },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: '86efac' },
+      left: { style: BorderStyle.SINGLE, size: 4, color: '86efac' },
+      right: { style: BorderStyle.SINGLE, size: 16, color: '059669' },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    },
     rows: [
       new TableRow({
         children: [
           new TableCell({
-            width: { size: 28, type: WidthType.PERCENTAGE },
-            borders: borderNone,
-            children: [new Paragraph({})],
-          }),
-          new TableCell({
-            width: { size: 44, type: WidthType.PERCENTAGE },
-            borders: borderNone,
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: arabicImgBuffer ? [
-                  new ImageRun({
-                    data: arabicImgBuffer,
-                    transformation: { width: 330, height: 52 },
-                    type: 'png',
-                  })
-                ] : [
-                  new TextRun({ text: 'النُّورُ إِسْلَامِكْ أَكَادِيمِي', bold: true, size: 36 })
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 28, type: WidthType.PERCENTAGE },
+            shading: { fill: 'f0fdf4' },
+            margins: { top: 60, bottom: 60, left: 100, right: 100 },
             borders: {
               top: { style: BorderStyle.SINGLE, size: 4, color: '86efac' },
               bottom: { style: BorderStyle.SINGLE, size: 4, color: '86efac' },
               left: { style: BorderStyle.SINGLE, size: 4, color: '86efac' },
-              right: { style: BorderStyle.SINGLE, size: 18, color: '059669' },
+              right: { style: BorderStyle.SINGLE, size: 16, color: '059669' },
             },
-            shading: { fill: 'f0fdf4' },
-            verticalAlign: VerticalAlign.CENTER,
             children: [
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
-                spacing: { line: 240, after: 0 },
+                spacing: { line: 220, after: 20 },
                 children: [
                   new TextRun({ text: '❝ ইলম শিখো, আমল করো,', bold: true, size: 15, color: '065f46', font: 'SolaimanLipi' }),
                 ],
               }),
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
-                spacing: { line: 240, after: 0 },
+                spacing: { line: 220, after: 0 },
                 children: [
                   new TextRun({ text: 'মানুষের সেবায় নিজেকে গড়ো। ❞', bold: true, size: 15, color: '065f46', font: 'SolaimanLipi' }),
                 ],
@@ -106,6 +97,119 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
     ],
   });
 
+  // 1. Top Row Table: Left spacer, Center Arabic, Right Slogan
+  const topRowTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: borderNone,
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 22, type: WidthType.PERCENTAGE },
+            borders: borderCellNone,
+            children: [new Paragraph({})],
+          }),
+          new TableCell({
+            width: { size: 56, type: WidthType.PERCENTAGE },
+            borders: borderCellNone,
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: arabicImgBuffer ? [
+                  new ImageRun({
+                    data: arabicImgBuffer,
+                    transformation: { width: 380, height: 60 },
+                    type: 'png',
+                  })
+                ] : [
+                  new TextRun({ text: 'النُّورُ إِسْلَامِكْ أَكَادِيمِي', bold: true, size: 36 })
+                ],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 22, type: WidthType.PERCENTAGE },
+            borders: borderCellNone,
+            verticalAlign: VerticalAlign.CENTER,
+            children: [sloganBox],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  // Phone badges
+  const leftPhoneBadge = new Table({
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      left: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      right: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            shading: { fill: 'f1f5f9' },
+            margins: { top: 40, bottom: 40, left: 100, right: 100 },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+              left: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+              right: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+            },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: '০১৭৬৭৬১৫৭৪৬ (পরিচালক)', bold: true, size: 16, color: '047857', font: 'SolaimanLipi' })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+
+  const rightPhoneBadge = new Table({
+    alignment: AlignmentType.RIGHT,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      left: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      right: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            shading: { fill: 'f1f5f9' },
+            margins: { top: 40, bottom: 40, left: 100, right: 100 },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+              left: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+              right: { style: BorderStyle.SINGLE, size: 4, color: 'cbd5e1' },
+            },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({ text: '০১৭২২০৯৫০২৬ (প্রধান শিক্ষক-নূরানী বিভাগ)', bold: true, size: 16, color: '047857', font: 'SolaimanLipi' })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+
   // 2. Main Institution 3-Column Table (Left Bengali, Center Logo, Right English)
   const mainHeaderTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -115,8 +219,8 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
         children: [
           // Left: Bengali details
           new TableCell({
-            width: { size: 42, type: WidthType.PERCENTAGE },
-            borders: borderNone,
+            width: { size: 41, type: WidthType.PERCENTAGE },
+            borders: borderCellNone,
             verticalAlign: VerticalAlign.TOP,
             children: [
               new Paragraph({
@@ -137,17 +241,13 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
                 children: [new TextRun({ text: 'বাংলাদেশ হিফজ শিক্ষা বোর্ড (নিবন্ধন: ৫০০৮২৫)', size: 16, color: '334155', font: 'SolaimanLipi' })],
                 spacing: { after: 60 },
               }),
-              new Paragraph({
-                children: [
-                  new TextRun({ text: ' ০১৭৬৭৬১৫৭৪৬ (পরিচালক) ', bold: true, size: 16, color: '047857', font: 'SolaimanLipi' }),
-                ],
-              }),
+              leftPhoneBadge,
             ],
           }),
           // Center: Circular Logo
           new TableCell({
-            width: { size: 16, type: WidthType.PERCENTAGE },
-            borders: borderNone,
+            width: { size: 18, type: WidthType.PERCENTAGE },
+            borders: borderCellNone,
             verticalAlign: VerticalAlign.CENTER,
             children: [
               new Paragraph({
@@ -155,7 +255,7 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
                 children: logoImgBuffer ? [
                   new ImageRun({
                     data: logoImgBuffer,
-                    transformation: { width: 90, height: 90 },
+                    transformation: { width: 102, height: 102 },
                     type: 'png',
                   })
                 ] : [],
@@ -164,8 +264,8 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
           }),
           // Right: English details
           new TableCell({
-            width: { size: 42, type: WidthType.PERCENTAGE },
-            borders: borderNone,
+            width: { size: 41, type: WidthType.PERCENTAGE },
+            borders: borderCellNone,
             verticalAlign: VerticalAlign.TOP,
             children: [
               new Paragraph({
@@ -191,12 +291,7 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
                 children: [new TextRun({ text: 'নূরানী ইকরা বোর্ড- নিবন্ধন নং: ৬০২৫৪২', size: 16, color: '334155', font: 'SolaimanLipi' })],
                 spacing: { after: 60 },
               }),
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({ text: ' ০১৭২২০৯৫০২৬ (প্রধান শিক্ষক-নূরানী বিভাগ) ', bold: true, size: 16, color: '047857', font: 'SolaimanLipi' }),
-                ],
-              }),
+              rightPhoneBadge,
             ],
           }),
         ],
@@ -204,21 +299,23 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
     ],
   });
 
-  // 3. Double-divider line
+  // 3. Double-divider bottom line
   const dividerLine = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: {
-      top: { style: BorderStyle.SINGLE, size: 16, color: '0f172a' },
+      top: { style: BorderStyle.DOUBLE, size: 12, color: '0f172a' },
       bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
       left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
       right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
     },
     rows: [
       new TableRow({
         children: [
           new TableCell({
-            borders: borderNone,
-            children: [new Paragraph({ spacing: { after: 120 } })],
+            borders: borderCellNone,
+            children: [new Paragraph({ spacing: { after: 40 } })],
           }),
         ],
       }),
@@ -231,17 +328,18 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
   const sigCells = selectedRoles.map((role) => (
     new TableCell({
       width: { size: colWidthPct, type: WidthType.PERCENTAGE },
-      borders: borderNone,
+      borders: borderCellNone,
       children: [
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 200 },
+          spacing: { before: 200, after: 40 },
           children: [
             new TextRun({ text: '_______________________________', color: '475569' }),
           ],
         }),
         new Paragraph({
           alignment: AlignmentType.CENTER,
+          spacing: { after: 20 },
           children: [
             new TextRun({ text: role, bold: true, size: 18, color: '0f172a', font: 'SolaimanLipi' }),
           ],
@@ -266,27 +364,45 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
     ],
   });
 
-  // 5. Build Complete Word Document
+  // 5. Build Complete Word Document with Watermark Header
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: 720,    // 0.5 inch
-              right: 860,  // ~0.6 inch
-              bottom: 720,
-              left: 860,
+              top: 500,    // ~0.35 inch
+              right: 720,  // 0.5 inch
+              bottom: 576, // 0.4 inch
+              left: 720,
             },
           },
         },
+        headers: {
+          default: new Header({
+            children: logoImgBuffer ? [
+              new Paragraph({
+                children: [
+                  new ImageWatermark({
+                    type: 'png',
+                    data: logoImgBuffer,
+                    transformation: { width: 420, height: 420 },
+                    washout: true,
+                  })
+                ]
+              })
+            ] : []
+          })
+        },
         children: [
           topRowTable,
-          new Paragraph({ spacing: { after: 140 } }),
-          mainHeaderTable,
           new Paragraph({ spacing: { after: 100 } }),
+          mainHeaderTable,
+          new Paragraph({ spacing: { after: 60 } }),
           dividerLine,
-          // Blank Editable Body Area (Several empty lines for user writing)
+          // Blank Editable Body Area
+          new Paragraph({ text: '', spacing: { after: 240 } }),
+          new Paragraph({ text: '', spacing: { after: 240 } }),
           new Paragraph({ text: '', spacing: { after: 240 } }),
           new Paragraph({ text: '', spacing: { after: 240 } }),
           new Paragraph({ text: '', spacing: { after: 240 } }),
