@@ -111,7 +111,7 @@ flush();
 // ─── Step 1: Update Frontend ─────────────────────────────────
 run(
     "[1/3] Updating Frontend (public_html)...",
-    "cd {$home}/public_html && git config core.sparseCheckout true && mkdir -p .git/info && echo \"dist/*\" > .git/info/sparse-checkout && git fetch origin main && git reset --hard origin/main && cp -rf dist/* ."
+    "cd {$home}/public_html && git config core.sparseCheckout true && mkdir -p .git/info && echo \"dist/*\" > .git/info/sparse-checkout && git fetch origin main && git reset --hard origin/main && cp -rf dist/* . && cp -f dist/.htaccess ."
 );
 
 // ─── Step 2: Update Backend ──────────────────────────────────
