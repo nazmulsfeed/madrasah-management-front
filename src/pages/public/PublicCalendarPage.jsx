@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, Clock, Printer, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import api from '../../api/axios';
+import useAuthStore from '../../store/authStore';
+import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
+import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
+import PrintSignatureRoleSelector from '../../components/common/PrintSignatureRoleSelector';
+import { getMadrasahPrintStyles } from '../../utils/madrasahPrintUtils';
+
+const DEFAULT_MONTH_ORDER = [
+  'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+  'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
+];
+
+export default function PublicCalendarPage() {
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [orientation, setOrientation] = useState('portrait');
+  const [selectedRoles, setSelectedRoles] = useState(['প্রতিষ্ঠান প্রধান', 'শ্রেণী শিক্ষক']);
+
+  useEffect(() => {
+    fetchCalendarData();
+  }, []);
+
+  const fetchCalendarData = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/academics/public/calendar');
+      if (res.data?.success && res.data.data?.events && res.data.data.events.length > 0) {
+        setCalendarEvents(res.data.data.events);
+      } else {
+        const saved = localStorage.getItem('calendar_data');
+        if (saved) {
+          setCalendarEvents(JSON.parse(saved));
+        } else {
+          setCalendarEvents([
+            { month: 'জানুয়ারি', events: ['০১ - নতুন শিক্ষাবর্ষ শুরু', '১৫ - বার্ষিক ভর্তি কার্যক্রম সম্পন্ন'] },
+            { month: 'ফেব্রুয়ারি', events: ['২১ - আন্তর্জাতিক মাতৃভাষা দিবস ছুটি'] },
+            { month: 'মার্চ', events: ['২৬ - মহান স্বাধীনতা দিবস ছুটি'] },
+            { month: 'এপ্রিল', events: ['০১ - ১ম সাময়িক পরীক্ষা আরম্ভ', '১৪ - বাংলা নববর্ষ ছুটি'] },
+            { month: 'মে', events: ['০১ - আন্তর্জাতিক মে দিবস ছুটি', '২৫ - গ্রীষ্মকালীন ছুটি'] },
+            { month: 'জুন', events: ['পবিত্র ঈদুল আযহা ও অবকাশ'] },
+            { month: 'জুলাই', events: ['১০ - ২য় সাময়িক পরীক্ষা আরম্ভ'] },
+            { month: 'আগস্ট', events: ['১৫ - জাতীয় শোক দিবস'] },
+            { month: 'সেপ্টেম্বর', events: ['১২ - সীরাতুন্নবী (সা.) প্রতিযোগিতা'] },
+            { month: 'অক্টোবর', events: ['০৫ - ৩য় সাময়িক পরীক্ষা মূল্যায়ন'] },
+            { month: 'নভেম্বর', events: ['১৫ - বার্ষিক ক্রীড়া ও সাংস্কৃতিক সপ্তাহ'] },
+            { month: 'ডিসেম্বর', events: ['০১ - বার্ষিক পরীক্ষা আরম্ভ', '১৬ - মহান বিজয় দিবস', '৩১ - ফলাফল প্রকাশ'] },
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading public calendar:', err);
+      try {
+        const saved = localStorage.getItem('calendar_data');
+        if (saved) setCalendarEvents(JSON.parse(saved));
+      } catch (_) {}
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Group events by month
+  const sortedMonths = [...calendarEvents].sort((a, b) => {
+    const idxA = DEFAULT_MONTH_ORDER.indexOf(a.month);
+    const idxB = DEFAULT_MONTH_ORDER.indexOf(b.month);
+    return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+  });
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a', paddingBottom: '40px' }}>
+      {/* Inject print styles */}
+      <style dangerouslySetInnerHTML={{ __html: getMadrasahPrintStyles(orientation, { wrap: false }) }} />
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body, html { background: #fff !important; margin: 0; padding: 0; }
+          .print-container { padding: 0 !important; max-width: 100% !important; box-shadow: none !important; border: none !important; }
+          .calendar-grid { grid-template-columns: repeat(${orientation === 'landscape' ? 3 : 2}, 1fr) !important; gap: 12px !important; }
+        }
+        .calendar-card {
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .calendar-card-header {
+          background: #0f766e;
+          color: #fff;
+          font-weight: 700;
+          font-size: 14px;
+          padding: 6px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .calendar-card-body {
+          padding: 8px 12px;
+          min-height: 70px;
+        }
+        .event-bullet {
+          font-size: 12px;
+          color: #334155;
+          margin-bottom: 4px;
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          line-height: 1.4;
+        }
+        .event-bullet::before {
+          content: '•';
+          color: #0f766e;
+          font-weight: bold;
+          font-size: 14px;
+        }
+      `}</style>
+
+      {/* Top Navigation Bar (Hidden on print) */}
+      <div className="no-print" style={{ background: '#0f766e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to={user ? "/dashboard" : "/"} style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontSize: '14px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px' }}>
+            <ArrowLeft size={16} /> {user ? 'ড্যাশবোর্ডে ফিরে যান' : 'হোমপেজ'}
+          </Link>
+          <span style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CalendarIcon size={20} /> বাৎসরিক একাডেমিক ক্যালেন্ডার
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Orientation Toggle Buttons */}
+          <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.25)', padding: '3px', borderRadius: '6px', gap: '3px' }}>
+            <button
+              type="button"
+              onClick={() => setOrientation('portrait')}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '4px',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: orientation === 'portrait' ? '#fff' : 'transparent',
+                color: orientation === 'portrait' ? '#0f766e' : '#fff',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              📄 পোর্ট্রেট
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrientation('landscape')}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '4px',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: orientation === 'landscape' ? '#fff' : 'transparent',
+                color: orientation === 'landscape' ? '#0f766e' : '#fff',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              🖼️ ল্যান্ডস্কেপ
+            </button>
+          </div>
+
+          <Link to="/routine" style={{ color: '#fff', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Clock size={15} /> ক্লাস রুটিন
+          </Link>
+          <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f59e0b', color: '#0f172a', border: 'none', padding: '7px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+            <Printer size={16} /> প্রিন্ট / PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Signature Role Selector Controls (Hidden on print) */}
+      <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '12px auto 0', padding: '0 16px' }}>
+        <PrintSignatureRoleSelector
+          selectedRoles={selectedRoles}
+          onChange={setSelectedRoles}
+        />
+      </div>
+
+      {/* Printable Sheet Wrapper */}
+      <div className="print-container" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '16px auto', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', minHeight: '900px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div>
+          {/* Official Letterhead */}
+          <MadrasahLetterhead
+            title="বাৎসরিক একাডেমিক ক্যালেন্ডার ও কার্যক্রম"
+            orientation={orientation}
+            metaLeft={<span><strong>শিক্ষাবর্ষ:</strong> ২০২৬ ইং</span>}
+            metaRight={<span><strong>প্রকাশনা:</strong> প্রাতিষ্ঠানিক সমন্বয় পর্ষদ</span>}
+          />
+
+          {loading ? (
+            <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
+              <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 12px', color: '#0f766e' }} />
+              <p>একাডেমিক ক্যালেন্ডার লোড হচ্ছে...</p>
+            </div>
+          ) : (
+            <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: orientation === 'landscape' ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              {sortedMonths.map((item, idx) => (
+                <div key={idx} className="calendar-card">
+                  <div className="calendar-card-header">
+                    <span>{item.month}</span>
+                    <span style={{ fontSize: '11px', opacity: 0.9 }}>২০২৬</span>
+                  </div>
+                  <div className="calendar-card-body">
+                    {item.events && item.events.length > 0 ? (
+                      item.events.map((ev, evIdx) => (
+                        <div key={evIdx} className="event-bullet">
+                          <span>{ev}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                        নিয়মিত পাঠদান ও প্রাতিষ্ঠানিক কার্যক্রম
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Official Footer Signatures */}
+        <div style={{ marginTop: 'auto', paddingTop: '36px' }}>
+          <PrintFooterSignatures roles={selectedRoles} />
+        </div>
+      </div>
+    </div>
+  );
+}
