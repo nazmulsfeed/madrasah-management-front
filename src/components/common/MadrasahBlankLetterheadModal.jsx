@@ -67,14 +67,32 @@ export default function MadrasahBlankLetterheadModal({ isOpen, onClose }) {
     printWin.document.close();
   };
 
-  // Download Genuine .docx file with selected roles
+  // Download Genuine .docx file directly from official template
   const handleDownloadDocx = async () => {
     try {
       setIsGeneratingDocx(true);
-      await downloadMadrasahLetterheadDocx(selectedRoles);
+      const res = await fetch('/templates/madrasah_letterhead_blank.docx');
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'annur_letterhead_blank.docx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // Fallback to generator if fetch fails
+        await downloadMadrasahLetterheadDocx(selectedRoles);
+      }
     } catch (err) {
-      console.error('Failed to generate docx:', err);
-      alert('Word ফাইল তৈরিতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      console.error('Failed to download docx, falling back to generator:', err);
+      try {
+        await downloadMadrasahLetterheadDocx(selectedRoles);
+      } catch (fallbackErr) {
+        alert('Word ফাইল ডাউনলোডে সমস্যা হয়েছে।');
+      }
     } finally {
       setIsGeneratingDocx(false);
     }
@@ -159,7 +177,7 @@ export default function MadrasahBlankLetterheadModal({ isOpen, onClose }) {
               marginBottom: '20px'
             }}
           >
-            ✅ <strong>স্বয়ংক্রিয় রেন্ডারিং:</strong> উপরে আপনি যে যে স্বাক্ষরকারী রোল সিলেক্ট করবেন, ঠিক সেই সেই রোল অনুযায়ী নিচের <strong>PDF</strong> প্রিন্ট হবে এবং <strong>Word (.docx)</strong> ফাইল তৈরি হবে।
+            ✅ <strong>অফিশিয়াল প্যাড:</strong> নিচের <strong>PDF</strong> বাটনে ক্লিক করলে নির্বাচিত স্বাক্ষর রোল অনুযায়ী প্রিন্ট/PDF ওপেন হবে, এবং <strong>Word (.docx)</strong> বাটনে ক্লিক করলে মূল অফিশিয়াল প্যাডের ফাইলটি সরাসরি ডাউনলোড হবে।
           </div>
 
           {/* 2. Download Action Grid */}
