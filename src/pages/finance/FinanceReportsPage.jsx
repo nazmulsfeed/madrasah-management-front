@@ -10,6 +10,7 @@ import {
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { getMadrasahInfo, formatDateDDMMYYYY } from '../../utils/helpers';
+import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
@@ -128,8 +129,313 @@ export default function FinanceReportsPage() {
     fetchAllData(selectedMonth);
   }, [selectedMonth]);
 
+  const printFinanceReport = (targetOrientation = orientation) => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=850');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const docTitle = activeTab === 'salary_sheet'
+      ? `মাসিক শিক্ষক ও কর্মচারী বেতন বিবরণী ও মাস্টাররোল`
+      : `সার্বিক আর্থিক সমন্বিত বিবরণী ও অডিট রিপোর্ট`;
+
+    let contentHtml = '';
+    if (activeTab === 'salary_sheet') {
+      contentHtml = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 8.5pt; font-weight: 600;">
+          <span>মোট শিক্ষক ও কর্মচারী: ${filteredSalarySheet.length} জন</span>
+          <span>পরিশোধিত: ${salarySheetData?.stats?.paidCount || 0} জন | বকেয়া: ${salarySheetData?.stats?.unpaidCount || 0} জন</span>
+          <span>মোট পরিশোধিত বেতন: ৳${(salarySheetData?.stats?.totalSalaryPaid || 0).toLocaleString('en-IN')}</span>
+        </div>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th style="width: 30px;">ক্র.</th>
+              <th>শিক্ষক/কর্মচারীর নাম</th>
+              <th>পদবি</th>
+              <th>মোবাইল</th>
+              <th style="text-align: right;">মূল বেতন (৳)</th>
+              <th style="text-align: right;">পরিশোধিত (৳)</th>
+              <th style="text-align: center;">স্ট্যাটাস</th>
+              <th style="text-align: center;">ভাউচার ও তারিখ</th>
+              <th style="text-align: center; width: 95px;">স্বাক্ষর / টিপসই</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredSalarySheet.map((staff, idx) => `
+              <tr>
+                <td style="text-align: center;">${idx + 1}</td>
+                <td style="font-weight: 700;">${staff.name}</td>
+                <td>${staff.designation || '—'}</td>
+                <td style="font-family: monospace;">${staff.phone || '—'}</td>
+                <td style="text-align: right; font-family: monospace;">
+                  ${staff.baseSalary > 0 ? '৳' + staff.baseSalary.toLocaleString('en-IN') : '—'}
+                </td>
+                <td style="text-align: right; font-family: monospace; font-weight: 700;">
+                  ৳${(staff.paidAmount || 0).toLocaleString('en-IN')}
+                </td>
+                <td style="text-align: center; font-weight: 700; font-size: 8.5pt;">
+                  ${staff.status === 'paid' ? '<span style="color:#059669;">পরিশোধিত</span>' : '<span style="color:#dc2626;">বকেয়া</span>'}
+                </td>
+                <td style="text-align: center; font-size: 8pt;">
+                  ${staff.voucherNumber ? `#${staff.voucherNumber} (${formatDateDDMMYYYY(staff.paymentDate)})` : '—'}
+                </td>
+                <td style="height: 32px; text-align: center;"></td>
+              </tr>
+            `).join('')}
+            <tr style="background: #f8fafc; font-weight: 800;">
+              <td colspan="5" style="text-align: right;">সর্বমোট পরিশোধিত বেতন:</td>
+              <td style="text-align: right; font-family: monospace;">
+                ৳${(salarySheetData?.stats?.totalSalaryPaid || 0).toLocaleString('en-IN')}
+              </td>
+              <td colspan="3"></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    } else if (report) {
+      contentHtml = `
+        <h3 style="font-size: 10.5pt; font-weight: 700; margin: 12px 0 5px 0; border-bottom: 1px solid #334155; padding-bottom: 3px;">
+          ১. আয় ও ব্যয়ের সারসংক্ষেপ (${formattedMonthName})
+        </h3>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th>বিবরণ</th>
+              <th style="text-align: right;">দৈনিক (আজ)</th>
+              <th style="text-align: right;">মাসিক (${formattedMonthName})</th>
+              <th style="text-align: right;">বার্ষিক (চলতি বছর)</th>
+              <th style="text-align: right;">আজীবন (Lifetime)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight: 700;">মোট আয় (Total Income)</td>
+              <td style="text-align: right;">৳${(report.daily?.income || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right; font-weight: 700;">৳${(report.monthly?.income || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.yearly?.income || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.lifetime?.income || 0).toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700;">মোট ব্যয় (Total Expense)</td>
+              <td style="text-align: right;">৳${(report.daily?.expense || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right; font-weight: 700;">৳${(report.monthly?.expense || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.yearly?.expense || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.lifetime?.expense || 0).toLocaleString('en-IN')}</td>
+            </tr>
+            <tr style="background: #f8fafc; font-weight: 800;">
+              <td>নিট উদ্বৃত্ত / ঘাটতি (Surplus)</td>
+              <td style="text-align: right;">৳${(report.daily?.surplus || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.monthly?.surplus || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.yearly?.surplus || 0).toLocaleString('en-IN')}</td>
+              <td style="text-align: right;">৳${(report.lifetime?.surplus || 0).toLocaleString('en-IN')}</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="font-weight: 700;">শিক্ষার্থীদের মোট বকেয়া (Student Dues): ৳${(report.totalDues || 0).toLocaleString('en-IN')}</td>
+              <td colspan="3" style="font-weight: 700;">মোট দান ও অনুদান (Donations): ৳${(report.totalDonation || 0).toLocaleString('en-IN')}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="font-size: 10.5pt; font-weight: 700; margin: 14px 0 5px 0; border-bottom: 1px solid #334155; padding-bottom: 3px;">
+          ২. খাতভিত্তিক ব্যয়ের বিবরণী (Category-wise Expenses)
+        </h3>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th style="width: 35px;">ক্র.</th>
+              <th>ব্যয়ের খাত (Expense Account)</th>
+              <th style="text-align: right; width: 140px;">পরিমাণ (৳)</th>
+              <th style="text-align: center; width: 85px;">শতকরা হার (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(report.categoryExpense || []).map((item, idx) => {
+              const pct = totalCategoryExpense > 0 ? Math.round((Number(item.amount) / totalCategoryExpense) * 100) : 0;
+              return `
+                <tr>
+                  <td style="text-align: center;">${idx + 1}</td>
+                  <td>${item.category}</td>
+                  <td style="text-align: right; font-weight: 700;">৳${Number(item.amount).toLocaleString('en-IN')}</td>
+                  <td style="text-align: center;">${pct}%</td>
+                </tr>
+              `;
+            }).join('')}
+            ${(!report.categoryExpense || report.categoryExpense.length === 0) ? '<tr><td colspan="4" style="text-align:center; padding:10px;">কোনো ব্যয় রেকর্ড পাওয়া যায়নি</td></tr>' : ''}
+            <tr style="background: #f8fafc; font-weight: 800;">
+              <td colspan="2" style="text-align: right;">মোট ব্যয়:</td>
+              <td style="text-align: right;">৳${totalCategoryExpense.toLocaleString('en-IN')}</td>
+              <td style="text-align: center;">100%</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${report.teacherSalary && report.teacherSalary.length > 0 ? `
+          <div style="margin-top: 14px;">
+            <h3 style="font-size: 10.5pt; font-weight: 700; margin: 12px 0 5px 0; border-bottom: 1px solid #334155; padding-bottom: 3px;">
+              ৩. শিক্ষক ও স্টাফ বেতন সংক্ষিপ্ত হিসাব
+            </h3>
+            <table class="print-table">
+              <thead>
+                <tr>
+                  <th style="width: 35px;">ক্র.</th>
+                  <th>শিক্ষক/কর্মচারী</th>
+                  <th style="text-align: center; width: 85px;">ভাউচার সংখ্যা</th>
+                  <th style="text-align: right; width: 130px;">এই মাসে প্রাপ্ত (৳)</th>
+                  <th style="text-align: right; width: 130px;">সর্বমোট প্রদানকৃত (৳)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${report.teacherSalary.slice(0, 15).map((item, idx) => `
+                  <tr>
+                    <td style="text-align: center;">${idx + 1}</td>
+                    <td style="font-weight: 600;">${item.teacher}</td>
+                    <td style="text-align: center;">${item.voucherCount || 1} টি</td>
+                    <td style="text-align: right; font-weight: 700;">৳${(item.monthPaid || 0).toLocaleString('en-IN')}</td>
+                    <td style="text-align: right; font-weight: 700;">৳${(item.totalPaid || 0).toLocaleString('en-IN')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>${madrasahName} — ${docTitle} (${formattedMonthName})</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style id="page-orientation-style">
+    ${getMadrasahPrintStyles(targetOrientation, { wrap: false })}
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    .no-print-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      font-size: 8.8pt;
+    }
+    .print-table th, .print-table td {
+      border: 1px solid #cbd5e1;
+      padding: 4px 6px;
+      color: #0f172a;
+    }
+    .print-table th {
+      background-color: #f1f5f9;
+      font-weight: 700;
+      text-align: center;
+      font-size: 8.8pt;
+    }
+    .print-table tr:nth-child(even) { background: #f8fafc; }
+    @media print {
+      .no-print { display: none !important; }
+      body { padding: 0 !important; }
+      .print-sheet-container {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100% !important;
+        justify-content: space-between !important;
+      }
+      .print-content-layer {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100% !important;
+        justify-content: space-between !important;
+      }
+      .print-footer-signatures {
+        margin-top: auto !important;
+        padding-top: 20px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print no-print-bar">
+    <div style="font-weight: 700;">🖨️ ${docTitle} — প্রিন্ট প্রিভিউ</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button onclick="changeOrientation('portrait')" id="btn-portrait" style="padding: 5px 12px; border-radius: 6px; border: 1px solid #475569; background: ${targetOrientation === 'portrait' ? '#0f766e' : '#1e293b'}; color: #fff; cursor: pointer; font-size: 12px;">📄 পোর্ট্রেট</button>
+      <button onclick="changeOrientation('landscape')" id="btn-landscape" style="padding: 5px 12px; border-radius: 6px; border: 1px solid #475569; background: ${targetOrientation === 'landscape' ? '#0f766e' : '#1e293b'}; color: #fff; cursor: pointer; font-size: 12px;">🖼️ ল্যান্ডস্কেপ</button>
+      <button onclick="window.print()" style="padding: 5px 16px; border-radius: 6px; border: none; background: #10b981; color: #fff; cursor: pointer; font-weight: 700; font-size: 12px;">🖨️ প্রিন্ট করুন</button>
+      <button onclick="window.close()" style="padding: 5px 12px; border-radius: 6px; border: none; background: #475569; color: #fff; cursor: pointer; font-size: 12px;">✕ বন্ধ</button>
+    </div>
+  </div>
+
+  <div class="print-sheet-container">
+    <div class="print-content-layer">
+      <div>
+        ${getMadrasahHeaderHtml({
+          title: docTitle,
+          orientation: targetOrientation,
+          metaLeft: `<strong>মাস/সময়কাল:</strong> ${formattedMonthName} | <strong>শাখা:</strong> ${branchName}`,
+          metaRight: `<strong>তারিখ:</strong> ${new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}`
+        })}
+
+        ${contentHtml}
+      </div>
+
+      <!-- Footer Signatures (Guaranteed anchored to the bottom of the page) -->
+      <div style="margin-top: auto; padding-top: 18px;">
+        ${getMadrasahFooterSignaturesHtml(selectedSignatureRoles)}
+        <div style="margin-top: 8px; font-size: 8pt; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+          <span>মুদ্রণের তারিখ ও সময়: ${new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
+          <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function changeOrientation(mode) {
+      var styleTag = document.getElementById('page-orientation-style');
+      var btnPort = document.getElementById('btn-portrait');
+      var btnLand = document.getElementById('btn-landscape');
+      if (mode === 'landscape') {
+        styleTag.innerHTML = '@page { size: A4 landscape; margin: 6mm 8mm; }';
+        btnLand.style.background = '#0f766e';
+        btnPort.style.background = '#1e293b';
+      } else {
+        styleTag.innerHTML = '@page { size: A4 portrait; margin: 6mm 10mm; }';
+        btnPort.style.background = '#0f766e';
+        btnLand.style.background = '#1e293b';
+      }
+    }
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 400);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const handlePrint = () => {
-    window.print();
+    printFinanceReport(orientation);
   };
 
   // Quick Month Handlers
@@ -212,21 +518,50 @@ export default function FinanceReportsPage() {
             size: A4 ${orientation};
             margin: ${orientation === 'landscape' ? '6mm 8mm' : '6mm 10mm'};
           }
+          html, body, #root, .page-container {
+            height: 100% !important;
+            min-height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
           .screen-only {
             display: none !important;
           }
           .print-only {
             display: block !important;
           }
+          .print-sheet-container {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 100% !important;
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
+          }
+          .print-content-layer {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 100% !important;
+            flex: 1 1 auto !important;
+            justify-content: space-between !important;
+          }
+          .print-footer-signatures-wrap {
+            margin-top: auto !important;
+            padding-top: 24px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
           .print-table {
             width: 100% !important;
             border-collapse: collapse !important;
-            margin-top: 10px !important;
-            font-size: 10.5pt !important;
+            margin-top: 8px !important;
+            font-size: 9.5pt !important;
           }
           .print-table th, .print-table td {
-            border: 1px solid #1e293b !important;
-            padding: 6px 8px !important;
+            border: 1px solid #94a3b8 !important;
+            padding: 4px 6px !important;
             color: #000000 !important;
           }
           .print-table th {
@@ -234,20 +569,12 @@ export default function FinanceReportsPage() {
             font-weight: 700 !important;
             text-align: center !important;
           }
-          .print-sign-row {
-            margin-top: 55px !important;
-            display: flex !important;
-            justify-content: space-between !important;
-            page-break-inside: avoid !important;
+          thead {
+            display: table-header-group !important;
           }
-          .print-sign-box {
-            width: 175px !important;
-            text-align: center !important;
-            border-top: 1.5px solid #000000 !important;
-            padding-top: 5px !important;
-            font-size: 9.5pt !important;
-            font-weight: 700 !important;
-            color: #000000 !important;
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
         @media screen {
@@ -1092,7 +1419,8 @@ export default function FinanceReportsPage() {
       {/* ══════════════════════════════════════════════════════════════
           PRINT-ONLY DOCUMENT VIEW (Rendered strictly during window.print)
          ══════════════════════════════════════════════════════════════ */}
-      <div className="print-only" style={{ position: 'relative' }}>
+      <div className="print-only print-sheet-container">
+        <div className="print-content-layer">
         <MadrasahLetterhead
           documentTitle={
             activeTab === 'salary_sheet'
@@ -1278,12 +1606,13 @@ export default function FinanceReportsPage() {
         )}
 
         {/* Dynamic Customizable Official Footer Signatures */}
-        <div style={{ marginTop: 'auto', paddingTop: '36px', pageBreakInside: 'avoid' }}>
+        <div className="print-footer-signatures-wrap" style={{ marginTop: 'auto', paddingTop: '24px', pageBreakInside: 'avoid' }}>
           <PrintFooterSignatures roles={selectedSignatureRoles} />
           <div style={{ marginTop: '10px', fontSize: '9px', color: '#64748b', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '4px' }}>
             <span>মুদ্রণের তারিখ ও সময়: {new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
             <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
           </div>
+        </div>
         </div>
       </div>
 
