@@ -257,16 +257,7 @@ export default function FinanceReportsPage() {
         }
       `}</style>
 
-      {/* ──────────────────────────────────────────────────────────────
-          PRINT-ONLY: Official Letterhead
-         ────────────────────────────────────────────────────────────── */}
-      <div className="print-only" style={{ marginBottom: '16px' }}>
-        <MadrasahLetterhead
-          documentTitle="আর্থিক রিপোর্ট ও বেতন বিবরণী"
-          metaLeft={`মাস: ${formattedMonthName}`}
-          metaRight={`মুদ্রণের তারিখ: ${new Date().toLocaleDateString('bn-BD')}`}
-        />
-      </div>
+
 
       {/* ══════════════════════════════════════════════════════════════
           SCREEN-ONLY INTERACTIVE UI (Header, Controls, Tabs, Cards)
@@ -1102,7 +1093,6 @@ export default function FinanceReportsPage() {
           PRINT-ONLY DOCUMENT VIEW (Rendered strictly during window.print)
          ══════════════════════════════════════════════════════════════ */}
       <div className="print-only" style={{ position: 'relative' }}>
-        <img src="/images/madrasah_logo.png" alt="Watermark" className="print-watermark" />
         <MadrasahLetterhead
           documentTitle={
             activeTab === 'salary_sheet'
