@@ -54,6 +54,7 @@ export default function SalaryManagementPage() {
   const MAX_SIGNATURE_ROLES = 5;
 
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [orientation, setOrientation] = useState('landscape');
   const [previewZoom, setPreviewZoom] = useState('scroll'); // 'scroll' | 'fit'
   const [windowWidth, setWindowWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1024);
 
@@ -63,11 +64,11 @@ export default function SalaryManagementPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const baseSheetWidth = 980;
+  const baseSheetWidth = orientation === 'landscape' ? 980 : 800;
   const mobileFitScale = useMemo(() => {
     const availableWidth = windowWidth - (windowWidth < 640 ? 24 : 48);
     return Math.min(1, Math.max(0.35, availableWidth / baseSheetWidth));
-  }, [windowWidth]);
+  }, [windowWidth, baseSheetWidth]);
 
   const [selectedSignatureRoles, setSelectedSignatureRoles] = useState(() => {
     try {
@@ -1823,13 +1824,67 @@ export default function SalaryManagementPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* Orientation Toggle Buttons */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    background: '#f1f5f9',
+                    padding: '2px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    gap: '2px'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setOrientation('portrait')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: orientation === 'portrait' ? '#0f766e' : 'transparent',
+                        color: orientation === 'portrait' ? '#ffffff' : '#475569',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="A4 Portrait মোডে প্রিন্ট করুন"
+                    >
+                      <span>📄</span> পোর্ট্রেট (A4)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrientation('landscape')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        background: orientation === 'landscape' ? '#0f766e' : 'transparent',
+                        color: orientation === 'landscape' ? '#ffffff' : '#475569',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="A4 Landscape মোডে প্রিন্ট করুন"
+                    >
+                      <span>🖼️</span> ল্যান্ডস্কেপ (A4)
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={handleExecutePrint}
                     style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 16px', fontWeight: 700, fontSize: '0.82rem' }}
                   >
-                    <Printer size={15} /> প্রিন্ট করুন (A4 Landscape)
+                    <Printer size={15} /> প্রিন্ট করুন ({orientation === 'landscape' ? 'A4 Landscape' : 'A4 Portrait'})
                   </button>
                 </div>
               </div>
@@ -1938,8 +1993,8 @@ export default function SalaryManagementPage() {
         }
         @media print {
           @page {
-            size: A4 landscape;
-            margin: 8mm 6mm;
+            size: A4 ${orientation};
+            margin: ${orientation === 'landscape' ? '8mm 6mm' : '8mm 8mm'};
           }
           .no-print,
           .sidebar,

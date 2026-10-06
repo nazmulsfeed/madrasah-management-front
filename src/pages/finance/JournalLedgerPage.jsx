@@ -25,6 +25,7 @@ export default function JournalLedgerPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [selectedSlipJournal, setSelectedSlipJournal] = useState(null);
+  const [orientation, setOrientation] = useState('landscape');
   const [selectedSignatureRoles, setSelectedSignatureRoles] = useState(() => {
     try {
       const saved = localStorage.getItem('annur_footer_roles__journal_ledger');
@@ -340,6 +341,60 @@ export default function JournalLedgerPage() {
           >
             <Download size={16} /> এক্সেল ডাউনলোড
           </button>
+
+          {/* Orientation Toggle Buttons */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'var(--bg-tertiary, #f1f5f9)',
+            padding: '2px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color, #e2e8f0)',
+            gap: '2px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setOrientation('portrait')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: orientation === 'portrait' ? '#0f766e' : 'transparent',
+                color: orientation === 'portrait' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                transition: 'all 0.15s ease'
+              }}
+              title="A4 Portrait মোডে প্রিন্ট করুন"
+            >
+              <span>📄</span> পোর্ট্রেট (A4)
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrientation('landscape')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: orientation === 'landscape' ? '#0f766e' : 'transparent',
+                color: orientation === 'landscape' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                transition: 'all 0.15s ease'
+              }}
+              title="A4 Landscape মোডে প্রিন্ট করুন"
+            >
+              <span>🖼️</span> ল্যান্ডস্কেপ (A4)
+            </button>
+          </div>
 
           <button 
             type="button" 
@@ -847,24 +902,6 @@ export default function JournalLedgerPage() {
         )}
       </div>
 
-      {/* Print Signature Section for Full Ledger */}
-      <div className="print-only" style={{ marginTop: '50px', paddingTop: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', gap: '20px' }}>
-          <div style={{ textAlign: 'center', flex: 1, borderTop: '1.5px solid #000', paddingTop: '6px', fontSize: '11px', fontWeight: 'bold' }}>
-            আদায়কারী
-            <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>আন্-নূর ইসলামিক একাডেমি</div>
-          </div>
-          <div style={{ textAlign: 'center', flex: 1, borderTop: '1.5px solid #000', paddingTop: '6px', fontSize: '11px', fontWeight: 'bold' }}>
-            প্রতিষ্ঠান প্রধান
-            <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>আন্-নূর ইসলামিক একাডেমি</div>
-          </div>
-          <div style={{ textAlign: 'center', flex: 1, borderTop: '1.5px solid #000', paddingTop: '6px', fontSize: '11px', fontWeight: 'bold' }}>
-            পরিচালক
-            <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#64748b' }}>আন্-নূর ইসলামিক একাডেমি</div>
-          </div>
-        </div>
-      </div>
-
       {/* MONEY RECEIPT SLIP MODAL */}
       {selectedSlipJournal && (
         <div style={{
@@ -1041,8 +1078,8 @@ export default function JournalLedgerPage() {
       <style>{`
         @media print {
           @page {
-            size: A4 landscape;
-            margin: 0.5in;
+            size: A4 ${orientation};
+            margin: ${orientation === 'landscape' ? '6mm 8mm' : '8mm 8mm'};
           }
           .no-print, .page-header, .sidebar, .topbar {
             display: none !important;

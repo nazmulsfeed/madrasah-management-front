@@ -34,6 +34,8 @@ export default function DailyTransactionsPage() {
     }
   });
   
+  const [orientation, setOrientation] = useState('portrait');
+  
   // Date filters
   const todayStr = new Date().toISOString().split('T')[0];
   const [filters, setFilters] = useState({
@@ -342,6 +344,60 @@ export default function DailyTransactionsPage() {
             >
               <Download size={14} /> এক্সেল ডাউনলোড
             </button>
+
+            {/* Orientation Toggle Buttons */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: 'var(--bg-tertiary, #f1f5f9)',
+              padding: '2px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              gap: '2px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setOrientation('portrait')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: orientation === 'portrait' ? '#0f766e' : 'transparent',
+                  color: orientation === 'portrait' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                  transition: 'all 0.15s ease'
+                }}
+                title="A4 Portrait মোডে প্রিন্ট করুন"
+              >
+                <span>📄</span> পোর্ট্রেট (A4)
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrientation('landscape')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: orientation === 'landscape' ? '#0f766e' : 'transparent',
+                  color: orientation === 'landscape' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                  transition: 'all 0.15s ease'
+                }}
+                title="A4 Landscape মোডে প্রিন্ট করুন"
+              >
+                <span>🖼️</span> ল্যান্ডস্কেপ (A4)
+              </button>
+            </div>
 
             <button
               className="btn btn-primary btn-sm flex items-center gap-6"
@@ -695,8 +751,8 @@ export default function DailyTransactionsPage() {
       <style>{`
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 8mm 8mm 10mm 8mm;
+            size: A4 ${orientation};
+            margin: ${orientation === 'landscape' ? '6mm 8mm' : '8mm 8mm 10mm 8mm'};
           }
           html, body {
             width: 100% !important;

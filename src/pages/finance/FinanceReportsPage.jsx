@@ -25,6 +25,7 @@ export default function FinanceReportsPage() {
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'salary_sheet'
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  const [orientation, setOrientation] = useState('portrait');
   const [selectedSignatureRoles, setSelectedSignatureRoles] = useState(() => {
     try {
       const saved = localStorage.getItem('annur_footer_roles__finance_reports');
@@ -208,8 +209,8 @@ export default function FinanceReportsPage() {
       <style>{`
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 6mm 10mm;
+            size: A4 ${orientation};
+            margin: ${orientation === 'landscape' ? '6mm 8mm' : '6mm 10mm'};
           }
           .screen-only {
             display: none !important;
@@ -336,6 +337,60 @@ export default function FinanceReportsPage() {
             >
               <RefreshCw size={14} className={loading ? 'spin' : ''} /> রিফ্রেশ
             </button>
+
+            {/* Orientation Toggle Buttons */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: 'var(--bg-tertiary, #f1f5f9)',
+              padding: '2px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              gap: '2px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setOrientation('portrait')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: orientation === 'portrait' ? '#0f766e' : 'transparent',
+                  color: orientation === 'portrait' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                  transition: 'all 0.15s ease'
+                }}
+                title="A4 Portrait মোডে প্রিন্ট করুন"
+              >
+                <span>📄</span> পোর্ট্রেট (A4)
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrientation('landscape')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: orientation === 'landscape' ? '#0f766e' : 'transparent',
+                  color: orientation === 'landscape' ? '#ffffff' : 'var(--text-secondary, #475569)',
+                  transition: 'all 0.15s ease'
+                }}
+                title="A4 Landscape মোডে প্রিন্ট করুন"
+              >
+                <span>🖼️</span> ল্যান্ডস্কেপ (A4)
+              </button>
+            </div>
 
             <button
               className="btn btn-sm btn-primary flex-center gap-6"
