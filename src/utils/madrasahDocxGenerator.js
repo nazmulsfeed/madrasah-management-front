@@ -66,6 +66,7 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
                   new ImageRun({
                     data: arabicImgBuffer,
                     transformation: { width: 330, height: 52 },
+                    type: 'png',
                   })
                 ] : [
                   new TextRun({ text: 'النُّورُ إِسْلَامِكْ أَكَادِيمِي', bold: true, size: 36 })
@@ -155,6 +156,7 @@ export async function downloadMadrasahLetterheadDocx(selectedRoles = ['পরি
                   new ImageRun({
                     data: logoImgBuffer,
                     transformation: { width: 90, height: 90 },
+                    type: 'png',
                   })
                 ] : [],
               }),
