@@ -1277,19 +1277,12 @@ export default function FinanceReportsPage() {
           </div>
         )}
 
-        {/* Formal Institutional 3-Tier Signature Section */}
-        <div className="print-sign-row">
-          <div className="print-sign-box">
-            প্রস্তুতকারক
-            <div style={{ fontSize: '9.5pt', fontWeight: 500, color: '#64748b', marginTop: '2px' }}>আন্-নূর ইসলামিক একাডেমি</div>
-          </div>
-          <div className="print-sign-box">
-            প্রতিষ্ঠান প্রধান
-            <div style={{ fontSize: '9.5pt', fontWeight: 500, color: '#64748b', marginTop: '2px' }}>আন্-নূর ইসলামিক একাডেমি</div>
-          </div>
-          <div className="print-sign-box">
-            পরিচালক
-            <div style={{ fontSize: '9.5pt', fontWeight: 500, color: '#64748b', marginTop: '2px' }}>আন্-নূর ইসলামিক একাডেমি</div>
+        {/* Dynamic Customizable Official Footer Signatures */}
+        <div style={{ marginTop: 'auto', paddingTop: '36px', pageBreakInside: 'avoid' }}>
+          <PrintFooterSignatures roles={selectedSignatureRoles} />
+          <div style={{ marginTop: '10px', fontSize: '9px', color: '#64748b', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '4px' }}>
+            <span>মুদ্রণের তারিখ ও সময়: {new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
+            <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
           </div>
         </div>
       </div>
@@ -1405,12 +1398,7 @@ export default function FinanceReportsPage() {
           </div>
         </div>
       )}
-      {/* ──────────────────────────────────────────────────────────────
-          PRINT SIGNATURE FOOTER (Visible ONLY on print)
-         ────────────────────────────────────────────────────────────── */}
-      <div className="print-only">
-        <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '55px' }} />
-      </div>
+
 
     </div>
   );
