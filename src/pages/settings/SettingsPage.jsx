@@ -205,12 +205,28 @@ export default function SettingsPage() {
     e.preventDefault();
     setProfileAlert(null);
 
-    if (!profileData.firstName.trim()) {
-      setProfileAlert({ type: 'error', message: 'প্রথম নাম প্রদান করা আবশ্যক' });
+    const payload = {};
+
+    if (canUpdatePhoto && profileData.photo !== undefined) {
+      payload.photo = profileData.photo;
+    }
+
+    if (canUpdateInfo) {
+      if (!profileData.firstName?.trim()) {
+        setProfileAlert({ type: 'error', message: 'প্রথম নাম প্রদান করা আবশ্যক' });
+        return;
+      }
+      payload.firstName = profileData.firstName.trim();
+      payload.lastName = profileData.lastName?.trim() || '';
+      payload.phone = profileData.phone?.trim() || '';
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setProfileAlert({ type: 'error', message: 'পরিবর্তন করার মতো কোনো তথ্য পাওয়া যায়নি' });
       return;
     }
 
-    const result = await updateProfile(profileData);
+    const result = await updateProfile(payload);
     if (result.success) {
       setProfileAlert({ type: 'success', message: result.message });
     } else {
