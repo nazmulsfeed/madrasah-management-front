@@ -261,28 +261,100 @@ export default function PublicTimetablePage() {
           position: relative;
           z-index: 1;
         }
-        .timetable-scroll-wrapper {
+        .sheet-scroll-outer {
           width: 100%;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
+          padding: 0 16px 24px;
+          box-sizing: border-box;
+        }
+        .mobile-scroll-hint {
+          display: none;
+        }
+        .timetable-scroll-wrapper {
+          width: 100%;
+          overflow-x: visible;
           margin-top: 12px;
           padding-bottom: 6px;
         }
         @media screen and (max-width: 768px) {
+          .sheet-scroll-outer {
+            padding: 0 8px 20px;
+          }
+          .mobile-scroll-hint {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            border-radius: 9999px;
+            padding: 5px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 8px auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          }
           .print-container {
-            padding: 12px !important;
-            margin: 8px !important;
+            min-width: ${orientation === 'landscape' ? '880px' : '700px'} !important;
+            margin: 8px auto !important;
+            padding: 16px !important;
             border-radius: 8px !important;
+            overflow: visible !important;
           }
           .timetable-table {
-            min-width: 620px;
+            min-width: 100%;
           }
           .timetable-scroll-wrapper {
-            border-radius: 8px;
-            box-shadow: inset -5px 0 8px -4px rgba(0,0,0,0.1);
+            margin-top: 8px;
+            padding-bottom: 0;
+            box-shadow: none;
+            overflow-x: visible;
+          }
+        }
+        @media screen and (max-width: 640px) {
+          .public-top-nav {
+            padding: 10px 12px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          .public-top-nav-left {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+          }
+          .public-top-nav-title {
+            font-size: 15px !important;
+          }
+          .public-top-nav-right {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+            gap: 6px !important;
+          }
+          .public-top-nav-right button, .public-top-nav-right a {
+            font-size: 11.5px !important;
+            padding: 5px 8px !important;
           }
         }
         @media print {
+          .sheet-scroll-outer {
+            overflow: visible !important;
+            padding: 0 !important;
+            width: 100% !important;
+          }
+          .print-container {
+            min-width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
           .timetable-scroll-wrapper {
             overflow: visible !important;
             margin-top: 0 !important;
@@ -292,16 +364,16 @@ export default function PublicTimetablePage() {
       `}</style>
 
       {/* Top Navigation Bar (Hidden on print) */}
-      <div className="no-print" style={{ background: '#065f46', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to={user ? "/dashboard" : "/"} style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontSize: '14px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px' }}>
-            <ArrowLeft size={16} /> {user ? 'ড্যাশবোর্ডে ফিরে যান' : 'হোমপেজ'}
+      <div className="no-print public-top-nav" style={{ background: '#065f46', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flexWrap: 'wrap', gap: '10px' }}>
+        <div className="public-top-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to={user ? "/dashboard" : "/"} style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontSize: '14px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+            <ArrowLeft size={16} /> {user ? 'ড্যাশবোর্ড' : 'হোমপেজ'}
           </Link>
-          <span style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="public-top-nav-title" style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
             <Clock size={20} /> উন্মুক্ত ক্লাস রুটিন
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="public-top-nav-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {/* Orientation Toggle Buttons */}
           <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.25)', padding: '3px', borderRadius: '6px', gap: '3px' }}>
             <button
@@ -340,10 +412,10 @@ export default function PublicTimetablePage() {
             </button>
           </div>
 
-          <Link to="/calendar" style={{ color: '#fff', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Link to="/calendar" style={{ color: '#fff', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             <Calendar size={15} /> একাডেমিক ক্যালেন্ডার
           </Link>
-          <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f59e0b', color: '#0f172a', border: 'none', padding: '7px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+          <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f59e0b', color: '#0f172a', border: 'none', padding: '7px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
             <Printer size={16} /> প্রিন্ট / PDF
           </button>
         </div>
@@ -377,38 +449,48 @@ export default function PublicTimetablePage() {
       </div>
 
       {/* Signature Role Selector Controls (Hidden on print) */}
-      <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '860px' : '1100px', margin: '12px auto 0', padding: '0 16px' }}>
-        <PrintSignatureRoleSelector
-          selectedRoles={selectedRoles}
-          onChange={setSelectedRoles}
-        />
-      </div>
+      {!(user?.userType === 'student' || user?.userType === 'guardian') && (
+        <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '860px' : '1100px', margin: '12px auto 0', padding: '0 16px' }}>
+          <PrintSignatureRoleSelector
+            selectedRoles={selectedRoles}
+            onChange={setSelectedRoles}
+          />
+        </div>
+      )}
 
-      {/* Printable Sheet Wrapper */}
-      <div
-        className="print-container"
-        style={{
-          maxWidth: orientation === 'portrait' ? '860px' : '1100px',
-          margin: '16px auto',
-          background: '#fff',
-          padding: orientation === 'landscape' ? '18px 22px' : '24px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-          border: '1px solid #e2e8f0',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Background Watermark for Print & Screen */}
-        <img
-          src="/images/madrasah_logo.png"
-          className="print-watermark"
-          alt="ওয়াটারমার্ক"
-          onError={(e) => { e.currentTarget.src = '/madrasah_logo.png'; }}
-        />
+      {/* Printable Sheet Scroll Outer */}
+      <div className="sheet-scroll-outer">
+        <div style={{ textAlign: 'center' }}>
+          <div className="mobile-scroll-hint no-print">
+            👈 সম্পূর্ণ পৃষ্ঠা দেখতে ডানে-বামে স্ক্রোল করুন 👉
+          </div>
+        </div>
+
+        {/* Printable Sheet Wrapper */}
+        <div
+          className="print-container"
+          style={{
+            maxWidth: orientation === 'portrait' ? '860px' : '1100px',
+            margin: '16px auto',
+            background: '#fff',
+            padding: orientation === 'landscape' ? '18px 22px' : '24px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative',
+            overflow: 'visible'
+          }}
+        >
+          {/* Background Watermark for Print & Screen */}
+          <img
+            src="/images/madrasah_logo.png"
+            className="print-watermark"
+            alt="ওয়াটারমার্ক"
+            onError={(e) => { e.currentTarget.src = '/madrasah_logo.png'; }}
+          />
 
         <div className="print-top-section">
           {/* Official Letterhead */}
@@ -514,5 +596,6 @@ export default function PublicTimetablePage() {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

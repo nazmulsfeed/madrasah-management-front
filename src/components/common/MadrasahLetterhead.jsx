@@ -21,6 +21,7 @@ export default function MadrasahLetterhead({
       id="madrasah-official-header"
       style={{
         display: 'block',
+        minWidth: '600px',
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact'
       }}

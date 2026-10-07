@@ -81,8 +81,9 @@ export default function PublicCalendarPage() {
         @media print {
           .no-print { display: none !important; }
           body, html { background: #fff !important; margin: 0; padding: 0; }
-          .print-container { padding: 0 !important; max-width: 100% !important; box-shadow: none !important; border: none !important; }
-          .calendar-grid { grid-template-columns: repeat(${orientation === 'landscape' ? 3 : 2}, 1fr) !important; gap: 12px !important; }
+          .sheet-scroll-outer { overflow: visible !important; width: 100% !important; padding: 0 !important; }
+          .print-container { padding: 0 !important; max-width: 100% !important; min-width: 100% !important; box-shadow: none !important; border: none !important; }
+          .calendar-grid { grid-template-columns: repeat(${orientation === 'landscape' ? 4 : 3}, 1fr) !important; gap: 12px !important; }
         }
         .calendar-card {
           background: #fff;
@@ -120,40 +121,87 @@ export default function PublicCalendarPage() {
           font-weight: bold;
           font-size: 14px;
         }
-        .calendar-scroll-wrapper {
+        .sheet-scroll-outer {
           width: 100%;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
+          padding: 0 16px 24px;
+          box-sizing: border-box;
+        }
+        .mobile-scroll-hint {
+          display: none;
         }
         @media screen and (max-width: 768px) {
+          .sheet-scroll-outer {
+            padding: 0 8px 20px;
+          }
+          .mobile-scroll-hint {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #ccfbf1;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+            border-radius: 9999px;
+            padding: 5px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 8px auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          }
           .print-container {
-            padding: 12px !important;
-            margin: 8px !important;
+            min-width: ${orientation === 'landscape' ? '880px' : '700px'} !important;
+            margin: 8px auto !important;
+            padding: 16px !important;
             border-radius: 8px !important;
           }
           .calendar-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(${orientation === 'landscape' ? 4 : 3}, 1fr) !important;
             gap: 12px !important;
           }
         }
-        @media print {
-          .calendar-scroll-wrapper {
-            overflow: visible !important;
+        @media screen and (max-width: 640px) {
+          .public-top-nav {
+            padding: 10px 12px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          .public-top-nav-left {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+          }
+          .public-top-nav-title {
+            font-size: 15px !important;
+          }
+          .public-top-nav-right {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+            gap: 6px !important;
+          }
+          .public-top-nav-right button, .public-top-nav-right a {
+            font-size: 11.5px !important;
+            padding: 5px 8px !important;
           }
         }
       `}</style>
 
       {/* Top Navigation Bar (Hidden on print) */}
-      <div className="no-print" style={{ background: '#0f766e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flexWrap: 'wrap', gap: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link to={user ? "/dashboard" : "/"} style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontSize: '14px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px' }}>
-            <ArrowLeft size={16} /> {user ? 'ড্যাশবোর্ডে ফিরে যান' : 'হোমপেজ'}
+      <div className="no-print public-top-nav" style={{ background: '#0f766e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', flexWrap: 'wrap', gap: '10px' }}>
+        <div className="public-top-nav-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to={user ? "/dashboard" : "/"} style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontSize: '14px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+            <ArrowLeft size={16} /> {user ? 'ড্যাশবোর্ড' : 'হোমপেজ'}
           </Link>
-          <span style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CalendarIcon size={20} /> বাৎসরিক একাডেমিক ক্যালেন্ডার
+          <span className="public-top-nav-title" style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>
+            <CalendarIcon size={20} /> একাডেমিক ক্যালেন্ডার
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="public-top-nav-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {/* Orientation Toggle Buttons */}
           <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.25)', padding: '3px', borderRadius: '6px', gap: '3px' }}>
             <button
@@ -192,41 +240,50 @@ export default function PublicCalendarPage() {
             </button>
           </div>
 
-          <Link to="/routine" style={{ color: '#fff', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Link to="/routine" style={{ color: '#fff', textDecoration: 'none', fontSize: '13px', background: 'rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             <Clock size={15} /> ক্লাস রুটিন
           </Link>
-          <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f59e0b', color: '#0f172a', border: 'none', padding: '7px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+          <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f59e0b', color: '#0f172a', border: 'none', padding: '7px 16px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
             <Printer size={16} /> প্রিন্ট / PDF
           </button>
         </div>
       </div>
 
       {/* Signature Role Selector Controls (Hidden on print) */}
-      <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '12px auto 0', padding: '0 16px' }}>
-        <PrintSignatureRoleSelector
-          selectedRoles={selectedRoles}
-          onChange={setSelectedRoles}
-        />
-      </div>
-
-      {/* Printable Sheet Wrapper */}
-      <div className="print-container" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '16px auto', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', minHeight: '900px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <div>
-          {/* Official Letterhead */}
-          <MadrasahLetterhead
-            title="বাৎসরিক একাডেমিক ক্যালেন্ডার ও কার্যক্রম"
-            orientation={orientation}
-            metaLeft={<span><strong>শিক্ষাবর্ষ:</strong> ২০২৬ ইং</span>}
-            metaRight={<span><strong>প্রকাশনা:</strong> প্রাতিষ্ঠানিক সমন্বয় পর্ষদ</span>}
+      {!(user?.userType === 'student' || user?.userType === 'guardian') && (
+        <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '12px auto 0', padding: '0 16px' }}>
+          <PrintSignatureRoleSelector
+            selectedRoles={selectedRoles}
+            onChange={setSelectedRoles}
           />
+        </div>
+      )}
 
-          {loading ? (
-            <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
-              <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 12px', color: '#0f766e' }} />
-              <p>একাডেমিক ক্যালেন্ডার লোড হচ্ছে...</p>
-            </div>
-          ) : (
-            <div className="calendar-scroll-wrapper">
+      {/* Printable Sheet Scroll Outer */}
+      <div className="sheet-scroll-outer">
+        <div style={{ textAlign: 'center' }}>
+          <div className="mobile-scroll-hint no-print">
+            👈 সম্পূর্ণ পৃষ্ঠা দেখতে ডানে-বামে স্ক্রোল করুন 👉
+          </div>
+        </div>
+
+        {/* Printable Sheet Wrapper */}
+        <div className="print-container" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '16px auto', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', minHeight: '900px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            {/* Official Letterhead */}
+            <MadrasahLetterhead
+              documentTitle="বাৎসরিক একাডেমিক ক্যালেন্ডার ও কার্যক্রম"
+              compact={orientation === 'landscape'}
+              metaLeft={<span><strong>শিক্ষাবর্ষ:</strong> ২০২৬ ইং</span>}
+              metaRight={<span><strong>প্রকাশনা:</strong> প্রাতিষ্ঠানিক সমন্বয় পর্ষদ</span>}
+            />
+
+            {loading ? (
+              <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
+                <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 12px', color: '#0f766e' }} />
+                <p>একাডেমিক ক্যালেন্ডার লোড হচ্ছে...</p>
+              </div>
+            ) : (
               <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: orientation === 'landscape' ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
                 {sortedMonths.map((item, idx) => (
                   <div key={idx} className="calendar-card">
@@ -250,13 +307,13 @@ export default function PublicCalendarPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Official Footer Signatures */}
-        <div style={{ marginTop: 'auto', paddingTop: '36px' }}>
-          <PrintFooterSignatures roles={selectedRoles} />
+          {/* Official Footer Signatures */}
+          <div style={{ marginTop: 'auto', paddingTop: '36px' }}>
+            <PrintFooterSignatures roles={selectedRoles} />
+          </div>
         </div>
       </div>
     </div>
