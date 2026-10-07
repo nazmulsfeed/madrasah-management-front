@@ -13,6 +13,7 @@ import {
   Bell,
   BellOff,
   ArrowLeft,
+  BookOpen,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { getVisibleNavigation } from '../utils/navigationConfig';
@@ -338,6 +339,17 @@ export default function DashboardLayout() {
 
         <div className="topbar-right">
           <GlobalSearch />
+
+          {/* আজকের হোমওয়ার্ক শর্টকাট বাটন */}
+          <button
+            type="button"
+            className="topbar-icon-btn"
+            onClick={() => navigate('/homework')}
+            title="আজকের হোমওয়ার্ক"
+            style={{ cursor: 'pointer' }}
+          >
+            <BookOpen size={19} />
+          </button>
 
           {/* অ্যাপ ইনস্টল বাটন */}
           <button

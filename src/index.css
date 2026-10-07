@@ -1134,6 +1134,19 @@ h4 { font-size: 1.125rem; }
   }
 }
 
+/* Mobile: pin the dropdown below the topbar so it never clips off-screen */
+@media (max-width: 640px) {
+  .notification-dropdown-menu {
+    position: fixed;
+    top: calc(var(--topbar-height, 64px) + 6px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    transform: none;
+  }
+}
+
 .notification-dropdown-header {
   display: flex;
   align-items: center;
