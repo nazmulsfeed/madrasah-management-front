@@ -120,6 +120,27 @@ export default function PublicCalendarPage() {
           font-weight: bold;
           font-size: 14px;
         }
+        .calendar-scroll-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        @media screen and (max-width: 768px) {
+          .print-container {
+            padding: 12px !important;
+            margin: 8px !important;
+            border-radius: 8px !important;
+          }
+          .calendar-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+        }
+        @media print {
+          .calendar-scroll-wrapper {
+            overflow: visible !important;
+          }
+        }
       `}</style>
 
       {/* Top Navigation Bar (Hidden on print) */}
@@ -205,28 +226,30 @@ export default function PublicCalendarPage() {
               <p>একাডেমিক ক্যালেন্ডার লোড হচ্ছে...</p>
             </div>
           ) : (
-            <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: orientation === 'landscape' ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
-              {sortedMonths.map((item, idx) => (
-                <div key={idx} className="calendar-card">
-                  <div className="calendar-card-header">
-                    <span>{item.month}</span>
-                    <span style={{ fontSize: '11px', opacity: 0.9 }}>২০২৬</span>
-                  </div>
-                  <div className="calendar-card-body">
-                    {item.events && item.events.length > 0 ? (
-                      item.events.map((ev, evIdx) => (
-                        <div key={evIdx} className="event-bullet">
-                          <span>{ev}</span>
+            <div className="calendar-scroll-wrapper">
+              <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: orientation === 'landscape' ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                {sortedMonths.map((item, idx) => (
+                  <div key={idx} className="calendar-card">
+                    <div className="calendar-card-header">
+                      <span>{item.month}</span>
+                      <span style={{ fontSize: '11px', opacity: 0.9 }}>২০২৬</span>
+                    </div>
+                    <div className="calendar-card-body">
+                      {item.events && item.events.length > 0 ? (
+                        item.events.map((ev, evIdx) => (
+                          <div key={evIdx} className="event-bullet">
+                            <span>{ev}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                          নিয়মিত পাঠদান ও প্রাতিষ্ঠানিক কার্যক্রম
                         </div>
-                      ))
-                    ) : (
-                      <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
-                        নিয়মিত পাঠদান ও প্রাতিষ্ঠানিক কার্যক্রম
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>

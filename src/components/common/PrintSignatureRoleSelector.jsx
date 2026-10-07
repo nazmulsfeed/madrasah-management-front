@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X } from 'lucide-react';
+import useAuthStore from '../../store/authStore';
 
 export const PRESET_SIGNATURE_ROLES = [
   'পরিচালক',
@@ -27,6 +28,13 @@ export default function PrintSignatureRoleSelector({
   className = '',
   style = {}
 }) {
+  const { user } = useAuthStore();
+  const userType = user?.userType;
+
+  // Student and Guardian accounts do not need the signature role selector
+  if (userType === 'student' || userType === 'guardian') {
+    return null;
+  }
   // Load saved custom roles from localStorage
   const [customRoles, setCustomRoles] = useState(() => {
     try {

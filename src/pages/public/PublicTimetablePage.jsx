@@ -261,6 +261,34 @@ export default function PublicTimetablePage() {
           position: relative;
           z-index: 1;
         }
+        .timetable-scroll-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          margin-top: 12px;
+          padding-bottom: 6px;
+        }
+        @media screen and (max-width: 768px) {
+          .print-container {
+            padding: 12px !important;
+            margin: 8px !important;
+            border-radius: 8px !important;
+          }
+          .timetable-table {
+            min-width: 620px;
+          }
+          .timetable-scroll-wrapper {
+            border-radius: 8px;
+            box-shadow: inset -5px 0 8px -4px rgba(0,0,0,0.1);
+          }
+        }
+        @media print {
+          .timetable-scroll-wrapper {
+            overflow: visible !important;
+            margin-top: 0 !important;
+            padding-bottom: 0 !important;
+          }
+        }
       `}</style>
 
       {/* Top Navigation Bar (Hidden on print) */}
@@ -397,84 +425,86 @@ export default function PublicTimetablePage() {
               <p>ক্লাস রুটিন লোড হচ্ছে...</p>
             </div>
           ) : (
-            <table className="timetable-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '130px' }}>সময় ও পিরিয়ড</th>
-                  <th>শনিবার</th>
-                  <th>রবিবার</th>
-                  <th>সোমবার</th>
-                  <th>মঙ্গলবার</th>
-                  <th>বুধবার</th>
-                  <th>বৃহস্পতিবার</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentSchedule.length === 0 ? (
-                  UNCONFIGURED_EMPTY_PERIODS.map((slot, idx) => (
-                    <tr key={idx}>
-                      <td style={{ fontWeight: 700, color: '#047857' }}>
-                        <div>{slot.period}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{slot.time}</div>
-                      </td>
-                      <td style={{ color: '#94a3b8' }}>-</td>
-                      <td style={{ color: '#94a3b8' }}>-</td>
-                      <td style={{ color: '#94a3b8' }}>-</td>
-                      <td style={{ color: '#94a3b8' }}>-</td>
-                      <td style={{ color: '#94a3b8' }}>-</td>
-                      <td style={{ color: '#94a3b8' }}>-</td>
-                    </tr>
-                  ))
-                ) : (
-                  currentSchedule.map((row, idx) => {
-                    if (row.isBreak) {
-                      return (
-                        <tr key={idx} className="break-row">
-                          <td style={{ fontWeight: 700 }}>{row.time}</td>
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '6px', fontSize: '13px' }}>
-                            ☕ {row.label || 'বিরতি ও নাস্তা'}
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    const renderCell = (cell) => {
-                      if (!cell) return <span style={{ color: '#94a3b8' }}>-</span>;
-                      if (typeof cell === 'string') {
-                        const trimmed = cell.trim();
-                        return (trimmed && trimmed !== '-') ? trimmed : <span style={{ color: '#94a3b8' }}>-</span>;
-                      }
-                      if (!cell.subject || !cell.subject.trim() || cell.subject.trim() === '-') {
-                        return <span style={{ color: '#94a3b8' }}>-</span>;
-                      }
-                      return (
-                        <div>
-                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{cell.subject}</div>
-                          {cell.teacher && cell.teacher.trim() && cell.teacher.trim() !== '-' && (
-                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>({cell.teacher})</div>
-                          )}
-                        </div>
-                      );
-                    };
-
-                    return (
+            <div className="timetable-scroll-wrapper">
+              <table className="timetable-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '130px' }}>সময় ও পিরিয়ড</th>
+                    <th>শনিবার</th>
+                    <th>রবিবার</th>
+                    <th>সোমবার</th>
+                    <th>মঙ্গলবার</th>
+                    <th>বুধবার</th>
+                    <th>বৃহস্পতিবার</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentSchedule.length === 0 ? (
+                    UNCONFIGURED_EMPTY_PERIODS.map((slot, idx) => (
                       <tr key={idx}>
                         <td style={{ fontWeight: 700, color: '#047857' }}>
-                          <div>পিরিয়ড {idx + 1}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{row.time}</div>
+                          <div>{slot.period}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{slot.time}</div>
                         </td>
-                        <td>{renderCell(row.sat)}</td>
-                        <td>{renderCell(row.sun)}</td>
-                        <td>{renderCell(row.mon)}</td>
-                        <td>{renderCell(row.tue)}</td>
-                        <td>{renderCell(row.wed)}</td>
-                        <td>{renderCell(row.thu)}</td>
+                        <td style={{ color: '#94a3b8' }}>-</td>
+                        <td style={{ color: '#94a3b8' }}>-</td>
+                        <td style={{ color: '#94a3b8' }}>-</td>
+                        <td style={{ color: '#94a3b8' }}>-</td>
+                        <td style={{ color: '#94a3b8' }}>-</td>
+                        <td style={{ color: '#94a3b8' }}>-</td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                    ))
+                  ) : (
+                    currentSchedule.map((row, idx) => {
+                      if (row.isBreak) {
+                        return (
+                          <tr key={idx} className="break-row">
+                            <td style={{ fontWeight: 700 }}>{row.time}</td>
+                            <td colSpan={6} style={{ textAlign: 'center', padding: '6px', fontSize: '13px' }}>
+                              ☕ {row.label || 'বিরতি ও নাস্তা'}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      const renderCell = (cell) => {
+                        if (!cell) return <span style={{ color: '#94a3b8' }}>-</span>;
+                        if (typeof cell === 'string') {
+                          const trimmed = cell.trim();
+                          return (trimmed && trimmed !== '-') ? trimmed : <span style={{ color: '#94a3b8' }}>-</span>;
+                        }
+                        if (!cell.subject || !cell.subject.trim() || cell.subject.trim() === '-') {
+                          return <span style={{ color: '#94a3b8' }}>-</span>;
+                        }
+                        return (
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{cell.subject}</div>
+                            {cell.teacher && cell.teacher.trim() && cell.teacher.trim() !== '-' && (
+                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>({cell.teacher})</div>
+                            )}
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: 700, color: '#047857' }}>
+                            <div>পিরিয়ড {idx + 1}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{row.time}</div>
+                          </td>
+                          <td>{renderCell(row.sat)}</td>
+                          <td>{renderCell(row.sun)}</td>
+                          <td>{renderCell(row.mon)}</td>
+                          <td>{renderCell(row.tue)}</td>
+                          <td>{renderCell(row.wed)}</td>
+                          <td>{renderCell(row.thu)}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
