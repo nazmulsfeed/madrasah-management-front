@@ -74,16 +74,138 @@ export default function PublicCalendarPage() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a', paddingBottom: '40px' }}>
+    <div className="public-calendar-page-root" style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a', paddingBottom: '40px' }}>
       {/* Inject print styles */}
       <style dangerouslySetInnerHTML={{ __html: getMadrasahPrintStyles(orientation, { wrap: false }) }} />
       <style>{`
+        @page {
+          size: A4 ${orientation};
+          margin: 6mm 10mm !important;
+        }
         @media print {
           .no-print { display: none !important; }
-          body, html { background: #fff !important; margin: 0; padding: 0; }
-          .sheet-scroll-outer { overflow: visible !important; width: 100% !important; padding: 0 !important; }
-          .print-container { padding: 0 !important; max-width: 100% !important; min-width: 100% !important; box-shadow: none !important; border: none !important; }
-          .calendar-grid { grid-template-columns: repeat(${orientation === 'landscape' ? 4 : 3}, 1fr) !important; gap: 12px !important; }
+          html, body, #root {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .public-calendar-page-root {
+            min-height: 100% !important;
+            height: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          .sheet-scroll-outer {
+            overflow: visible !important;
+            width: 100% !important;
+            padding: 0 !important;
+          }
+          .print-container {
+            position: relative !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            min-width: 100% !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            min-height: ${orientation === 'landscape' ? '196.5mm' : '283.5mm'} !important;
+            height: ${orientation === 'landscape' ? '196.5mm' : '283.5mm'} !important;
+            max-height: ${orientation === 'landscape' ? '196.5mm' : '283.5mm'} !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            overflow: hidden !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          .print-watermark {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: ${orientation === 'landscape' ? '360px' : '420px'} !important;
+            height: ${orientation === 'landscape' ? '360px' : '420px'} !important;
+            max-width: 80% !important;
+            max-height: 80% !important;
+            opacity: 0.085 !important;
+            z-index: 0 !important;
+            pointer-events: none !important;
+            display: block !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .print-top-section {
+            position: relative !important;
+            z-index: 1 !important;
+            flex: 1 0 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          .calendar-grid {
+            grid-template-columns: repeat(${orientation === 'landscape' ? 4 : 3}, 1fr) !important;
+            gap: 10px !important;
+            margin-top: 10px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .calendar-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .print-footer-wrapper {
+            position: relative !important;
+            z-index: 2 !important;
+            margin-top: auto !important;
+            padding-top: 10px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          .print-footer-signatures-wrap {
+            padding-top: 10px !important;
+            margin-top: 0 !important;
+          }
+        }
+        .print-watermark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 380px;
+          height: 380px;
+          max-width: 80%;
+          max-height: 80%;
+          opacity: 0.065;
+          z-index: 0;
+          pointer-events: none;
+          user-select: none;
+          object-fit: contain;
+        }
+        .print-top-section {
+          position: relative;
+          z-index: 1;
+        }
+        .print-footer-wrapper {
+          position: relative;
+          z-index: 1;
         }
         .calendar-card {
           background: #fff;
@@ -268,8 +390,33 @@ export default function PublicCalendarPage() {
         </div>
 
         {/* Printable Sheet Wrapper */}
-        <div className="print-container" style={{ maxWidth: orientation === 'portrait' ? '960px' : '1100px', margin: '16px auto', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', minHeight: '900px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
+        <div
+          className="print-container"
+          style={{
+            maxWidth: orientation === 'portrait' ? '960px' : '1100px',
+            margin: '16px auto',
+            background: '#fff',
+            padding: orientation === 'landscape' ? '18px 22px' : '24px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+            border: '1px solid #e2e8f0',
+            minHeight: orientation === 'landscape' ? '700px' : '900px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Background Watermark for Print & Screen */}
+          <img
+            src="/images/madrasah_logo.png"
+            className="print-watermark"
+            alt="ওয়াটারমার্ক"
+            onError={(e) => { e.currentTarget.src = '/madrasah_logo.png'; }}
+          />
+
+          <div className="print-top-section">
             {/* Official Letterhead */}
             <MadrasahLetterhead
               documentTitle="বাৎসরিক একাডেমিক ক্যালেন্ডার ও কার্যক্রম"
@@ -284,7 +431,7 @@ export default function PublicCalendarPage() {
                 <p>একাডেমিক ক্যালেন্ডার লোড হচ্ছে...</p>
               </div>
             ) : (
-              <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: orientation === 'landscape' ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: orientation === 'landscape' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '16px', marginTop: '16px' }}>
                 {sortedMonths.map((item, idx) => (
                   <div key={idx} className="calendar-card">
                     <div className="calendar-card-header">
@@ -311,8 +458,8 @@ export default function PublicCalendarPage() {
           </div>
 
           {/* Official Footer Signatures */}
-          <div style={{ marginTop: 'auto', paddingTop: '36px' }}>
-            <PrintFooterSignatures roles={selectedRoles} />
+          <div className="print-footer-wrapper" style={{ marginTop: 'auto', paddingTop: orientation === 'landscape' ? '14px' : '24px' }}>
+            <PrintFooterSignatures roles={selectedRoles} style={{ paddingTop: '10px' }} />
           </div>
         </div>
       </div>
