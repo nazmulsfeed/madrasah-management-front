@@ -5,7 +5,7 @@ export const permissionCategories = [
       { key: 'student.view', label: 'View Students (ছাত্র/ছাত্রী দেখুন)' },
       { key: 'student.create', label: 'Create Student (নতুন ছাত্র/ছাত্রী)' },
       { key: 'student.update', label: 'Update Student (আপডেট করুন)' },
-      { key: 'student.photo_update', label: 'Profile Picture Change (প্রোফাইল ছবি পরিবর্তন)' },
+      { key: 'student.photo_update', label: 'Change Other Students Photo [Admin/Teacher] (অন্যান্য ছাত্রদের ছবি পরিবর্তন - প্রশাসনিক)' },
       { key: 'student.delete', label: 'Delete Student (ডিলিট করুন)' },
       { key: 'student.restore', label: 'Restore Student (রিস্টোর করুন)' },
       { key: 'student.approve', label: 'Approve Student (অনুমোদন করুন)' },
@@ -274,10 +274,10 @@ export const permissionCategories = [
     ]
   },
   {
-    category: 'Profile & Account Settings (প্রোফাইল ও অ্যাকাউন্ট)',
+    category: 'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
     permissions: [
-      { key: 'profile.photo.update', label: 'Change Profile Photo (প্রোফাইল ছবি পরিবর্তন)' },
-      { key: 'profile.info.update', label: 'Update Personal Info (ব্যক্তিগত তথ্য পরিবর্তন)' }
+      { key: 'profile.photo.update', label: 'Change Own Profile Photo [Self] (নিজের প্রোফাইল ছবি পরিবর্তন - নিজস্ব)' },
+      { key: 'profile.info.update', label: 'Update Own Personal Info [Self] (নিজের ব্যক্তিগত তথ্য পরিবর্তন - নিজস্ব)' }
     ]
   }
 ];

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Shield, Save, CheckCircle, AlertCircle, RefreshCw, Users, Search, GraduationCap, UserCheck, Check, RotateCcw, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Shield, Save, CheckCircle, AlertCircle, RefreshCw, Users, Search, GraduationCap, UserCheck, Check, RotateCcw, X, Filter, Eye, EyeOff } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { permissionCategories, allPermissionKeys } from '../../utils/permissionCategories';
@@ -20,6 +20,71 @@ const roles = [
   { value: 'guardian', label: 'অভিভাবক' },
 ];
 
+// Role-wise relevant categories filter for clear, focused management
+const roleRelevantCategoriesMap = {
+  student: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Other Modules (Legacy/General)',
+    'Payment Transaction',
+    'Student Fee / Assignment'
+  ],
+  guardian: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Student Management',
+    'Other Modules (Legacy/General)',
+    'Student Fee / Assignment',
+    'Payment Collection',
+    'Payment Transaction',
+    'Due Management'
+  ],
+  teacher: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Student Management',
+    'Attendance',
+    'Academic & Class',
+    'Other Modules (Legacy/General)'
+  ],
+  hifz_teacher: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Student Management',
+    'Attendance',
+    'Other Modules (Legacy/General)'
+  ],
+  accountant: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Fee Management',
+    'Student Fee / Assignment',
+    'Payment Collection',
+    'Payment Transaction',
+    'Due Management',
+    'Discount / Scholarship / Waiver',
+    'Refund',
+    'Invoice & Receipt',
+    'Financial Reports'
+  ],
+  cashier: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Payment Collection',
+    'Invoice & Receipt',
+    'Due Management'
+  ],
+  admission_officer: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Admission',
+    'Student Management',
+    'Other Modules (Legacy/General)'
+  ],
+  hostel_manager: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Student Management',
+    'Other Modules (Legacy/General)'
+  ],
+  library_manager: [
+    'Profile & Account Settings (নিজস্ব প্রোফাইল ও অ্যাকাউন্ট)',
+    'Other Modules (Legacy/General)'
+  ]
+};
+
 export default function RoleManagementPage() {
   const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState('permissions'); // 'permissions' or 'roleUpdate'
@@ -29,6 +94,7 @@ export default function RoleManagementPage() {
   const [permissions, setPermissions] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   
   // Role Update State
   const [usersList, setUsersList] = useState([]);
@@ -293,58 +359,103 @@ export default function RoleManagementPage() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: '24px' }}>
-            <div className="flex-between mb-24 pb-16" style={{ borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
-                {roles.find(r => r.value === selectedRole)?.label} এর পারমিশন সেটআপ
-              </h2>
-              <div className="flex gap-8" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleSelectAll}
-                  style={{ border: '1px solid var(--border-color)', padding: '6px 12px', fontSize: '0.813rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-400)' }}
-                  title="সবগুলো পারমিশন টিক দিন"
-                >
-                  <Check size={14} /> সবগুলো সিলেক্ট করুন
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleDeselectAll}
-                  style={{ border: '1px solid var(--border-color)', padding: '6px 12px', fontSize: '0.813rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}
-                  title="সবগুলো পারমিশন টিক তুলে নিন"
-                >
-                  <X size={14} /> সবগুলো আন-সিলেক্ট করুন
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={handleSavePermissions}
-                  disabled={saving || loading}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
-                >
-                  {saving ? <RefreshCw size={14} className="spin" /> : <Save size={14} />} 
-                  {saving ? 'সেভ হচ্ছে...' : 'পারমিশন সেভ করুন'}
-                </button>
-              </div>
-            </div>
+          {(() => {
+            // Compute filtered categories based on selected role
+            const roleFilter = roleRelevantCategoriesMap[selectedRole];
+            const isFiltered = Boolean(roleFilter && !showAllCategories);
+            const visibleCategories = isFiltered
+              ? permissionCategories.filter(cat => roleFilter.includes(cat.category))
+              : permissionCategories;
 
-            {loading ? (
-              <div className="flex-center py-32"><div className="spinner"></div></div>
-            ) : (
-              <div className="grid" style={{ gap: '24px' }}>
-                {permissionCategories.map(cat => {
-                  const isSpecial = cat.category.includes('Hifz') || cat.category.includes('Teacher');
-                  const isFinancial = ['Fee Management', 'Student Fee / Assignment', 'Payment Collection', 'Payment Transaction', 'Due Management', 'Discount / Scholarship / Waiver', 'Refund', 'Invoice & Receipt', 'Payment Method & Gateway', 'Financial Reports'].includes(cat.category);
-                  
-                  return (
-                    <div key={cat.category} style={{
-                      background: isFinancial ? 'rgba(59, 130, 246, 0.03)' : isSpecial ? 'rgba(20, 184, 166, 0.03)' : 'var(--bg-secondary)', 
-                      padding: '20px', 
-                      borderRadius: '12px',
-                      border: isFinancial ? '1px solid rgba(59, 130, 246, 0.3)' : isSpecial ? '1px solid var(--primary-600)' : '1px solid var(--border-color)'
-                    }}>
+            return (
+              <div className="card" style={{ padding: '24px' }}>
+                <div className="flex-between mb-20 pb-16" style={{ borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 6px 0' }}>
+                      {roles.find(r => r.value === selectedRole)?.label} এর পারমিশন সেটআপ
+                    </h2>
+                    {roleFilter && (
+                      <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                        {isFiltered ? (
+                          <span>
+                            🎯 এই রোলের সাথে সম্পর্কিত <strong>{visibleCategories.length}টি ক্যাটাগরি</strong> ফিল্টার করে দেখানো হচ্ছে।
+                          </span>
+                        ) : (
+                          <span>
+                            🌐 সম্পূর্ণ তালিকার <strong>{permissionCategories.length}টি ক্যাটাগরি</strong> প্রদর্শিত হচ্ছে।
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-8" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                    {roleFilter && (
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${showAllCategories ? 'btn-secondary' : 'btn-ghost'}`}
+                        onClick={() => setShowAllCategories(!showAllCategories)}
+                        style={{
+                          border: '1px solid var(--border-color)',
+                          padding: '6px 12px',
+                          fontSize: '0.813rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                        title={showAllCategories ? 'শুধুমাত্র প্রাসঙ্গিক ক্যাটাগরি ফিল্টার করুন' : 'সবগুলো ক্যাটাগরি দেখুন'}
+                      >
+                        {showAllCategories ? <EyeOff size={14} /> : <Eye size={14} />}
+                        {showAllCategories ? 'প্রাসঙ্গিক ফিল্টার চালু করুন' : 'সব ক্যাটাগরি দেখুন'}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleSelectAll}
+                      style={{ border: '1px solid var(--border-color)', padding: '6px 12px', fontSize: '0.813rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-400)' }}
+                      title="সবগুলো পারমিশন টিক দিন"
+                    >
+                      <Check size={14} /> সবগুলো সিলেক্ট করুন
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleDeselectAll}
+                      style={{ border: '1px solid var(--border-color)', padding: '6px 12px', fontSize: '0.813rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}
+                      title="সবগুলো পারমিশন টিক তুলে নিন"
+                    >
+                      <X size={14} /> সবগুলো আন-সিলেক্ট করুন
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={handleSavePermissions}
+                      disabled={saving || loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
+                    >
+                      {saving ? <RefreshCw size={14} className="spin" /> : <Save size={14} />} 
+                      {saving ? 'সেভ হচ্ছে...' : 'পারমিশন সেভ করুন'}
+                    </button>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="flex-center py-32"><div className="spinner"></div></div>
+                ) : (
+                  <div className="grid" style={{ gap: '24px' }}>
+                    {visibleCategories.map(cat => {
+                      const isSpecial = cat.category.includes('Hifz') || cat.category.includes('Teacher');
+                      const isFinancial = ['Fee Management', 'Student Fee / Assignment', 'Payment Collection', 'Payment Transaction', 'Due Management', 'Discount / Scholarship / Waiver', 'Refund', 'Invoice & Receipt', 'Payment Method & Gateway', 'Financial Reports'].includes(cat.category);
+                      
+                      return (
+                        <div key={cat.category} style={{
+                          background: isFinancial ? 'rgba(59, 130, 246, 0.03)' : isSpecial ? 'rgba(20, 184, 166, 0.03)' : 'var(--bg-secondary)', 
+                          padding: '20px', 
+                          borderRadius: '12px',
+                          border: isFinancial ? '1px solid rgba(59, 130, 246, 0.3)' : isSpecial ? '1px solid var(--primary-600)' : '1px solid var(--border-color)'
+                        }}>
                       {(() => {
                         const allChecked = cat.permissions.length > 0 && cat.permissions.every(p => permissions[p.key]);
                         const noneChecked = cat.permissions.every(p => !permissions[p.key]);
@@ -450,8 +561,10 @@ export default function RoleManagementPage() {
               </div>
             )}
           </div>
-        </div>
-      ) : (
+        );
+      })()}
+    </div>
+  ) : (
         /* Tab: Promote / Demote */
         <div>
           <div className="flex gap-8 mb-20" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0px' }}>
