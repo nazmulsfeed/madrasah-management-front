@@ -10,8 +10,6 @@ import {
   Building2,
   X,
   Download,
-  Bell,
-  BellOff,
   ArrowLeft,
   BookOpen,
 } from 'lucide-react';
@@ -20,12 +18,7 @@ import { getVisibleNavigation } from '../utils/navigationConfig';
 import NotificationDropdown from '../components/common/NotificationDropdown';
 import GlobalSearch from '../components/common/GlobalSearch';
 import PushNotificationPrompt from '../components/common/PushNotificationPrompt';
-import {
-  autoRegisterPushNotification,
-  requestAndRegisterPushNotification,
-  unsubscribePushNotification,
-  checkPushSubscriptionStatus,
-} from '../utils/pushNotificationService';
+import { autoRegisterPushNotification } from '../utils/pushNotificationService';
 
 export default function DashboardLayout() {
   const { user, logout, getUserTypeLabel, fetchMe } = useAuthStore();
@@ -90,49 +83,6 @@ export default function DashboardLayout() {
     setDeferredPrompt(null);
   };
 
-  // Push Notification State
-  const [pushStatus, setPushStatus] = useState('loading'); // 'subscribed' | 'default' | 'denied' | 'unsupported' | 'loading'
-  const [pushLoading, setPushLoading] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    const checkStatus = async () => {
-      const status = await checkPushSubscriptionStatus();
-      if (isMounted) setPushStatus(status);
-    };
-    checkStatus();
-    return () => { isMounted = false; };
-  }, [user]);
-
-  const handleTogglePush = async () => {
-    if (pushLoading) return;
-    setPushLoading(true);
-    try {
-      if (pushStatus === 'subscribed') {
-        const res = await unsubscribePushNotification();
-        if (res.success) {
-          setPushStatus('default');
-          alert('এই ডিভাইসে পুশ নোটিফিকেশন বন্ধ করা হয়েছে।');
-        } else {
-          alert(res.message);
-        }
-      } else {
-        const res = await requestAndRegisterPushNotification(user);
-        if (res.success) {
-          setPushStatus('subscribed');
-          alert('নোটিফিকেশন সফলভাবে চালু করা হয়েছে! 🔔');
-        } else {
-          alert(res.message);
-          const current = await checkPushSubscriptionStatus();
-          setPushStatus(current);
-        }
-      }
-    } catch (err) {
-      alert('নোটিফিকেশন সেটআপে সমস্যা হয়েছে: ' + (err.message || 'Unknown error'));
-    } finally {
-      setPushLoading(false);
-    }
-  };
 
   // Fetch and cache user permissions
   useEffect(() => {
@@ -360,46 +310,6 @@ export default function DashboardLayout() {
             style={{ cursor: 'pointer' }}
           >
             <Download size={19} />
-          </button>
-
-          {/* পুশ নোটিফিকেশন বাটন */}
-          <button
-            type="button"
-            className="topbar-icon-btn"
-            onClick={handleTogglePush}
-            disabled={pushLoading}
-            title={
-              pushStatus === 'subscribed'
-                ? "পুশ নোটিফিকেশন চালু আছে (ক্লিক করে বন্ধ করুন)"
-                : pushStatus === 'denied'
-                ? "নোটিফিকেশন পারমিশন ব্লকড (ব্রাউজার সেটিংস থেকে Allow করুন)"
-                : "পুশ নোটিফিকেশন চালু করুন"
-            }
-            style={{
-              position: 'relative',
-              cursor: pushLoading ? 'wait' : 'pointer',
-              color: pushStatus === 'subscribed' ? '#10b981' : undefined
-            }}
-          >
-            {pushStatus === 'subscribed' ? (
-              <Bell size={19} style={{ color: '#10b981' }} />
-            ) : pushStatus === 'denied' ? (
-              <BellOff size={19} style={{ opacity: 0.5 }} />
-            ) : (
-              <Bell size={19} />
-            )}
-            {pushStatus === 'subscribed' && (
-              <span style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: '#10b981',
-                boxShadow: '0 0 4px #10b981'
-              }} />
-            )}
           </button>
 
           {/* সিস্টেম লাইটিং / থিম টগল বাটন */}
