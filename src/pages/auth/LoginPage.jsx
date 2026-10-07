@@ -143,30 +143,6 @@ export default function LoginPage() {
           zIndex: 100,
         }}
       >
-        {/* আজকের হোমওয়ার্ক বাটন */}
-        <button 
-          type="button"
-          onClick={() => navigate('/public-homework')}
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          title="আজকের হোমওয়ার্ক"
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-        >
-          <BookOpen size={19} />
-        </button>
-
         {/* অ্যাপ ইনস্টল বাটন */}
         <button 
           type="button"
