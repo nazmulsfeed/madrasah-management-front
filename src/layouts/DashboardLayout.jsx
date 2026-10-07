@@ -12,6 +12,7 @@ import {
   Download,
   Bell,
   BellOff,
+  ArrowLeft,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { getVisibleNavigation } from '../utils/navigationConfig';
@@ -299,17 +300,33 @@ export default function DashboardLayout() {
 
       {/* টপবার */}
       <header className="topbar">
-        <div className="topbar-left">
-          <button
-            type="button"
-            className="topbar-icon-btn menu-toggle-btn"
-            onClick={handleToggleMenu}
-            aria-label={sidebarOpen ? "সাইডবার লুকান" : "সাইডবার দেখান"}
-            title={sidebarOpen ? "সাইডবার লুকান" : "সাইডবার দেখান"}
-            style={{ cursor: 'pointer' }}
-          >
-            <Menu size={22} />
-          </button>
+        <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* গ্লোবাল ব্যাক বাটন (ড্যাশবোর্ড ছাড়া অন্য সব সাব-পেজে দৃশ্যমান) */}
+          {location.pathname !== '/dashboard' && (
+            <button
+              type="button"
+              className="topbar-icon-btn"
+              onClick={() => navigate(-1)}
+              aria-label="পিছনে ফিরুন"
+              title="পূর্ববর্তী পেজে ফিরে যান"
+              style={{
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+              }}
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
 
           <div className="topbar-breadcrumb">
             <Building2 size={16} />
@@ -379,6 +396,18 @@ export default function DashboardLayout() {
           </button>
 
           <NotificationDropdown />
+
+          {/* সাইডবার মেনু টগল বাটন (ডান পাশে স্থানান্তরিত) */}
+          <button
+            type="button"
+            className="topbar-icon-btn menu-toggle-btn"
+            onClick={handleToggleMenu}
+            aria-label={sidebarOpen ? "সাইডবার লুকান" : "সাইডবার দেখান"}
+            title={sidebarOpen ? "সাইডবার লুকান" : "সাইডবার দেখান"}
+            style={{ cursor: 'pointer', marginLeft: '4px' }}
+          >
+            <Menu size={22} />
+          </button>
         </div>
       </header>
 

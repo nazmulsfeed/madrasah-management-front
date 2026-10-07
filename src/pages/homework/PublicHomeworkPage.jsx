@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, FileText, Calendar, ShieldAlert, Search, Sun, Moon, Download, Bell, BellOff, X } from 'lucide-react';
+import { BookOpen, FileText, Calendar, ShieldAlert, Search, Sun, Moon, Download, Bell, BellOff, X, ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { formatDateDDMMYYYY } from '../../utils/helpers';
@@ -312,8 +312,30 @@ export default function PublicHomeworkPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '6px' }}>
-              <BookOpen size={16} /> {institutionName}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <a 
+                href="/login" 
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  textDecoration: 'none', 
+                  fontSize: '0.82rem', 
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  background: 'var(--bg-secondary)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  transition: 'all 0.2s'
+                }}
+                title="লগইন পেজে ফিরে যান"
+              >
+                <ArrowLeft size={14} /> ফিরে যান
+              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase' }}>
+                <BookOpen size={16} /> {institutionName}
+              </div>
             </div>
             <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>আজকের হোমওয়ার্ক ও অ্যাসাইনমেন্ট</h1>
             <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0 0', fontSize: '0.95rem' }}>অফিসিয়াল ড্যাশবোর্ড থেকে রিয়েল-টাইমে প্রকাশিত ও উন্মুক্ত হোমওয়ার্কসমূহ</p>

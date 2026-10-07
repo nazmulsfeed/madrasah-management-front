@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { BookOpen, Users, GraduationCap, Shield, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { BookOpen, Users, GraduationCap, Shield, Eye, EyeOff, Sun, Moon, Download, Bell, BellOff, ArrowLeft } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
+import {
+  requestAndRegisterPushNotification,
+  unsubscribePushNotification,
+  checkPushSubscriptionStatus,
+} from '../../utils/pushNotificationService';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -51,34 +56,191 @@ export default function LoginPage() {
     }
   };
 
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert('অ্যাপটি ডাউনলোড বা ইনস্টল করতে আপনার ব্রাউজারের মেনু (⋮) অপশন থেকে "Add to Home screen" বা "Install App" নির্বাচন করুন।');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
+
+  // Push Notification State
+  const [pushStatus, setPushStatus] = useState('loading'); // 'subscribed' | 'default' | 'denied' | 'unsupported' | 'loading'
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkStatus = async () => {
+      const status = await checkPushSubscriptionStatus();
+      if (isMounted) setPushStatus(status);
+    };
+    checkStatus();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (pushLoading) return;
+    setPushLoading(true);
+    try {
+      if (pushStatus === 'subscribed') {
+        const res = await unsubscribePushNotification();
+        if (res.success) {
+          setPushStatus('default');
+          alert('এই ডিভাইসে পুশ নোটিফিকেশন বন্ধ করা হয়েছে।');
+        } else {
+          alert(res.message);
+        }
+      } else {
+        const res = await requestAndRegisterPushNotification(null);
+        if (res.success) {
+          setPushStatus('subscribed');
+          alert('নোটিফিকেশন সফলভাবে চালু করা হয়েছে! 🔔');
+        } else {
+          alert(res.message);
+          const current = await checkPushSubscriptionStatus();
+          setPushStatus(current);
+        }
+      }
+    } catch (err) {
+      alert('নোটিফিকেশন সেটআপে সমস্যা হয়েছে: ' + (err.message || 'Unknown error'));
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   return (
     <div className="login-page" style={{ position: 'relative' }}>
-      {/* থিম পরিবর্তন বাটন */}
-      <button 
-        onClick={toggleTheme}
+      {/* টপবার কন্ট্রোলস (অ্যাপ ইনস্টল, পুশ নোটিফিকেশন, থিম) */}
+      <div 
         style={{
           position: 'absolute',
           top: '20px',
           right: '20px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '50%',
-          width: '40px',
-          height: '40px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-primary)',
-          cursor: 'pointer',
+          gap: '10px',
           zIndex: 100,
-          transition: 'all 0.2s',
         }}
-        title="থিম পরিবর্তন করুন"
-        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
       >
-        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-      </button>
+        {/* অ্যাপ ইনস্টল বাটন */}
+        <button 
+          type="button"
+          onClick={handleInstallClick}
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          title={showInstallBtn ? "অ্যাপ ইনস্টল করুন" : "অ্যাপ ইনস্টল (Add to Home screen)"}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+        >
+          <Download size={19} />
+        </button>
+
+        {/* পুশ নোটিফিকেশন বাটন */}
+        <button 
+          type="button"
+          onClick={handleTogglePush}
+          disabled={pushLoading}
+          style={{
+            position: 'relative',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: pushStatus === 'subscribed' ? '#10b981' : 'var(--text-primary)',
+            cursor: pushLoading ? 'wait' : 'pointer',
+            transition: 'all 0.2s',
+          }}
+          title={
+            pushStatus === 'subscribed'
+              ? "পুশ নোটিফিকেশন চালু আছে (ক্লিক করে বন্ধ করুন)"
+              : pushStatus === 'denied'
+              ? "নোটিফিকেশন পারমিশন ব্লকড (ব্রাউজার সেটিংস থেকে Allow করুন)"
+              : "পুশ নোটিফিকেশন চালু করুন"
+          }
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+        >
+          {pushStatus === 'subscribed' ? (
+            <Bell size={19} style={{ color: '#10b981' }} />
+          ) : pushStatus === 'denied' ? (
+            <BellOff size={19} style={{ opacity: 0.5 }} />
+          ) : (
+            <Bell size={19} />
+          )}
+          {pushStatus === 'subscribed' && (
+            <span style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: '#10b981',
+              boxShadow: '0 0 4px #10b981'
+            }} />
+          )}
+        </button>
+
+        {/* থিম পরিবর্তন বাটন */}
+        <button 
+          type="button"
+          onClick={toggleTheme}
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          title="থিম পরিবর্তন করুন"
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+      </div>
       {/* বাম পাশ — Hero */}
       <div className="login-hero">
         <div className="login-hero-content animate-fade-in">
