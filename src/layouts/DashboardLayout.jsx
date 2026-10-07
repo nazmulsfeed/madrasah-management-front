@@ -9,13 +9,21 @@ import {
   Menu,
   Building2,
   X,
+  Download,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { getVisibleNavigation } from '../utils/navigationConfig';
 import NotificationDropdown from '../components/common/NotificationDropdown';
 import GlobalSearch from '../components/common/GlobalSearch';
 import PushNotificationPrompt from '../components/common/PushNotificationPrompt';
-import { autoRegisterPushNotification } from '../utils/pushNotificationService';
+import {
+  autoRegisterPushNotification,
+  requestAndRegisterPushNotification,
+  unsubscribePushNotification,
+  checkPushSubscriptionStatus,
+} from '../utils/pushNotificationService';
 
 export default function DashboardLayout() {
   const { user, logout, getUserTypeLabel, fetchMe } = useAuthStore();
@@ -50,6 +58,79 @@ export default function DashboardLayout() {
     document.documentElement.setAttribute('data-theme', 'light');
     localStorage.setItem('theme', 'light');
   }, []);
+
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert('অ্যাপটি ডাউনলোড বা ইনস্টল করতে আপনার ব্রাউজারের মেনু (⋮) অপশন থেকে "Add to Home screen" বা "Install App" নির্বাচন করুন।');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBtn(false);
+    }
+    setDeferredPrompt(null);
+  };
+
+  // Push Notification State
+  const [pushStatus, setPushStatus] = useState('loading'); // 'subscribed' | 'default' | 'denied' | 'unsupported' | 'loading'
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkStatus = async () => {
+      const status = await checkPushSubscriptionStatus();
+      if (isMounted) setPushStatus(status);
+    };
+    checkStatus();
+    return () => { isMounted = false; };
+  }, [user]);
+
+  const handleTogglePush = async () => {
+    if (pushLoading) return;
+    setPushLoading(true);
+    try {
+      if (pushStatus === 'subscribed') {
+        const res = await unsubscribePushNotification();
+        if (res.success) {
+          setPushStatus('default');
+          alert('এই ডিভাইসে পুশ নোটিফিকেশন বন্ধ করা হয়েছে।');
+        } else {
+          alert(res.message);
+        }
+      } else {
+        const res = await requestAndRegisterPushNotification(user);
+        if (res.success) {
+          setPushStatus('subscribed');
+          alert('নোটিফিকেশন সফলভাবে চালু করা হয়েছে! 🔔');
+        } else {
+          alert(res.message);
+          const current = await checkPushSubscriptionStatus();
+          setPushStatus(current);
+        }
+      }
+    } catch (err) {
+      alert('নোটিফিকেশন সেটআপে সমস্যা হয়েছে: ' + (err.message || 'Unknown error'));
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   // Fetch and cache user permissions
   useEffect(() => {
@@ -241,6 +322,58 @@ export default function DashboardLayout() {
         <div className="topbar-right">
           <GlobalSearch />
 
+          {/* অ্যাপ ইনস্টল বাটন */}
+          <button
+            type="button"
+            className="topbar-icon-btn"
+            onClick={handleInstallClick}
+            title={showInstallBtn ? "অ্যাপ ইনস্টল করুন" : "অ্যাপ ইনস্টল (Add to Home screen)"}
+            style={{ cursor: 'pointer' }}
+          >
+            <Download size={19} />
+          </button>
+
+          {/* পুশ নোটিফিকেশন বাটন */}
+          <button
+            type="button"
+            className="topbar-icon-btn"
+            onClick={handleTogglePush}
+            disabled={pushLoading}
+            title={
+              pushStatus === 'subscribed'
+                ? "পুশ নোটিফিকেশন চালু আছে (ক্লিক করে বন্ধ করুন)"
+                : pushStatus === 'denied'
+                ? "নোটিফিকেশন পারমিশন ব্লকড (ব্রাউজার সেটিংস থেকে Allow করুন)"
+                : "পুশ নোটিফিকেশন চালু করুন"
+            }
+            style={{
+              position: 'relative',
+              cursor: pushLoading ? 'wait' : 'pointer',
+              color: pushStatus === 'subscribed' ? '#10b981' : undefined
+            }}
+          >
+            {pushStatus === 'subscribed' ? (
+              <Bell size={19} style={{ color: '#10b981' }} />
+            ) : pushStatus === 'denied' ? (
+              <BellOff size={19} style={{ opacity: 0.5 }} />
+            ) : (
+              <Bell size={19} />
+            )}
+            {pushStatus === 'subscribed' && (
+              <span style={{
+                position: 'absolute',
+                top: '6px',
+                right: '6px',
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 4px #10b981'
+              }} />
+            )}
+          </button>
+
+          {/* সিস্টেম লাইটিং / থিম টগল বাটন */}
           <button className="topbar-icon-btn" onClick={toggleTheme} title="থিম পরিবর্তন করুন">
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>

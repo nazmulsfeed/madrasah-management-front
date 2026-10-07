@@ -131,3 +131,48 @@ export async function autoRegisterPushNotification(user) {
     console.warn('[Push Auto-Register] Sync notice:', err.message);
   }
 }
+
+/**
+ * ডিভাইসে পুশ নোটিফিকেশন বন্ধ (আনসাবস্ক্রাইব) করা
+ */
+export async function unsubscribePushNotification() {
+  if (typeof window === 'undefined') return { success: false, message: 'Window not defined' };
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { success: false, message: 'ব্রাউজার পুশ নোটিফিকেশন সাপোর্ট করে না।' };
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      try {
+        await api.post('/push/unsubscribe', { endpoint: sub.endpoint });
+      } catch (e) {
+        console.error('[Push] Unsubscribe server call error:', e);
+      }
+    }
+    return { success: true, message: 'নোটিফিকেশন বন্ধ করা হয়েছে।' };
+  } catch (err) {
+    console.error('Unsubscribe error:', err);
+    return { success: false, message: err.message || 'নোটিফিকেশন বন্ধ করতে সমস্যা হয়েছে।' };
+  }
+}
+
+/**
+ * ব্রাউজারে বর্তমান পুশ নোটিফিকেশন স্ট্যাটাস চেক করা
+ */
+export async function checkPushSubscriptionStatus() {
+  if (typeof window === 'undefined') return 'unsupported';
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return 'unsupported';
+  }
+  if (Notification.permission === 'denied') return 'denied';
+  if (Notification.permission === 'default') return 'default';
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    return sub ? 'subscribed' : 'granted';
+  } catch {
+    return Notification.permission === 'granted' ? 'granted' : 'default';
+  }
+}
