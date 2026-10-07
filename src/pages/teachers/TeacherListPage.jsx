@@ -74,7 +74,15 @@ export default function TeacherListPage() {
       phone.includes(searchLower) ||
       designation.includes(searchLower);
 
-    const matchesType = !typeFilter || teacher.teacherType === typeFilter;
+    let matchesType = true;
+    if (typeFilter === 'hifz_boys') {
+      matchesType = teacher.teacherType === 'hifz' && ((teacher.branch || teacher.user?.branch || '').includes('বালক'));
+    } else if (typeFilter === 'hifz_girls') {
+      matchesType = teacher.teacherType === 'hifz' && ((teacher.branch || teacher.user?.branch || '').includes('বালিকা'));
+    } else if (typeFilter) {
+      matchesType = teacher.teacherType === typeFilter;
+    }
+
     const matchesDesignation = !designationFilter || teacher.designation === designationFilter;
     const matchesRole = !roleFilter || teacher.user?.userType === roleFilter || teacher.user?.adminRole === roleFilter;
 
@@ -110,6 +118,7 @@ export default function TeacherListPage() {
     phone: '',
     teacherId: '',
     teacherType: 'regular',
+    branch: '',
     userType: 'teacher',
     customUserType: '',
     designation: '',
@@ -204,13 +213,31 @@ export default function TeacherListPage() {
   }, [previewTeacher]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'teacherType') {
+      if (value === 'hifz') {
+        setFormData(prev => ({
+          ...prev,
+          teacherType: 'hifz',
+          userType: 'hifz_teacher'
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          teacherType: value,
+          branch: '',
+          userType: prev.userType === 'hifz_teacher' ? 'teacher' : prev.userType
+        }));
+      }
+      return;
+    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const resetForm = () => {
     setFormData({
       firstName: '', lastName: '', email: '', phone: '',
-      username: '', teacherId: '', teacherType: 'regular', userType: 'teacher', customUserType: '', designation: '', baseSalary: '', password: '', photo: ''
+      username: '', teacherId: '', teacherType: 'regular', branch: '', userType: 'teacher', customUserType: '', designation: '', baseSalary: '', password: '', photo: ''
     });
   };
 
@@ -230,6 +257,7 @@ export default function TeacherListPage() {
       phone: teacher.user?.phone || '',
       teacherId: teacher.employeeId || '',
       teacherType: teacher.teacherType || 'regular',
+      branch: teacher.branch || teacher.user?.branch || '',
       userType: isKnown ? existingType : 'other',
       customUserType: isKnown ? '' : existingType,
       designation: teacher.designation || '',
@@ -253,6 +281,12 @@ export default function TeacherListPage() {
       setToast({ type: 'error', message: 'নতুন স্টাফ/শিক্ষক তৈরি করার অনুমতি আপনার নেই' });
       return;
     }
+
+    if (formData.teacherType === 'hifz' && !formData.branch?.trim()) {
+      setToast({ type: 'error', message: 'অনুগ্রহ করে হিফজ শাখা (বালক শাখা / বালিকা শাখা) নির্বাচন করুন' });
+      return;
+    }
+
     setSubmitting(true);
     try {
       // custom role: 'other' হলে customUserType ব্যবহার করুন
@@ -422,7 +456,7 @@ export default function TeacherListPage() {
           <td>${t.employeeId || '—'}</td>
           <td><strong>${t.user?.firstName || ''} ${t.user?.lastName || ''}</strong></td>
           <td>${t.designation || '—'}</td>
-          <td>${t.teacherType === 'regular' ? 'জেনারেল' : t.teacherType === 'hifz' ? 'হিফজ' : t.teacherType === 'guest' ? 'গেস্ট' : 'স্টাফ'}</td>
+          <td>${t.teacherType === 'regular' ? 'জেনারেল' : t.teacherType === 'hifz' ? `হিফজ (${(t.branch || t.user?.branch || '').includes('বালিকা') ? 'বালিকা শাখা' : 'বালক শাখা'})` : t.teacherType === 'guest' ? 'গেস্ট' : 'স্টাফ'}</td>
           <td>${userTypeLabels[t.user?.userType] || t.user?.userType || '—'}</td>
           <td>${t.user?.phone || '—'}</td>
           <td>${t.user?.email || '—'}</td>
@@ -523,7 +557,9 @@ export default function TeacherListPage() {
               >
                 <option value="">সকল বিভাগ</option>
                 <option value="regular">জেনারেল</option>
-                <option value="hifz">হিফজ</option>
+                <option value="hifz">হিফজ (সকল শাখা)</option>
+                <option value="hifz_boys">হিফজ (বালক শাখা)</option>
+                <option value="hifz_girls">হিফজ (বালিকা শাখা)</option>
                 <option value="guest">গেস্ট</option>
                 <option value="staff">স্টাফ</option>
               </select>
@@ -714,7 +750,9 @@ export default function TeacherListPage() {
                       employeeId: teacher.employeeId,
                       phone: teacher.user?.phone,
                       email: teacher.user?.email,
-                      teacherType: teacherTypeLabels[teacher.teacherType] || 'জেনারেল'
+                      teacherType: teacher.teacherType === 'hifz'
+                        ? `হিফজ (${(teacher.branch || teacher.user?.branch || '').includes('বালিকা') ? 'বালিকা শাখা' : 'বালক শাখা'})`
+                        : (teacherTypeLabels[teacher.teacherType] || 'জেনারেল')
                     });
                   }
                 }}
@@ -745,7 +783,9 @@ export default function TeacherListPage() {
                   রোল: {getCombinedRoleBadge(teacher.user)}
                 </span>
                 <span className="badge badge-muted" style={{ fontSize: '0.688rem', padding: '2px 8px' }}>
-                  বিভাগ: {teacherTypeLabels[teacher.teacherType] || 'জেনারেল'}
+                  বিভাগ: {teacher.teacherType === 'hifz'
+                    ? `হিফজ (${(teacher.branch || teacher.user?.branch || '').includes('বালিকা') ? 'বালিকা শাখা' : 'বালক শাখা'})`
+                    : (teacherTypeLabels[teacher.teacherType] || 'জেনারেল')}
                 </span>
               </div>
               
@@ -937,6 +977,31 @@ export default function TeacherListPage() {
                     <option value="staff">স্টাফ (Staff)</option>
                   </select>
                 </div>
+
+                {formData.teacherType === 'hifz' && (
+                  <div className="form-group" style={{ animation: 'fadeIn 0.2s ease-in' }}>
+                    <label className="form-label" style={{ fontWeight: 700, color: '#0f766e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>হিফজ শাখা *</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#f59e0b' }}>(বাধ্যতামূলক)</span>
+                    </label>
+                    <select
+                      name="branch"
+                      className="form-input"
+                      required
+                      value={formData.branch}
+                      onChange={handleChange}
+                      style={{
+                        borderColor: !formData.branch ? '#f59e0b' : '#0f766e',
+                        fontWeight: 600,
+                        backgroundColor: '#f0fdf4'
+                      }}
+                    >
+                      <option value="">-- শাখা নির্বাচন করুন --</option>
+                      <option value="বালক শাখা">👦 বালক শাখা (Boys Branch)</option>
+                      <option value="বালিকা শাখা">👧 বালিকা শাখা (Girls Branch)</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">সিস্টেম রোল (Role) *</label>
