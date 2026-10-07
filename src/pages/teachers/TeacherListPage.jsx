@@ -799,16 +799,14 @@ export default function TeacherListPage() {
                     <Mail size={14} /> <span>{teacher.user?.email}</span>
                   </div>
                 )}
-                {teacher.createdByUser && (
-                  <div style={{ marginTop: '6px' }}>
-                    <AuditBadge 
-                      user={teacher.createdByUser} 
-                      date={teacher.createdAt} 
-                      label="যোগ করেছেন" 
-                      variant="compact" 
-                    />
-                  </div>
-                )}
+                <div style={{ marginTop: '6px' }}>
+                  <AuditBadge 
+                    user={teacher.createdByUser || (teacher.createdBy ? { name: 'অ্যাডমিন', roleLabel: 'সুপার অ্যাডমিন' } : { name: 'সুপার অ্যাডমিন', roleLabel: 'প্রাথমিক অ্যাডমিন' })} 
+                    date={teacher.createdAt || teacher.joiningDate} 
+                    label="যোগ করেছেন" 
+                    variant="compact" 
+                  />
+                </div>
               </div>
             </div>
           ))}
