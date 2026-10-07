@@ -12,6 +12,7 @@ import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
+import AuditBadge from '../../components/common/AuditBadge';
 
 export default function SalaryManagementPage() {
   const { user } = useAuthStore();
@@ -1046,6 +1047,15 @@ export default function SalaryManagementPage() {
                             {formatDateDDMMYYYY(rec.paymentDate)}
                           </div>
                         )}
+                        {rec.disbursedByUser && (
+                          <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <AuditBadge
+                              user={rec.disbursedByUser}
+                              variant="compact"
+                              label="প্রদানকারী"
+                            />
+                          </div>
+                        )}
                       </td>
 
                       {/* স্ট্যাটাস */}
@@ -1749,6 +1759,15 @@ export default function SalaryManagementPage() {
                         </span>
                       )}
                     </div>
+                    {payslipData.salary?.disbursedByUser && (
+                      <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <AuditBadge
+                          user={payslipData.salary.disbursedByUser}
+                          label="বিতরণকারী"
+                          variant="compact"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

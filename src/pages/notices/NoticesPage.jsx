@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Bell, X, Trash2, Edit } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import AuditBadge from '../../components/common/AuditBadge';
 import { getMadrasahInfo } from '../../utils/helpers';
 
 export default function NoticesPage() {
@@ -160,7 +161,14 @@ export default function NoticesPage() {
                 {notice.content.length > 150 ? notice.content.substring(0, 150) + '...' : notice.content}
               </p>
               
-              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                {notice.publishedByUser ? (
+                  <AuditBadge 
+                    user={notice.publishedByUser} 
+                    label="প্রকাশক" 
+                    variant="compact" 
+                  />
+                ) : <span />}
                 <button className="btn btn-secondary btn-sm" onClick={() => setSelectedNotice(notice)}>বিস্তারিত পড়ুন</button>
               </div>
             </div>
@@ -259,7 +267,15 @@ export default function NoticesPage() {
             <div className="mb-20 text-muted" style={{ lineHeight: '1.7', whitespace: 'pre-wrap' }}>
               {selectedNotice.content}
             </div>
-            <div className="flex-end">
+            <div className="flex-between" style={{ alignItems: 'center', marginTop: '20px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '12px' }}>
+              {selectedNotice.publishedByUser ? (
+                <AuditBadge 
+                  user={selectedNotice.publishedByUser} 
+                  date={selectedNotice.publishedAt || selectedNotice.createdAt}
+                  label="প্রকাশক" 
+                  variant="badge" 
+                />
+              ) : <span />}
               <button className="btn btn-secondary" onClick={() => setSelectedNotice(null)}>বন্ধ করুন</button>
             </div>
           </div>

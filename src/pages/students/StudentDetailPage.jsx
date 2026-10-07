@@ -9,6 +9,7 @@ import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import ImageCropModal from '../../components/common/ImageCropModal';
+import AuditBadge from '../../components/common/AuditBadge';
 import { formatDateDDMMYYYY } from '../../utils/helpers';
 
 export default function StudentDetailPage() {
@@ -635,6 +636,43 @@ export default function StudentDetailPage() {
                 </button>
               )}
             </div>
+
+            {/* অডিট ও ট্র্যাকিং তথ্য (ভর্তি ও আপডেট ট্রেইল) */}
+            {(student.createdByUser || student.updatedByUser || student.createdAt) && (
+              <div style={{
+                marginTop: '16px',
+                paddingTop: '12px',
+                borderTop: '1px dashed var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                fontSize: '0.8rem'
+              }}>
+                <div className="flex gap-12" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                  <AuditBadge 
+                    user={student.createdByUser} 
+                    date={student.createdAt} 
+                    label="ভর্তি করিয়েছেন" 
+                    variant="badge" 
+                  />
+                  {student.updatedByUser && (
+                    <AuditBadge 
+                      user={student.updatedByUser} 
+                      date={student.updatedAt} 
+                      label="সর্বশেষ আপডেট" 
+                      variant="badge" 
+                    />
+                  )}
+                </div>
+                {student.deviceUserId && (
+                  <span className="text-muted font-mono" style={{ fontSize: '0.75rem' }}>
+                    বায়োমেট্রিক আইডি: <strong>{student.deviceUserId}</strong>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

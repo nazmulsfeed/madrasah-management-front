@@ -10,6 +10,7 @@ import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
+import AuditBadge from '../../components/common/AuditBadge';
 
 const DONOR_PRESETS = [
   'সাধারণ কালেকশন / পাবলিক অনুদান',
@@ -409,6 +410,7 @@ export default function IncomesPage() {
                 <th>দাতার নাম ও বিবরণ</th>
                 <th>পেমেন্ট মাধ্যম</th>
                 <th style={{ textAlign: 'right', width: '130px' }}>পরিমাণ (৳)</th>
+                <th>আদায়কারী</th>
                 <th style={{ textAlign: 'center', width: '110px' }}>স্ট্যাটাস</th>
                 {canManage && <th style={{ textAlign: 'center', width: '150px' }}>অ্যাকশন</th>}
               </tr>
@@ -474,6 +476,19 @@ export default function IncomesPage() {
                       <span className="font-bold font-mono" style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
                         ৳ {income.amount?.toLocaleString('en-IN')}
                       </span>
+                    </td>
+                    <td>
+                      {income.receivedBy ? (
+                        <AuditBadge 
+                          user={{
+                            name: `${income.receivedBy.firstName || ''} ${income.receivedBy.lastName || ''}`.trim() || 'স্টাফ',
+                            roleLabel: 'আদায়কারী'
+                          }} 
+                          variant="compact" 
+                        />
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <span className={`badge ${income.status === 'approved' ? 'badge-active' : income.status === 'rejected' ? 'badge-danger' : 'badge-warning'}`}>

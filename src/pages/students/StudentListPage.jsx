@@ -21,6 +21,7 @@ import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import StudentExportModal from '../../components/students/StudentExportModal';
 import { getMadrasahInfo } from '../../utils/helpers';
+import AuditBadge from '../../components/common/AuditBadge';
 
 const statusLabels = {
   active: { label: 'সক্রিয়', class: 'badge-active' },
@@ -792,6 +793,18 @@ export default function StudentListPage() {
                       </div>
                     </div>
 
+                    {/* ভর্তি অডিট ইনফো */}
+                    {student.createdByUser && (
+                      <div style={{ marginTop: '-2px', marginBottom: '2px' }}>
+                        <AuditBadge
+                          user={student.createdByUser}
+                          date={student.createdAt}
+                          variant="compact"
+                          label="ভর্তি করিয়েছেন"
+                        />
+                      </div>
+                    )}
+
                     {/* বটম সেকশন: বড় টাচ-ফ্রেন্ডলি অ্যাকশন বাটনসমূহ */}
                     <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
                       <button
@@ -997,6 +1010,15 @@ export default function StudentListPage() {
                               <div className="text-sm text-muted">
                                 {student.user?.phone || student.user?.email || ''}
                               </div>
+                              {student.createdByUser && (
+                                <div style={{ marginTop: '3px' }}>
+                                  <AuditBadge
+                                    user={student.createdByUser}
+                                    variant="compact"
+                                    label="ভর্তি"
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>

@@ -3,6 +3,7 @@ import { Plus, Users, User, Phone, Mail, X, CheckCircle, AlertCircle, Trash2, Ed
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import ImageCropModal from '../../components/common/ImageCropModal';
+import AuditBadge from '../../components/common/AuditBadge';
 import { getMadrasahInfo } from '../../utils/helpers';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
@@ -796,6 +797,16 @@ export default function TeacherListPage() {
                 {teacher.user?.email && (
                   <div className="flex gap-8 text-sm text-muted">
                     <Mail size={14} /> <span>{teacher.user?.email}</span>
+                  </div>
+                )}
+                {teacher.createdByUser && (
+                  <div style={{ marginTop: '6px' }}>
+                    <AuditBadge 
+                      user={teacher.createdByUser} 
+                      date={teacher.createdAt} 
+                      label="যোগ করেছেন" 
+                      variant="compact" 
+                    />
                   </div>
                 )}
               </div>

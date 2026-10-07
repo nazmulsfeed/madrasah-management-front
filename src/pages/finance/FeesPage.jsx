@@ -10,6 +10,7 @@ import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import PrintSignatureRoleSelector from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
+import AuditBadge from '../../components/common/AuditBadge';
 
 const MONTHS = [
   'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 
@@ -999,7 +1000,11 @@ export default function FeesPage() {
     const guardianPhone = invoice.guardian?.phone || invoice.student?.user?.phone || '—';
 
     const paymentsRows = (invoice.payments && invoice.payments.length > 0)
-      ? invoice.payments.map((p, idx) => `
+      ? invoice.payments.map((p, idx) => {
+        const staffName = p.receivedBy 
+          ? (typeof p.receivedBy === 'object' ? `${p.receivedBy.firstName || ''} ${p.receivedBy.lastName || ''}`.trim() : String(p.receivedBy))
+          : (p.receivedByUser?.name || '—');
+        return `
         <tr style="border-bottom: 1px dotted #e5e7eb;">
           <td style="padding: 6px 8px; text-align: center;">${idx + 1}</td>
           <td style="padding: 6px 8px;">${formatDateDDMMYYYY(p.paymentDate)}</td>
@@ -1010,9 +1015,13 @@ export default function FeesPage() {
           <td style="padding: 6px 8px; text-align: center; color: ${p.status === 'success' ? '#16a34a' : '#d97706'}; font-weight: 600;">
             ${p.status === 'success' ? 'সফল' : p.status === 'pending' ? 'পেন্ডিং' : 'বাতিল'}
           </td>
+          <td style="padding: 6px 8px; text-align: right; font-size: 11px; color: #475569;">
+            ${staffName}
+          </td>
         </tr>
-      `).join('')
-      : `<tr><td colspan="7" style="padding: 10px; text-align: center; color: #6b7280; font-style: italic;">এখনও কোনো পেমেন্ট রেকর্ড নেই</td></tr>`;
+      `;
+      }).join('')
+      : `<tr><td colspan="8" style="padding: 10px; text-align: center; color: #6b7280; font-style: italic;">এখনও কোনো পেমেন্ট রেকর্ড নেই</td></tr>`;
 
     let printWin = null;
     try {
@@ -1190,6 +1199,7 @@ export default function FeesPage() {
             <th>TxnID / রেফারেন্স</th>
             <th style="text-align: right;">পরিমাণ</th>
             <th style="text-align: center;">স্ট্যাটাস</th>
+            <th style="text-align: right;">আদায়কারী</th>
           </tr>
         </thead>
         <tbody>
@@ -3113,7 +3123,19 @@ export default function FeesPage() {
                                 {p.status === 'success' ? 'সফল' : p.status === 'pending' ? 'পেন্ডিং' : 'বাতিল'}
                               </span>
                             </td>
-                            <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--primary)' }}>{verifiedStaff}</td>
+                            <td style={{ padding: '8px 0', textAlign: 'right' }}>
+                              {p.receivedBy ? (
+                                <div style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
+                                  <AuditBadge
+                                    user={p.receivedBy}
+                                    variant="compact"
+                                    label="আদায়কারী"
+                                  />
+                                </div>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>—</span>
+                              )}
+                            </td>
                             {isSuperAdmin && (
                               <td className="no-print" style={{ padding: '8px 0', textAlign: 'center' }}>
                                 <button

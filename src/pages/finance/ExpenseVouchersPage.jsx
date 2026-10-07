@@ -706,14 +706,28 @@ export default function ExpenseVouchersPage() {
 
                     <td style={{ textAlign: 'center' }}>
                       {v.status === 'approved' && (
-                        <span className="badge badge-active flex-center gap-4" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
-                          <CheckCircle size={12} /> অনুমোদিত
-                        </span>
+                        <div>
+                          <span className="badge badge-active flex-center gap-4" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                            <CheckCircle size={12} /> অনুমোদিত
+                          </span>
+                          {v.approvedByName && (
+                            <div className="text-xs text-muted" style={{ fontSize: '0.7rem', marginTop: '3px' }} title={`অনুমোদন করেছেন: ${v.approvedByName}`}>
+                              অনুমোদন: <strong className="text-primary">{v.approvedByName}</strong>
+                            </div>
+                          )}
+                        </div>
                       )}
                       {v.status === 'level_1_approved' && (
-                        <span className="badge badge-primary flex-center gap-4" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
-                          <Check size={12} /> যাচাইকৃত (L1)
-                        </span>
+                        <div>
+                          <span className="badge badge-primary flex-center gap-4" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                            <Check size={12} /> যাচাইকৃত (L1)
+                          </span>
+                          {v.verifiedByName && (
+                            <div className="text-xs text-muted" style={{ fontSize: '0.7rem', marginTop: '3px' }}>
+                              যাচাই: <strong>{v.verifiedByName}</strong>
+                            </div>
+                          )}
+                        </div>
                       )}
                       {v.status === 'pending' && (
                         <span className="badge badge-warning flex-center gap-4" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
