@@ -1,4 +1,4 @@
-const CACHE_NAME = 'annur-academy-cache-v18'; // Advanced salary management module
+const CACHE_NAME = 'annur-academy-cache-v19'; // Robust login navigation & cache synchronization
 const urlsToCache = [
   '/',
   '/index.html',
@@ -20,12 +20,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Delete old caches when a new version of the service worker is activated
+  // Delete all older caches when a new version of the service worker is activated
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('[SW] Purging outdated cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -47,13 +48,19 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // If we got a valid response, return it
+        // If we got a valid response (200), refresh cache for navigation and HTML
+        if (response && response.status === 200 && (event.request.mode === 'navigate' || event.request.url.endsWith('/index.html') || event.request.url.endsWith('/'))) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
       .catch(() => {
         // If the network fails (e.g. offline), fallback to cache
         return caches.match(event.request).then((cachedResponse) => {
-          return cachedResponse || caches.match('/index.html');
+          return cachedResponse || caches.match('/index.html') || caches.match('/');
         });
       })
   );

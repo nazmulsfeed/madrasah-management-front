@@ -57,12 +57,14 @@ import ReportsPage from './pages/reports/ReportsPage';
 import MyPaymentsPage from './pages/finance/MyPaymentsPage';
 import PublicTimetablePage from './pages/public/PublicTimetablePage';
 import PublicCalendarPage from './pages/public/PublicCalendarPage';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {
   return (
     <BrowserRouter>
       <InstallPrompt />
-      <Routes>
+      <ErrorBoundary>
+        <Routes>
         {/* পাবলিক */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/public-homework" element={<PublicHomeworkPage />} />
@@ -150,6 +152,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </BrowserRouter>
+    </ErrorBoundary>
+  </BrowserRouter>
   );
 }

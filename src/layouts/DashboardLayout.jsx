@@ -48,11 +48,6 @@ export default function DashboardLayout() {
     }
   }, [user?._id || user?.id]);
 
-  // Handle theme changes
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    localStorage.setItem('theme', 'light');
-  }, []);
 
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);

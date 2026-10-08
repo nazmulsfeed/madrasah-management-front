@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Users, GraduationCap, Shield, Eye, EyeOff, Sun, Moon, Download, Bell, BellOff, ArrowLeft } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
@@ -43,16 +43,19 @@ export default function LoginPage() {
     fetchSettings();
   }, []);
 
-  if (token) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // If already authenticated on mount, redirect to dashboard
+  useEffect(() => {
+    if (token) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
     const success = await login(email, password);
     if (success) {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   };
 
