@@ -17,6 +17,28 @@
   RewriteRule . /index.html [L]
 </IfModule>
 
+# Cache-Control headers to prevent mobile/Android stale caching
+<IfModule mod_headers.c>
+  # 1. Disable caching for HTML files and root index
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # 2. Aggressively cache Vite hashed assets (JS/CSS/Fonts/Images have cache-busting hashes)
+  <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # 3. Explicitly NEVER cache Service Worker, Manifest, and robots
+  <FilesMatch "(sw\.js|service-worker\.js|manifest\.json|robots\.txt)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
 # Fix MIME types for JavaScript and CSS
 <IfModule mod_mime.c>
   AddType application/javascript .js .mjs

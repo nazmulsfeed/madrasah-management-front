@@ -1,15 +1,13 @@
-const CACHE_NAME = 'annur-academy-cache-v19'; // Robust login navigation & cache synchronization
+const CACHE_NAME = 'annur-academy-cache-v20'; // Guaranteed fresh navigation & no stale HTML caching
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json?v=2',
-  '/favicon.png?v=2',
-  '/icon-192.png?v=2',
-  '/icon-512.png?v=2'
+  '/manifest.json?v=3',
+  '/favicon.png?v=3',
+  '/icon-192.png?v=3',
+  '/icon-512.png?v=3'
 ];
 
 self.addEventListener('install', (event) => {
-  // Force the waiting service worker to become the active service worker
+  // Force the waiting service worker to become the active service worker immediately
   self.skipWaiting();
   
   event.waitUntil(
@@ -32,7 +30,7 @@ self.addEventListener('activate', (event) => {
         })
       );
     }).then(() => {
-      // Tell the active service worker to take control of the page immediately
+      // Tell the active service worker to take control of all open pages immediately
       return self.clients.claim();
     })
   );
@@ -44,12 +42,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for all requests
+  // Navigation requests (HTML documents):
+  // ALWAYS fetch fresh from network so Vite chunk hashes match current deployment.
+  // Never serve stale cached HTML on page loads or route refreshes.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // Only if network is completely offline, attempt fallback
+        return caches.match('/index.html') || caches.match('/');
+      })
+    );
+    return;
+  }
+
+  // Static assets (hashed JS, CSS, images):
+  // Network first with cache fallback
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // If we got a valid response (200), refresh cache for navigation and HTML
-        if (response && response.status === 200 && (event.request.mode === 'navigate' || event.request.url.endsWith('/index.html') || event.request.url.endsWith('/'))) {
+        // Cache valid static responses
+        if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);
@@ -58,10 +70,7 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // If the network fails (e.g. offline), fallback to cache
-        return caches.match(event.request).then((cachedResponse) => {
-          return cachedResponse || caches.match('/index.html') || caches.match('/');
-        });
+        return caches.match(event.request);
       })
   );
 });

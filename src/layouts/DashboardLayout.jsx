@@ -103,7 +103,7 @@ export default function DashboardLayout() {
   const handleLogout = () => {
     localStorage.removeItem('userPermissions');
     logout();
-    navigate('/login');
+    window.location.replace('/login');
   };
 
   const handleToggleMenu = () => {

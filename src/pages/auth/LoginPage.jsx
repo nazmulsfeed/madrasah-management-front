@@ -46,16 +46,20 @@ export default function LoginPage() {
   // If already authenticated on mount, redirect to dashboard
   useEffect(() => {
     if (token) {
-      navigate('/dashboard', { replace: true });
+      window.location.replace('/dashboard');
     }
-  }, [token, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
     const success = await login(email, password);
     if (success) {
-      navigate('/dashboard', { replace: true });
+      // Use window.location.replace for mobile/Android stability:
+      // Dismisses virtual keyboard cleanly, resets viewport to 100vh,
+      // and guarantees a clean document load without race conditions.
+      window.location.replace('/dashboard');
     }
   };
 
