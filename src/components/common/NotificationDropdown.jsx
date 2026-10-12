@@ -17,13 +17,7 @@ export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [seenNoticeIds, setSeenNoticeIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('seen_notice_ids') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [markingAll, setMarkingAll] = useState(false);
   const dropdownRef = useRef(null);
 
   // নোটিশ লোড করা
@@ -48,12 +42,29 @@ export default function NotificationDropdown() {
     }
   }, [user]);
 
-  // আনসিন (না দেখা) নোটিশের সংখ্যা হিসাব
-  const unseenNotices = notices.filter(n => {
-    const id = n._id || n.id;
-    return !seenNoticeIds.includes(String(id));
-  });
+  // অন্য কোনো পেজ (যেমন নোটিশ বোর্ড) থেকে নোটিশ পড়া হলে সাথে সাথে বেল কাউন্ট সিঙ্ক করা
+  useEffect(() => {
+    const handleNoticeSeenEvent = (e) => {
+      const noticeId = e.detail?.noticeId;
+      if (noticeId) {
+        setNotices(prev => prev.map(n => {
+          if (String(n._id || n.id) === String(noticeId)) {
+            return { ...n, isSeen: true };
+          }
+          return n;
+        }));
+      } else {
+        fetchNotices();
+      }
+    };
+    window.addEventListener('notice-seen-updated', handleNoticeSeenEvent);
+    return () => {
+      window.removeEventListener('notice-seen-updated', handleNoticeSeenEvent);
+    };
+  }, []);
 
+  // আনসিন (না দেখা) নোটিশের সংখ্যা হিসাব (ডাটাবেজ থেকে আসা isSeen অনুযায়ী)
+  const unseenNotices = notices.filter(n => !n.isSeen);
   const unseenCount = unseenNotices.length;
 
   // ড্রপডাউন বাইরে ক্লিক করলে বন্ধ করা
@@ -79,24 +90,33 @@ export default function NotificationDropdown() {
     }
   };
 
-  // সব নোটিশ পড়া হিসেবে চিহ্নিত করা
-  const markAllAsSeen = () => {
-    const allIds = notices.map(n => String(n._id || n.id));
-    const merged = Array.from(new Set([...seenNoticeIds, ...allIds]));
-    setSeenNoticeIds(merged);
-    localStorage.setItem('seen_notice_ids', JSON.stringify(merged));
+  // 'পঠিত' বাটনে ক্লিক করলে সব নোটিশ ডাটাবেজে পড়া হিসেবে চিহ্নিত করা
+  const markAllAsSeen = async () => {
+    try {
+      setMarkingAll(true);
+      // Optimistic UI update
+      setNotices(prev => prev.map(n => ({ ...n, isSeen: true })));
+      await api.post('/notices/mark-all-seen');
+      window.dispatchEvent(new CustomEvent('notice-seen-updated', { detail: { all: true } }));
+    } catch (err) {
+      console.error('Failed to mark all notices as seen:', err);
+      fetchNotices();
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
-  // কোনো নির্দিষ্ট নোটিশে ক্লিক করলে সেটি পড়া হিসেবে চিহ্নিত করা
+  // কোনো নির্দিষ্ট নোটিশে ক্লিক করলে শুধুমাত্র সেটি ডাটাবেজে পড়া হিসেবে চিহ্নিত করা
   const handleNoticeClick = (notice) => {
     const id = String(notice._id || notice.id);
-    if (!seenNoticeIds.includes(id)) {
-      const next = [...seenNoticeIds, id];
-      setSeenNoticeIds(next);
-      localStorage.setItem('seen_notice_ids', JSON.stringify(next));
+    if (!notice.isSeen) {
+      // Optimistic UI update
+      setNotices(prev => prev.map(n => String(n._id || n.id) === id ? { ...n, isSeen: true } : n));
+      api.post(`/notices/${id}/seen`).catch(console.error);
+      window.dispatchEvent(new CustomEvent('notice-seen-updated', { detail: { noticeId: id } }));
     }
     setIsOpen(false);
-    navigate('/notices');
+    navigate('/notices', { state: { openNoticeId: id } });
   };
 
   const handleViewAll = () => {
@@ -192,20 +212,22 @@ export default function NotificationDropdown() {
                 <button
                   type="button"
                   onClick={markAllAsSeen}
+                  disabled={markingAll}
                   style={{
                     background: 'none',
                     border: 'none',
                     color: 'var(--primary-600)',
                     fontSize: '0.75rem',
                     fontWeight: 600,
-                    cursor: 'pointer',
+                    cursor: markingAll ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
+                    opacity: markingAll ? 0.6 : 1
                   }}
                   title="সবগুলো পড়া হয়েছে হিসেবে চিহ্নিত করুন"
                 >
-                  <Check size={12} /> পঠিত
+                  <Check size={12} /> {markingAll ? 'পঠিত হচ্ছে...' : 'পঠিত'}
                 </button>
               )}
             </div>
@@ -239,7 +261,7 @@ export default function NotificationDropdown() {
               </div>
             ) : (
               notices.slice(0, 6).map((item) => {
-                const isItemUnseen = !seenNoticeIds.includes(String(item._id || item.id));
+                const isItemUnseen = !item.isSeen;
                 return (
                   <div
                     key={item._id || item.id}

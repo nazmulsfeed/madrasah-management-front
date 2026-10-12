@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus, Bell, X, Trash2, Edit } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
@@ -7,6 +8,7 @@ import { getMadrasahInfo } from '../../utils/helpers';
 
 export default function NoticesPage() {
   const { user } = useAuthStore();
+  const location = useLocation();
   const { madrasahName, branchName } = getMadrasahInfo(user);
   const permissions = user?.permissions || {};
   const canManageNotice = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin' || permissions?.can_manage_notice;
@@ -42,6 +44,27 @@ export default function NoticesPage() {
   useEffect(() => {
     fetchNotices();
   }, []);
+
+  // 'বিস্তারিত পড়ুন' চাপলে নোটিশটি দেখা এবং ডাটাবেজে পড়া হয়েছে হিসেবে মার্ক করা
+  const handleOpenNotice = (notice) => {
+    setSelectedNotice(notice);
+    if (!notice.isSeen) {
+      const id = String(notice._id || notice.id);
+      setNotices(prev => prev.map(n => String(n._id || n.id) === id ? { ...n, isSeen: true } : n));
+      api.post(`/notices/${id}/seen`).catch(console.error);
+      window.dispatchEvent(new CustomEvent('notice-seen-updated', { detail: { noticeId: id } }));
+    }
+  };
+
+  // যদি ড্রপডাউন থেকে কোনো নির্দিষ্ট নোটিশে ক্লিক করে আসা হয়, তবে স্বয়ংক্রিয়ভাবে সেটি ওপেন করা
+  useEffect(() => {
+    if (location.state?.openNoticeId && notices.length > 0) {
+      const target = notices.find(n => String(n._id || n.id) === String(location.state.openNoticeId));
+      if (target) {
+        handleOpenNotice(target);
+      }
+    }
+  }, [location.state?.openNoticeId, notices.length]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,6 +164,21 @@ export default function NoticesPage() {
                   {new Date(notice.publishedAt || notice.createdAt).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {!notice.isSeen && (
+                    <span 
+                      className="badge badge-danger" 
+                      style={{ 
+                        fontSize: '0.72rem', 
+                        padding: '2px 8px',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: 'var(--danger)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        fontWeight: 700
+                      }}
+                    >
+                      নতুন
+                    </span>
+                  )}
                   <span className={`badge badge-active`}>
                     {Array.isArray(notice.audience) && notice.audience.includes('all') ? 'সকলের জন্য' : Array.isArray(notice.audience) ? notice.audience.join(', ') : notice.audience}
                   </span>
@@ -169,7 +207,7 @@ export default function NoticesPage() {
                     variant="compact" 
                   />
                 ) : <span />}
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedNotice(notice)}>বিস্তারিত পড়ুন</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => handleOpenNotice(notice)}>বিস্তারিত পড়ুন</button>
               </div>
             </div>
           ))}
