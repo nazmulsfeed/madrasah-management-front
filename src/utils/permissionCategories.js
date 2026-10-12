@@ -259,6 +259,11 @@ export const permissionCategories = [
       { key: 'homework.update', label: 'Update Homework (আপডেট করুন)' },
       { key: 'homework.delete', label: 'Delete Homework (ডিলিট করুন)' },
       { key: 'homework.view_all', label: 'View All Homework (সকলের হোমওয়ার্ক দেখুন)' },
+      { 
+        key: 'homework.toggle_public', 
+        label: 'Manage Public Homework Toggle (পাবলিক ভিউ সুইচ পরিচালনা)',
+        description: 'হোমওয়ার্ক পেজে "পাবলিক ভিউ" টগল বাটন দেখতে ও লগইন ছাড়া সবার জন্য হোমওয়ার্ক উন্মুক্ত বা বন্ধ করার ক্ষমতা।'
+      },
       { key: 'exam.view', label: 'View Exams (পরীক্ষা দেখুন)' },
       { key: 'exam.manage', label: 'Manage Exams (পরীক্ষা পরিচালনা)' },
       { key: 'exam.grade', label: 'Grade Exams (মার্কস দিন)' },

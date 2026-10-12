@@ -529,17 +529,25 @@ export default function RoleManagementPage() {
                       <div className="grid grid-2" style={{ gap: '16px' }}>
                         {cat.permissions.map(perm => (
                           <label key={perm.key} style={{
-                            display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer',
+                            display: 'flex', alignItems: perm.description ? 'flex-start' : 'center', gap: '12px', cursor: 'pointer',
                             padding: '12px', background: 'var(--bg-primary)', borderRadius: '8px',
-                            border: '1px solid var(--border-color)'
+                            border: '1px solid var(--border-color)',
+                            transition: 'border-color 0.2s, background 0.2s'
                           }}>
                             <input
                               type="checkbox"
                               checked={permissions[perm.key] || false}
                               onChange={() => handleToggle(perm.key)}
-                              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                              style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', marginTop: perm.description ? '2px' : '0', flexShrink: 0 }}
                             />
-                            <span style={{ fontSize: '0.9rem', color: 'var(--text-color)' }}>{perm.label}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <span style={{ fontSize: '0.9rem', fontWeight: perm.description ? 600 : 400, color: 'var(--text-color)' }}>{perm.label}</span>
+                              {perm.description && (
+                                <span style={{ fontSize: '0.785rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                                  💡 {perm.description}
+                                </span>
+                              )}
+                            </div>
                           </label>
                         ))}
                       </div>

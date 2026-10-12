@@ -308,7 +308,7 @@ export default function HomeworkPage() {
           <p className="page-subtitle">শিক্ষার্থীদের দেওয়া সকল হোমওয়ার্ক ও অ্যাসাইনমেন্ট</p>
         </div>
         <div className="flex gap-12" style={{ alignItems: 'center' }}>
-          {user?.userType === 'super_admin' && (
+          {(user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || myPermissions?.can_toggle_public_homework || myPermissions?.['homework.toggle_public']) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tertiary)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <span className="text-sm font-semibold">পাবলিক ভিউ:</span>
               <label style={{ position: 'relative', width: '40px', height: '20px', cursor: 'pointer', display: 'block', marginBottom: 0 }}>
