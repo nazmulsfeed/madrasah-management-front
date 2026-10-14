@@ -803,13 +803,13 @@ export default function AssemblyAttendancePage() {
           <RefreshCw className="spin text-primary" size={32} />
         </div>
       ) : (
-        <div className="card table-responsive">
-          <table className="table">
+        <div className="card table-responsive" style={{ padding: 0 }}>
+          <table className="table" style={{ minWidth: '960px', width: '100%' }}>
             <thead>
               <tr>
                 <th
                   onClick={() => handleSort('roll')}
-                  style={{ width: '65px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+                  style={{ width: '70px', minWidth: '70px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
                   title="রোল অনুযায়ী সাজাতে ক্লিক করুন"
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -818,7 +818,7 @@ export default function AssemblyAttendancePage() {
                 </th>
                 <th
                   onClick={() => handleSort('studentId')}
-                  style={{ width: '105px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+                  style={{ width: '115px', minWidth: '105px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
                   title="আইডি অনুযায়ী সাজাতে ক্লিক করুন"
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -827,7 +827,7 @@ export default function AssemblyAttendancePage() {
                 </th>
                 <th
                   onClick={() => handleSort('name')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  style={{ minWidth: '170px', cursor: 'pointer', userSelect: 'none' }}
                   title="শিক্ষার্থীর নাম অনুযায়ী সাজাতে ক্লিক করুন"
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center' }}>
@@ -836,24 +836,24 @@ export default function AssemblyAttendancePage() {
                 </th>
                 <th
                   onClick={() => handleSort('fatherName')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  style={{ minWidth: '170px', cursor: 'pointer', userSelect: 'none' }}
                   title="পিতার নাম অনুযায়ী সাজাতে ক্লিক করুন"
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                     পিতার নাম (Father's Name) <SortIcon col="fatherName" />
                   </span>
                 </th>
-                <th style={{ textAlign: 'center' }}>শ্রেণি ও সেকশন</th>
+                <th style={{ width: '130px', minWidth: '120px', textAlign: 'center' }}>শ্রেণি ও সেকশন</th>
                 <th
                   onClick={() => handleSort('status')}
-                  style={{ width: '220px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
+                  style={{ width: '235px', minWidth: '225px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
                   title="সমাবেশ স্ট্যাটাস অনুযায়ী সাজাতে ক্লিক করুন"
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     সমাবেশ স্ট্যাটাস <SortIcon col="status" />
                   </span>
                 </th>
-                <th style={{ width: '150px' }}>মন্তব্য</th>
+                <th style={{ width: '220px', minWidth: '180px', textAlign: 'left' }}>মন্তব্য</th>
               </tr>
             </thead>
             <tbody>
@@ -875,7 +875,7 @@ export default function AssemblyAttendancePage() {
                           {r.fatherName || '—'}
                         </div>
                       </td>
-                      <td style={{ textAlign: 'center', fontSize: '0.85rem' }}>
+                      <td style={{ textAlign: 'center', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                         {r.className}
                         {r.sectionName && r.sectionName !== '—' && (
                           <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '4px' }}>
@@ -883,7 +883,7 @@ export default function AssemblyAttendancePage() {
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                           {/* Present Button */}
                           <button
@@ -929,14 +929,14 @@ export default function AssemblyAttendancePage() {
                           </button>
                         </div>
                       </td>
-                      <td>
+                      <td style={{ minWidth: '180px' }}>
                         <input
                           type="text"
                           value={r.remarks || ''}
                           onChange={e => handleFieldChange(r.studentId, 'remarks', e.target.value)}
-                          placeholder="মন্তব্য..."
+                          placeholder="মন্তব্য লিখুন..."
                           className="form-input"
-                          style={{ height: '32px', fontSize: '0.8rem', padding: '4px 8px' }}
+                          style={{ width: '100%', minWidth: '160px', height: '34px', fontSize: '0.82rem', padding: '4px 10px', marginBottom: 0 }}
                         />
                       </td>
                     </tr>
@@ -959,118 +959,178 @@ export default function AssemblyAttendancePage() {
 
       {/* ── MODAL: প্রিন্ট ও PDF কাস্টমাইজেশন মডাল ── */}
       {isPrintModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '16px', animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div className="card" style={{ width: '100%', maxWidth: '520px', padding: '22px', position: 'relative', boxShadow: 'var(--shadow-lg)' }}>
-            <button
-              className="btn btn-ghost btn-xs"
-              onClick={() => setIsPrintModalOpen(false)}
-              style={{ position: 'absolute', top: '14px', right: '14px', color: 'var(--text-muted)' }}
-            >
-              <X size={20} />
-            </button>
-
-            <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 4px', color: '#0f766e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Printer size={20} />
-                সমাবেশ রিপোর্ট প্রিন্ট ও সর্টিং অপশন
-              </h2>
-              <p className="text-muted text-xs" style={{ margin: 0 }}>
-                কোন কোন কলাম প্রিন্ট করবেন এবং কোন ক্রমে সর্ট করবেন তা বেছে নিন
-              </p>
-            </div>
-
-            {/* Sorter Selection */}
-            <div style={{ marginBottom: '16px' }}>
-              <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                <ArrowUpDown size={14} color="var(--primary)" />
-                সর্টিং পদ্ধতি (Sort Order):
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                {[
-                  { id: 'id_custom', label: 'স্টুডেন্ট আইডি ক্রমানুসারে (ANG20* / ANB20* এর পর থেকে)' },
-                  { id: 'roll', label: 'রোল নম্বর ক্রমানুসারে (১, ২, ৩...)' },
-                  { id: 'name', label: 'শিক্ষার্থীর নামের বর্ণানুক্রমিক (ক, খ, গ...)' },
-                ].map(opt => (
-                  <label
-                    key={opt.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
-                      borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem',
-                      background: printSortBy === opt.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)',
-                      border: printSortBy === opt.id ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                      fontWeight: printSortBy === opt.id ? 600 : 400,
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="printSort"
-                      checked={printSortBy === opt.id}
-                      onChange={() => setPrintSortBy(opt.id)}
-                    />
-                    <span>{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Column Selection */}
-            <div style={{ marginBottom: '18px' }}>
-              <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                <Sliders size={14} color="#0f766e" />
-                প্রিন্ট শিটে কোন কোন কলাম অন্তর্ভুক্ত করবেন:
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                {[
-                  { key: 'serial', label: 'ক্রমিক নং (#)' },
-                  { key: 'roll', label: 'রোল নম্বর' },
-                  { key: 'id', label: 'স্টুডেন্ট আইডি' },
-                  { key: 'name', label: 'শিক্ষার্থীর নাম' },
-                  { key: 'fatherName', label: 'পিতার নাম' },
-                  { key: 'classSection', label: 'শ্রেণি ও সেকশন' },
-                  { key: 'status', label: 'সমাবেশ স্ট্যাটাস' },
-                  { key: 'signBox', label: 'স্বাক্ষর বক্স (Sign)' },
-                  { key: 'remarks', label: 'মন্তব্য' },
-                ].map(col => (
-                  <label
-                    key={col.key}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem',
-                      padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
-                      background: printColumns[col.key] ? 'rgba(16,185,129,0.08)' : 'transparent',
-                      border: '1px solid var(--border-color)',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={printColumns[col.key]}
-                      onChange={e => setPrintColumns({ ...printColumns, [col.key]: e.target.checked })}
-                    />
-                    <span>{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer Signature Roles Selection */}
-            <PrintSignatureRoleSelector
-              selectedRoles={selectedSignatureRoles}
-              onChange={(roles) => {
-                setSelectedSignatureRoles(roles);
-                try {
-                  localStorage.setItem('annur_footer_roles__assembly_attendance', JSON.stringify(roles));
-                } catch (_) {}
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsPrintModalOpen(false);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '12px',
+            animation: 'fadeIn 0.2s ease-out',
+            overflowY: 'auto'
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: 'min(92vh, 720px)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 0,
+              position: 'relative',
+              boxShadow: 'var(--shadow-lg)',
+              borderRadius: '16px',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Header (Pinned at top) */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexShrink: 0,
+                background: 'var(--bg-card)'
               }}
-              additionalRoles={customRolesList}
-              style={{ marginBottom: '18px' }}
-            />
+            >
+              <div>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 4px', color: '#0f766e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Printer size={20} />
+                  সমাবেশ রিপোর্ট প্রিন্ট ও সর্টিং অপশন
+                </h2>
+                <p className="text-muted text-xs" style={{ margin: 0 }}>
+                  কোন কোন কলাম প্রিন্ট করবেন এবং কোন ক্রমে সর্ট করবেন তা বেছে নিন
+                </p>
+              </div>
+              <button
+                className="btn btn-ghost btn-xs"
+                onClick={() => setIsPrintModalOpen(false)}
+                style={{ color: 'var(--text-muted)', flexShrink: 0, padding: '4px' }}
+                title="বন্ধ করুন"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
+            {/* Scrollable Body Content */}
+            <div
+              style={{
+                padding: '16px 20px',
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                flex: 1
+              }}
+            >
+              {/* Sorter Selection */}
+              <div style={{ marginBottom: '16px' }}>
+                <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                  <ArrowUpDown size={14} color="var(--primary)" />
+                  সর্টিং পদ্ধতি (Sort Order):
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                  {[
+                    { id: 'id_custom', label: 'স্টুডেন্ট আইডি ক্রমানুসারে (ANG20* / ANB20* এর পর থেকে)' },
+                    { id: 'roll', label: 'রোল নম্বর ক্রমানুসারে (১, ২, ৩...)' },
+                    { id: 'name', label: 'শিক্ষার্থীর নামের বর্ণানুক্রমিক (ক, খ, গ...)' },
+                  ].map(opt => (
+                    <label
+                      key={opt.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
+                        borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem',
+                        background: printSortBy === opt.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)',
+                        border: printSortBy === opt.id ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                        fontWeight: printSortBy === opt.id ? 600 : 400,
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="printSort"
+                        checked={printSortBy === opt.id}
+                        onChange={() => setPrintSortBy(opt.id)}
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '6px' }}>
+              {/* Column Selection */}
+              <div style={{ marginBottom: '18px' }}>
+                <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                  <Sliders size={14} color="#0f766e" />
+                  প্রিন্ট শিটে কোন কোন কলাম অন্তর্ভুক্ত করবেন:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                  {[
+                    { key: 'serial', label: 'ক্রমিক নং (#)' },
+                    { key: 'roll', label: 'রোল নম্বর' },
+                    { key: 'id', label: 'স্টুডেন্ট আইডি' },
+                    { key: 'name', label: 'শিক্ষার্থীর নাম' },
+                    { key: 'fatherName', label: 'পিতার নাম' },
+                    { key: 'classSection', label: 'শ্রেণি ও সেকশন' },
+                    { key: 'status', label: 'সমাবেশ স্ট্যাটাস' },
+                    { key: 'signBox', label: 'স্বাক্ষর বক্স (Sign)' },
+                    { key: 'remarks', label: 'মন্তব্য' },
+                  ].map(col => (
+                    <label
+                      key={col.key}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem',
+                        padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
+                        background: printColumns[col.key] ? 'rgba(16,185,129,0.08)' : 'transparent',
+                        border: '1px solid var(--border-color)',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={printColumns[col.key]}
+                        onChange={e => setPrintColumns({ ...printColumns, [col.key]: e.target.checked })}
+                      />
+                      <span>{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer Signature Roles Selection */}
+              <PrintSignatureRoleSelector
+                selectedRoles={selectedSignatureRoles}
+                onChange={(roles) => {
+                  setSelectedSignatureRoles(roles);
+                  try {
+                    localStorage.setItem('annur_footer_roles__assembly_attendance', JSON.stringify(roles));
+                  } catch (_) {}
+                }}
+                additionalRoles={customRolesList}
+                style={{ marginBottom: '6px' }}
+              />
+            </div>
+
+            {/* Actions (Pinned at bottom) */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                padding: '14px 20px',
+                borderTop: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                flexShrink: 0
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setIsPrintModalOpen(false)}
