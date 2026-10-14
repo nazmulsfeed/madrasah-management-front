@@ -3,7 +3,7 @@ import {
   Users, CheckCircle2, XCircle, Clock, Save, RefreshCw,
   Search, Printer, AlertCircle, Check, Sparkles, Filter,
   Calendar, ChevronDown, CheckCheck, UserX, FileText, User,
-  RotateCcw, Sliders, X, ArrowUpDown
+  RotateCcw, Sliders, X, ArrowUpDown, Maximize2
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
@@ -79,6 +79,7 @@ export default function AssemblyAttendancePage() {
 
   // Print Preview & Customization Modal State
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printOrientation, setPrintOrientation] = useState('landscape'); // 'landscape' | 'portrait'
   const [printSortBy, setPrintSortBy] = useState('id_custom'); // 'roll' | 'id_custom' | 'name'
   const [printColumns, setPrintColumns] = useState({
     serial: true,
@@ -89,6 +90,7 @@ export default function AssemblyAttendancePage() {
     classSection: true,
     status: true,
     signBox: true,
+    remarks: true,
   });
 
   const MAX_SIGNATURE_ROLES = 5;
@@ -451,7 +453,6 @@ export default function AssemblyAttendancePage() {
     // Sort records based on user choice
     let sortedList = [...records];
     if (printSortBy === 'id_custom') {
-      // Sort by ID suffix (ANG20* / ANB20* parsed numeric suffix)
       sortedList.sort((a, b) => {
         const numA = parseCustomId(a.studentCode);
         const numB = parseCustomId(b.studentCode);
@@ -459,7 +460,6 @@ export default function AssemblyAttendancePage() {
         return (a.studentCode || '').localeCompare(b.studentCode || '');
       });
     } else if (printSortBy === 'roll') {
-      // Sort by roll number
       sortedList.sort((a, b) => {
         const rA = parseBnEnNumber(a.rollNumber);
         const rB = parseBnEnNumber(b.rollNumber);
@@ -469,7 +469,6 @@ export default function AssemblyAttendancePage() {
         return String(a.rollNumber || '').localeCompare(String(b.rollNumber || ''), 'bn');
       });
     } else if (printSortBy === 'name') {
-      // Sort alphabetically by name
       sortedList.sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'bn'));
     }
 
@@ -483,20 +482,17 @@ export default function AssemblyAttendancePage() {
     const selectedClassDoc = classes.find(c => c._id === selectedClass);
     const classNameStr = selectedClass === 'all' ? 'সকল শ্রেণি' : (selectedClassDoc?.name || selectedClass);
 
-    const selectedSecDoc = availableSectionOptions.find(s => s.value === selectedSection);
-    const sectionNameStr = selectedSecDoc?.label || 'সকল সেকশন';
-
-    // Build Table Headers dynamically based on checked columns
+    // Build Table Headers with MS Word style "Autofit to contents" for data columns and flexible wide space for remarks
     let thHtml = '';
-    if (printColumns.serial) thHtml += `<th style="width: 32px; text-align: center;">#</th>`;
-    if (printColumns.roll) thHtml += `<th style="width: 45px; text-align: center;">রোল</th>`;
-    if (printColumns.id) thHtml += `<th style="width: 80px; text-align: center;">আইডি</th>`;
-    if (printColumns.name) thHtml += `<th style="min-width: 140px;">শিক্ষার্থীর নাম</th>`;
-    if (printColumns.fatherName) thHtml += `<th style="min-width: 130px;">পিতার নাম</th>`;
-    if (printColumns.classSection) thHtml += `<th style="width: 90px; text-align: center;">শ্রেণি (সেকশন)</th>`;
-    if (printColumns.status) thHtml += `<th style="width: 75px; text-align: center;">সমাবেশ স্ট্যাটাস</th>`;
-    if (printColumns.signBox) thHtml += `<th style="width: 110px; text-align: center;">স্বাক্ষর বক্স</th>`;
-    if (printColumns.remarks) thHtml += `<th style="width: 90px;">মন্তব্য</th>`;
+    if (printColumns.serial) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">#</th>`;
+    if (printColumns.roll) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">রোল</th>`;
+    if (printColumns.id) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">আইডি</th>`;
+    if (printColumns.name) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: left; padding: 6px 12px; border: 1px solid #0d9488;">শিক্ষার্থীর নাম</th>`;
+    if (printColumns.fatherName) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: left; padding: 6px 12px; border: 1px solid #0d9488;">পিতার নাম</th>`;
+    if (printColumns.classSection) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">শ্রেণি ও সেকশন</th>`;
+    if (printColumns.status) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">সমাবেশ স্ট্যাটাস</th>`;
+    if (printColumns.signBox) thHtml += `<th style="width: 85px; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">স্বাক্ষর বক্স</th>`;
+    if (printColumns.remarks) thHtml += `<th style="text-align: left; padding: 6px 10px; border: 1px solid #0d9488;">মন্তব্য</th>`;
 
     // Build Table Rows dynamically based on checked columns
     let rowsHtml = '';
@@ -507,17 +503,17 @@ export default function AssemblyAttendancePage() {
       const statusBg = isPresent ? '#dcfce7' : isAbsent ? '#fee2e2' : '#f1f5f9';
       const statusText = isPresent ? 'উপস্থিত' : isAbsent ? 'অনুপস্থিত' : '—';
 
-      rowsHtml += `<tr>`;
-      if (printColumns.serial) rowsHtml += `<td style="text-align: center; font-family: monospace; font-size: 11px;">${idx + 1}</td>`;
-      if (printColumns.roll) rowsHtml += `<td style="text-align: center; font-family: monospace; font-weight: bold; font-size: 12px;">${r.rollNumber || '—'}</td>`;
-      if (printColumns.id) rowsHtml += `<td style="text-align: center; font-family: monospace; font-size: 11px; color: #475569;">${r.studentCode || '—'}</td>`;
-      if (printColumns.name) rowsHtml += `<td style="font-weight: 700; font-size: 12px; color: #0f172a;">${r.studentName}</td>`;
-      if (printColumns.fatherName) rowsHtml += `<td style="font-size: 11.5px; color: #1e293b; font-weight: 500;">${r.fatherName || '—'}</td>`;
-      if (printColumns.classSection) rowsHtml += `<td style="text-align: center; font-size: 11px;">${r.className || '—'}${r.sectionName && r.sectionName !== '—' ? ` (${r.sectionName})` : ''}</td>`;
+      rowsHtml += `<tr style="height: 33px;">`;
+      if (printColumns.serial) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${idx + 1}</td>`;
+      if (printColumns.roll) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-weight: bold; font-size: 11.5px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.rollNumber || '—'}</td>`;
+      if (printColumns.id) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; color: #334155; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.studentCode || '—'}</td>`;
+      if (printColumns.name) rowsHtml += `<td style="width: 1%; white-space: nowrap; font-weight: 700; font-size: 11.5px; color: #0f172a; padding: 4px 10px; border: 1px solid #cbd5e1;">${r.studentName}</td>`;
+      if (printColumns.fatherName) rowsHtml += `<td style="width: 1%; white-space: nowrap; font-size: 11px; color: #334155; font-weight: 500; padding: 4px 10px; border: 1px solid #cbd5e1;">${r.fatherName || '—'}</td>`;
+      if (printColumns.classSection) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.className || '—'}${r.sectionName && r.sectionName !== '—' ? ` (${r.sectionName})` : ''}</td>`;
       if (printColumns.status) {
         rowsHtml += `
-          <td style="text-align: center;">
-            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10.5px; font-weight: bold; color: ${statusColor}; background: ${statusBg}; border: 1px solid ${statusColor};">
+          <td style="width: 1%; white-space: nowrap; text-align: center; padding: 4px 6px; border: 1px solid #cbd5e1;">
+            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: ${statusColor}; background: ${statusBg}; border: 1px solid ${statusColor};">
               ${statusText}
             </span>
           </td>
@@ -525,67 +521,123 @@ export default function AssemblyAttendancePage() {
       }
       if (printColumns.signBox) {
         rowsHtml += `
-          <td style="width: 110px; height: 30px; border: 1px dashed #94a3b8; background: #fafafa; text-align: center; vertical-align: middle;">
+          <td style="width: 85px; height: 33px; border: 1px dashed #94a3b8; background: #fafafa; text-align: center; vertical-align: middle; padding: 2px 4px;">
             <div style="color: #cbd5e1; font-size: 9px;">স্বাক্ষর</div>
           </td>
         `;
       }
-      if (printColumns.remarks) rowsHtml += `<td style="font-size: 10.5px; color: #475569;">${r.remarks || ''}</td>`;
+      if (printColumns.remarks) {
+        rowsHtml += `<td style="font-size: 11px; color: #1e293b; padding: 4px 8px; border: 1px solid #cbd5e1; vertical-align: middle;">${r.remarks || ''}</td>`;
+      }
       rowsHtml += `</tr>`;
     });
-
-    const sortLabelStr = printSortBy === 'id_custom' ? 'আইডি ক্রমানুসারে (ANG20*/ANB20*)' : printSortBy === 'roll' ? 'রোল ক্রমানুসারে' : 'নামের ক্রমানুসারে';
 
     const html = `<!DOCTYPE html>
     <html lang="bn">
     <head>
       <meta charset="UTF-8">
       <title>সমাবেশ উপস্থিতি বিবরণী রিপোর্ট - ${madrasahName}</title>
-      ${getMadrasahPrintStyles('landscape')}
+      ${getMadrasahPrintStyles(printOrientation)}
+      <style id="dynamic-page-orientation">
+        @page { size: A4 ${printOrientation}; margin: ${printOrientation === 'landscape' ? '6mm 8mm' : '8mm 10mm'}; }
+      </style>
       <style>
-        .print-box { max-width: 100%; margin: 0 auto; }
-        .stat-badges { display: flex; justify-content: center; gap: 12px; margin-top: 8px; font-size: 11px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
-        th { background: #0f766e; color: #fff; font-size: 11.5px; font-weight: 700; padding: 7px 6px; text-align: left; }
-        td { padding: 6px; border-bottom: 1px solid #e2e8f0; font-size: 11.5px; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-family: 'Noto Sans Bengali', sans-serif; }
+        .print-sheet-container { width: 100%; min-height: 100%; margin: 0 auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
+        th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 6px; }
+        td { border-bottom: 1px solid #cbd5e1; font-size: 11px; }
         @media print {
-          body { padding: 0; }
-          .print-box { border: none; padding: 0; }
+          .no-print { display: none !important; }
+          body { padding: 0; margin: 0; }
         }
       </style>
     </head>
     <body>
-      <div class="print-sheet-container">
-        <div class="print-content-layer">
-          ${getMadrasahHeaderHtml({
-            title: '📋 দৈনিক সমাবেশ ও শৃঙ্খলা উপস্থিতি বিবরণী (Assembly Attendance Sheet)',
-            orientation: 'landscape',
-            metaLeft: `<strong>তারিখ:</strong> ${formattedDate} | <strong>শ্রেণি:</strong> ${classNameStr} | <strong>সেকশন:</strong> ${sectionNameStr}`,
-            metaRight: `<strong>মোট শিক্ষার্থী:</strong> ${currentStats.total} জন (উপস্থিত: ${currentStats.present}, হার: ${currentStats.presentRate}%)`
-          })}
-
-          <div class="stat-badges">
-            <span style="color: #15803d; background: #dcfce7; padding: 2px 10px; border-radius: 4px;">উপস্থিত: ${currentStats.present} জন</span>
-            <span style="color: #b91c1c; background: #fee2e2; padding: 2px 10px; border-radius: 4px;">অনুপস্থিত: ${currentStats.absent} জন</span>
-            <span style="color: #475569; background: #f1f5f9; padding: 2px 10px; border-radius: 4px;">অনির্ধারিত/রিসেট: ${currentStats.resetCount} জন</span>
-            <span style="color: #0f766e; background: #ccfbf1; padding: 2px 10px; border-radius: 4px;">উপস্থিতির হার: ${currentStats.presentRate}%</span>
-          </div>
-
-        <table>
-          <thead>
-            <tr>${thHtml}</tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-
-        ${getMadrasahFooterSignaturesHtml(selectedSignatureRoles)}
+      <!-- Sticky No-Print Control Bar -->
+      <div class="no-print" style="position: sticky; top: 0; z-index: 9999; background: #0f172a; color: #fff; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
+        <div style="font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 8px;">
+          <span>📋 সমাবেশ রিপোর্ট প্রিন্ট প্রিভিউ</span>
+          <span style="font-size: 11px; opacity: 0.75;">(পৃষ্ঠা বিন্যাস পরিবর্তন করতে নিচের বাটনে চাপুন)</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-land" onclick="setOrientation('landscape')" style="padding: 5px 12px; border-radius: 6px; border: none; background: ${printOrientation === 'landscape' ? '#0f766e' : '#334155'}; color: #fff; cursor: pointer; font-weight: 700; font-size: 11.5px;">📑 ল্যান্ডস্কেপ</button>
+          <button id="btn-port" onclick="setOrientation('portrait')" style="padding: 5px 12px; border-radius: 6px; border: none; background: ${printOrientation === 'portrait' ? '#0f766e' : '#334155'}; color: #fff; cursor: pointer; font-weight: 700; font-size: 11.5px;">📄 পোর্ট্রেট</button>
+          <button onclick="window.print()" style="padding: 5px 16px; border-radius: 6px; border: none; background: #10b981; color: #fff; cursor: pointer; font-weight: 700; font-size: 12px;">🖨️ প্রিন্ট / PDF ডাউনলোড</button>
+          <button onclick="window.close()" style="padding: 5px 12px; border-radius: 6px; border: none; background: #64748b; color: #fff; cursor: pointer; font-size: 11.5px;">✕ বন্ধ</button>
         </div>
       </div>
+
+      <div class="print-sheet-container" style="padding: 12px 16px;">
+        <div class="print-content-layer">
+          ${getMadrasahHeaderHtml({ orientation: printOrientation })}
+
+          <!-- Single aligned line: Left: তারিখ, Center: দৈনিক সমাবেশ..., Right: শ্রেণি -->
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 2px solid #0f172a; margin-top: 4px; margin-bottom: 10px;">
+            <div style="font-size: 11.5px; font-weight: 700; color: #1e293b; min-width: 160px; text-align: left;">
+              <strong>তারিখ:</strong> ${formattedDate}
+            </div>
+            <div style="text-align: center; flex: 1;">
+              <span style="display: inline-block; font-size: 12.5px; font-weight: 800; color: #0f172a; padding: 3px 14px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px;">
+                📋 দৈনিক সমাবেশ ও শৃঙ্খলা উপস্থিতি বিবরণী (Assembly Attendance Sheet)
+              </span>
+            </div>
+            <div style="font-size: 11.5px; font-weight: 700; color: #1e293b; min-width: 160px; text-align: right;">
+              <strong>শ্রেণি:</strong> ${classNameStr}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr style="background: #0f766e; color: #fff;">
+                ${thHtml}
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <!-- Footer Signatures (Guaranteed distinct, centered signature lines) -->
+          <div style="margin-top: auto; padding-top: 32px; width: 100%; page-break-inside: avoid; break-inside: avoid;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; width: 100%;">
+              ${selectedSignatureRoles.map(role => `
+                <div style="flex: 1; text-align: center; min-width: 0; padding: 0 10px;">
+                  <div style="border-top: 1.5px solid #0f172a; width: 175px; max-width: 90%; margin: 0 auto; padding-top: 5px; font-weight: 700; font-size: 11.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${role}
+                  </div>
+                  <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${madrasahName}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="margin-top: 14px; font-size: 8pt; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+              <span>মুদ্রণের তারিখ ও সময়: ${new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
+              <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <script>
+        function setOrientation(mode) {
+          var styleTag = document.getElementById('dynamic-page-orientation');
+          var btnPort = document.getElementById('btn-port');
+          var btnLand = document.getElementById('btn-land');
+          if (mode === 'landscape') {
+            styleTag.innerHTML = '@page { size: A4 landscape; margin: 6mm 8mm; }';
+            if (btnLand) btnLand.style.background = '#0f766e';
+            if (btnPort) btnPort.style.background = '#334155';
+          } else {
+            styleTag.innerHTML = '@page { size: A4 portrait; margin: 8mm 10mm; }';
+            if (btnPort) btnPort.style.background = '#0f766e';
+            if (btnLand) btnLand.style.background = '#334155';
+          }
+        }
         window.onload = function() {
-          setTimeout(function() { window.print(); }, 250);
+          setTimeout(function() { window.print(); }, 350);
         };
       </script>
     </body>
@@ -1033,6 +1085,60 @@ export default function AssemblyAttendancePage() {
                 flex: 1
               }}
             >
+              {/* Page Orientation Selection */}
+              <div style={{ marginBottom: '16px' }}>
+                <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                  <Maximize2 size={14} color="#0f766e" />
+                  পৃষ্ঠা বিন্যাস (Page Orientation):
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPrintOrientation('landscape')}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: printOrientation === 'landscape' ? 700 : 500,
+                      background: printOrientation === 'landscape' ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-tertiary)',
+                      border: printOrientation === 'landscape' ? '2px solid #0f766e' : '1px solid var(--border-color)',
+                      color: printOrientation === 'landscape' ? '#0f766e' : 'var(--text-primary)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem' }}>📑</span>
+                    <span>ল্যান্ডস্কেপ (Landscape)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrintOrientation('portrait')}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: printOrientation === 'portrait' ? 700 : 500,
+                      background: printOrientation === 'portrait' ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-tertiary)',
+                      border: printOrientation === 'portrait' ? '2px solid #0f766e' : '1px solid var(--border-color)',
+                      color: printOrientation === 'portrait' ? '#0f766e' : 'var(--text-primary)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem' }}>📄</span>
+                    <span>পোর্ট্রেট (Portrait)</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Sorter Selection */}
               <div style={{ marginBottom: '16px' }}>
                 <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
