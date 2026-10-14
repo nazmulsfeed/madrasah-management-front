@@ -539,18 +539,78 @@ export default function AssemblyAttendancePage() {
       <title>সমাবেশ উপস্থিতি বিবরণী রিপোর্ট - ${madrasahName}</title>
       ${getMadrasahPrintStyles(printOrientation)}
       <style id="dynamic-page-orientation">
-        @page { size: A4 ${printOrientation}; margin: ${printOrientation === 'landscape' ? '6mm 8mm' : '8mm 10mm'}; }
+        @page {
+          size: A4 ${printOrientation};
+          margin: ${printOrientation === 'landscape' ? '6mm 8mm' : '8mm 10mm'} !important;
+        }
       </style>
       <style>
         * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; background: #ffffff; color: #0f172a; font-family: 'Noto Sans Bengali', sans-serif; }
-        .print-sheet-container { width: 100%; min-height: 100%; margin: 0 auto; }
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          color: #0f172a;
+          font-family: 'Noto Sans Bengali', sans-serif;
+        }
+        #raw-content {
+          position: absolute;
+          visibility: hidden;
+          left: -9999px;
+          top: -9999px;
+          width: ${printOrientation === 'landscape' ? '281mm' : '194mm'};
+        }
+        .print-page {
+          position: relative;
+          width: 100%;
+          height: calc(${printOrientation === 'landscape' ? '210mm' : '297mm'} - ${printOrientation === 'landscape' ? '12mm' : '16mm'});
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          page-break-after: always;
+          break-after: page;
+          overflow: hidden;
+          background: #ffffff;
+        }
+        .print-page.last-page,
+        .print-page:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        .page-top {
+          width: 100%;
+          position: relative;
+          z-index: 10;
+        }
+        .page-bottom {
+          width: 100%;
+          margin-top: auto;
+          padding-top: 14px;
+          position: relative;
+          z-index: 10;
+        }
+        .print-watermark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: ${printOrientation === 'landscape' ? '360px' : '420px'};
+          height: ${printOrientation === 'landscape' ? '360px' : '420px'};
+          max-width: 80%;
+          max-height: 80%;
+          pointer-events: none;
+          user-select: none;
+          z-index: 0;
+          opacity: 0.085;
+          object-fit: contain;
+        }
         table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
-        th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 6px; }
+        th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 6px; text-align: left; }
         td { border-bottom: 1px solid #cbd5e1; font-size: 11px; }
         @media print {
           .no-print { display: none !important; }
-          body { padding: 0; margin: 0; }
+          body { padding: 0 !important; margin: 0 !important; }
         }
       </style>
     </head>
@@ -569,12 +629,16 @@ export default function AssemblyAttendancePage() {
         </div>
       </div>
 
-      <div class="print-sheet-container" style="padding: 12px 16px;">
-        <div class="print-content-layer">
-          ${getMadrasahHeaderHtml({ orientation: printOrientation })}
+      <!-- Container where partitioned pages will be placed -->
+      <div id="pages-container"></div>
+
+      <!-- Hidden source content used for accurate DOM measurement -->
+      <div id="raw-content">
+        <div class="header-wrap">
+          ${getMadrasahHeaderHtml({ orientation: printOrientation, showWatermark: false })}
 
           <!-- Single aligned line: Left: তারিখ, Center: দৈনিক সমাবেশ..., Right: শ্রেণি -->
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 2px solid #0f172a; margin-top: 4px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 2px solid #0f172a; margin-top: 4px; margin-bottom: 8px;">
             <div style="font-size: 11.5px; font-weight: 700; color: #1e293b; min-width: 160px; text-align: left;">
               <strong>তারিখ:</strong> ${formattedDate}
             </div>
@@ -587,58 +651,197 @@ export default function AssemblyAttendancePage() {
               <strong>শ্রেণি:</strong> ${classNameStr}
             </div>
           </div>
+        </div>
 
-          <table>
-            <thead>
-              <tr style="background: #0f766e; color: #fff;">
-                ${thHtml}
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+        <table>
+          <thead>
+            <tr style="background: #0f766e; color: #fff;">
+              ${thHtml}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
 
-          <!-- Footer Signatures (Guaranteed distinct, centered signature lines) -->
-          <div style="margin-top: auto; padding-top: 32px; width: 100%; page-break-inside: avoid; break-inside: avoid;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; width: 100%;">
-              ${selectedSignatureRoles.map(role => `
-                <div style="flex: 1; text-align: center; min-width: 0; padding: 0 10px;">
-                  <div style="border-top: 1.5px solid #0f172a; width: 175px; max-width: 90%; margin: 0 auto; padding-top: 5px; font-weight: 700; font-size: 11.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${role}
-                  </div>
-                  <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    ${madrasahName}
-                  </div>
+        <!-- Footer Signatures (Guaranteed distinct, centered signature lines docked to bottom of last page) -->
+        <div class="footer-wrap" style="width: 100%; padding-top: 24px; page-break-inside: avoid; break-inside: avoid;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; width: 100%;">
+            ${selectedSignatureRoles.map(role => `
+              <div style="flex: 1; text-align: center; min-width: 0; padding: 0 10px;">
+                <div style="border-top: 1.5px solid #0f172a; width: 175px; max-width: 90%; margin: 0 auto; padding-top: 5px; font-weight: 700; font-size: 11.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${role}
                 </div>
-              `).join('')}
-            </div>
-            <div style="margin-top: 14px; font-size: 8pt; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
-              <span>মুদ্রণের তারিখ ও সময়: ${new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
-              <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
-            </div>
+                <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${madrasahName}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top: 14px; font-size: 8pt; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+            <span>মুদ্রণের তারিখ ও সময়: ${new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
+            <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
           </div>
         </div>
       </div>
 
       <script>
+        let currentOrientation = '${printOrientation}';
+
+        function paginateAndPrint(targetOrientation) {
+          try {
+            if (targetOrientation) {
+              currentOrientation = targetOrientation;
+            }
+            const rawWrap = document.getElementById('raw-content');
+            const rawHeader = rawWrap.querySelector('.header-wrap');
+            const rawTable = rawWrap.querySelector('table');
+            const rawThead = rawTable.querySelector('thead');
+            const rawRows = Array.from(rawTable.querySelectorAll('tbody tr'));
+            const rawFooter = rawWrap.querySelector('.footer-wrap');
+            const container = document.getElementById('pages-container');
+
+            if (!rawRows.length || !container) {
+              rawWrap.style.position = 'static';
+              rawWrap.style.visibility = 'visible';
+              window.print();
+              return;
+            }
+
+            // Measure sub-pixel precision ratio (px per mm)
+            const probe = document.createElement('div');
+            probe.style.width = '100mm';
+            probe.style.height = '100mm';
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            document.body.appendChild(probe);
+            const pxPerMm = probe.getBoundingClientRect().height / 100;
+            document.body.removeChild(probe);
+
+            const isLandscape = (currentOrientation === 'landscape');
+            rawWrap.style.width = isLandscape ? '281mm' : '194mm';
+
+            const pageTotalMm = isLandscape ? 210 : 297;
+            const marginTotalMm = isLandscape ? 12 : 16;
+            const pageUsablePx = (pageTotalMm - marginTotalMm) * pxPerMm;
+
+            const headerHeight = rawHeader ? rawHeader.getBoundingClientRect().height : 0;
+            const theadHeight = rawThead ? rawThead.getBoundingClientRect().height : 35;
+            const footerHeight = rawFooter ? rawFooter.getBoundingClientRect().height : 0;
+
+            const rowHeights = rawRows.map(r => r.getBoundingClientRect().height || 33);
+
+            // Partition rows into pages
+            const pageRowIndices = [];
+            let currentPageIndices = [];
+            let currentHeight = headerHeight + theadHeight;
+
+            for (let i = 0; i < rawRows.length; i++) {
+              const h = rowHeights[i];
+              const isLast = (i === rawRows.length - 1);
+              const neededFooter = (isLast && rawFooter) ? (footerHeight + 20) : 0;
+
+              // Check if row fits on current page (with 15px safe buffer)
+              if ((currentHeight + h + neededFooter) > (pageUsablePx - 15) && currentPageIndices.length > 0) {
+                pageRowIndices.push(currentPageIndices);
+                currentPageIndices = [i];
+                currentHeight = theadHeight + h;
+              } else {
+                currentPageIndices.push(i);
+                currentHeight += h;
+              }
+            }
+            if (currentPageIndices.length > 0) {
+              pageRowIndices.push(currentPageIndices);
+            }
+
+            container.innerHTML = '';
+            const totalPages = pageRowIndices.length;
+
+            pageRowIndices.forEach((indices, pageIdx) => {
+              const isFirst = (pageIdx === 0);
+              const isLast = (pageIdx === totalPages - 1);
+
+              const pageDiv = document.createElement('div');
+              pageDiv.className = 'print-page' + (isLast ? ' last-page' : '');
+              pageDiv.style.height = 'calc(' + (isLandscape ? '210mm' : '297mm') + ' - ' + (isLandscape ? '12mm' : '16mm') + ')';
+
+              const watermark = document.createElement('img');
+              watermark.src = '/images/madrasah_logo.png';
+              watermark.className = 'print-watermark';
+              watermark.alt = 'Watermark';
+              watermark.onerror = function() { this.src = '/madrasah_logo.png'; };
+              pageDiv.appendChild(watermark);
+
+              const topDiv = document.createElement('div');
+              topDiv.className = 'page-top';
+
+              if (isFirst && rawHeader) {
+                topDiv.appendChild(rawHeader.cloneNode(true));
+              }
+
+              const tableClone = document.createElement('table');
+              tableClone.appendChild(rawThead.cloneNode(true));
+              const tbodyClone = document.createElement('tbody');
+              indices.forEach(idx => {
+                tbodyClone.appendChild(rawRows[idx].cloneNode(true));
+              });
+              tableClone.appendChild(tbodyClone);
+              topDiv.appendChild(tableClone);
+              pageDiv.appendChild(topDiv);
+
+              // On the final page, signatures are docked strictly to the bottom margin
+              if (isLast && rawFooter) {
+                const bottomDiv = document.createElement('div');
+                bottomDiv.className = 'page-bottom';
+                bottomDiv.appendChild(rawFooter.cloneNode(true));
+                pageDiv.appendChild(bottomDiv);
+              }
+
+              container.appendChild(pageDiv);
+            });
+
+            rawWrap.style.display = 'none';
+          } catch (err) {
+            console.error('Pagination error:', err);
+            const rawWrap = document.getElementById('raw-content');
+            if (rawWrap) {
+              rawWrap.style.position = 'static';
+              rawWrap.style.visibility = 'visible';
+            }
+          }
+        }
+
         function setOrientation(mode) {
+          currentOrientation = mode;
           var styleTag = document.getElementById('dynamic-page-orientation');
           var btnPort = document.getElementById('btn-port');
           var btnLand = document.getElementById('btn-land');
           if (mode === 'landscape') {
-            styleTag.innerHTML = '@page { size: A4 landscape; margin: 6mm 8mm; }';
+            styleTag.innerHTML = '@page { size: A4 landscape; margin: 6mm 8mm !important; }';
             if (btnLand) btnLand.style.background = '#0f766e';
             if (btnPort) btnPort.style.background = '#334155';
           } else {
-            styleTag.innerHTML = '@page { size: A4 portrait; margin: 8mm 10mm; }';
+            styleTag.innerHTML = '@page { size: A4 portrait; margin: 8mm 10mm !important; }';
             if (btnPort) btnPort.style.background = '#0f766e';
             if (btnLand) btnLand.style.background = '#334155';
           }
+          const rawWrap = document.getElementById('raw-content');
+          if (rawWrap) rawWrap.style.display = 'block';
+          paginateAndPrint(mode);
         }
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 350);
-        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
+              paginateAndPrint(currentOrientation);
+              setTimeout(() => { window.print(); }, 250);
+            });
+          } else {
+            paginateAndPrint(currentOrientation);
+            setTimeout(() => { window.print(); }, 400);
+          }
+        });
       </script>
     </body>
     </html>`;
