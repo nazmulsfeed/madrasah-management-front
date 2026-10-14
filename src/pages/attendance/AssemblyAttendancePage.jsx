@@ -870,7 +870,7 @@ export default function AssemblyAttendancePage() {
       )}
 
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header assembly-page-header">
         <div>
           <h1 className="page-title flex-center gap-8">
             <Users className="text-primary" size={26} />
@@ -878,126 +878,128 @@ export default function AssemblyAttendancePage() {
           </h1>
           <p className="page-subtitle">শাখা: {branchName} · সকালের অ্যাসেম্বলি/সমাবেশ উপস্থিতি গ্রহণ ও রিপোর্ট</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-outline btn-sm flex-center gap-6" onClick={fetchAttendance} title="রিফ্রেশ">
+        <div className="assembly-header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-outline btn-sm flex-center gap-6 btn-refresh" onClick={fetchAttendance} title="রিফ্রেশ">
             <RefreshCw size={15} />
           </button>
           <button
-            className="btn btn-secondary btn-sm flex-center gap-6"
+            className="btn btn-secondary btn-sm flex-center gap-6 btn-print"
             onClick={() => setIsPrintModalOpen(true)}
             disabled={records.length === 0}
             title="সমাবেশ রিপোর্ট PDF"
             style={{ background: '#f8fafc', borderColor: 'var(--border-color)', color: '#0f766e', fontWeight: 600 }}
           >
-            <Printer size={16} /> সমাবেশ রিপোর্ট PDF
+            <Printer size={16} /> <span>সমাবেশ রিপোর্ট PDF</span>
           </button>
           {canManage && (
             <button
-              className="btn btn-primary btn-sm flex-center gap-6"
+              className="btn btn-primary btn-sm flex-center gap-6 btn-save"
               onClick={handleSave}
               disabled={saving || records.length === 0}
             >
               {saving ? <RefreshCw size={15} className="spin" /> : <Save size={15} />}
-              হাজিরা সংরক্ষণ করুন
+              <span>হাজিরা সংরক্ষণ করুন</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-4" style={{ gap: '14px', marginBottom: '16px' }}>
+      <div className="assembly-stats-grid">
         {[
           { label: 'মোট শিক্ষার্থী', value: currentStats.total, unit: 'জন', color: 'var(--primary)', bg: 'rgba(99,102,241,0.1)', Icon: Users },
           { label: 'সমাবেশে উপস্থিত', value: currentStats.present, unit: 'জন', color: 'var(--success)', bg: 'rgba(16,185,129,0.1)', Icon: CheckCircle2 },
           { label: 'অনুপস্থিত', value: currentStats.absent, unit: 'জন', color: 'var(--danger)', bg: 'rgba(239,68,68,0.1)', Icon: XCircle },
           { label: 'উপস্থিতির হার', value: `${currentStats.presentRate}%`, color: '#0284c7', bg: 'rgba(2,132,199,0.1)', Icon: Sparkles },
         ].map(({ label, value, unit, color, bg, Icon }) => (
-          <div key={label} className="card" style={{ padding: '12px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div key={label} className="card assembly-stat-card">
+            <div className="assembly-stat-content">
               <div>
-                <div className="text-xs text-muted mb-4">{label}</div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 800, color, fontFamily: 'monospace' }}>
+                <div className="assembly-stat-label">{label}</div>
+                <div className="assembly-stat-value" style={{ color }}>
                   {value}{unit && <span style={{ fontSize: '0.82rem', marginLeft: '2px' }}>{unit}</span>}
                 </div>
               </div>
-              <div style={{ background: bg, borderRadius: '10px', padding: '9px' }}>
-                <Icon size={20} color={color} />
+              <div className="assembly-stat-icon-wrap" style={{ background: bg }}>
+                <Icon size={18} color={color} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── COMPACT Filter Bar (One Row Sleek Toolbar) ── */}
-      <div className="card" style={{ padding: '8px 12px', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* ── Filter & Action Toolbar ── */}
+      <div className="card assembly-filter-card">
+        <div className="assembly-filter-container">
           {/* 1. Date Picker */}
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="form-input"
-            style={{ width: '135px', height: '34px', fontSize: '0.82rem', padding: '4px 8px' }}
-          />
+          <div className="assembly-filter-item-date">
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="form-input"
+            />
+          </div>
 
           {/* 2. Class Filter */}
-          <select
-            value={selectedClass}
-            onChange={e => setSelectedClass(e.target.value)}
-            className="form-input"
-            style={{ width: '140px', height: '34px', fontSize: '0.82rem', padding: '4px 8px' }}
-          >
-            <option value="all">সকল শ্রেণি</option>
-            {classes.map(c => (
-              <option key={c._id} value={c._id}>{c.name}</option>
-            ))}
-          </select>
+          <div className="assembly-filter-item-class">
+            <select
+              value={selectedClass}
+              onChange={e => setSelectedClass(e.target.value)}
+              className="form-input"
+            >
+              <option value="all">সকল শ্রেণি</option>
+              {classes.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
 
-          {/* 3. Section Filter (Properly combined with standard A, B, ক, খ) */}
-          <select
-            value={selectedSection}
-            onChange={e => setSelectedSection(e.target.value)}
-            className="form-input"
-            style={{ width: '130px', height: '34px', fontSize: '0.82rem', padding: '4px 8px' }}
-          >
-            {availableSectionOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+          {/* 3. Section Filter */}
+          <div className="assembly-filter-item-section">
+            <select
+              value={selectedSection}
+              onChange={e => setSelectedSection(e.target.value)}
+              className="form-input"
+            >
+              {availableSectionOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
 
-          {/* 4. Search Bar (Compact) */}
-          <div style={{ position: 'relative', width: '160px', flexShrink: 0 }}>
-            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          {/* 4. Status Quick Filter */}
+          <div className="assembly-filter-item-status">
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="form-input"
+            >
+              <option value="all">সকল স্ট্যাটাস</option>
+              <option value="present">উপস্থিত</option>
+              <option value="absent">অনুপস্থিত</option>
+              <option value="reset">রিসেট/খালি</option>
+            </select>
+          </div>
+
+          {/* 5. Search Bar */}
+          <div className="assembly-filter-item-search">
+            <Search size={14} className="assembly-search-icon" />
             <input
               type="text"
               placeholder="নাম, পিতা বা রোল..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="form-input"
-              style={{ paddingLeft: '30px', height: '34px', fontSize: '0.82rem', width: '100%' }}
             />
           </div>
 
-          {/* 5. Status Quick Filter */}
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="form-input"
-            style={{ width: '115px', height: '34px', fontSize: '0.82rem', padding: '4px 8px' }}
-          >
-            <option value="all">সকল স্ট্যাটাস</option>
-            <option value="present">উপস্থিত</option>
-            <option value="absent">অনুপস্থিত</option>
-            <option value="reset">রিসেট/খালি</option>
-          </select>
-
-          {/* 6. Sorting Controls (Like StudentListPage) */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+          {/* 6. Sorting Controls */}
+          <div className="assembly-filter-item-sort">
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              className="form-input"
-              style={{ width: '125px', height: '34px', fontSize: '0.82rem', padding: '4px 8px' }}
+              className="form-input assembly-sort-select"
               title="সর্ট কলাম নির্বাচন করুন"
             >
               <option value="roll">রোল অনুযায়ী</option>
@@ -1008,8 +1010,7 @@ export default function AssemblyAttendancePage() {
             </select>
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              style={{ height: '34px', padding: '0 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}
+              className="btn btn-secondary btn-sm assembly-sort-btn"
               onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
               title={sortOrder === 'asc' ? 'আরোহী (Ascending) — ক্লিক করে অবরোহী করুন' : 'অবরোহী (Descending) — ক্লিক করে আরোহী করুন'}
             >
@@ -1017,35 +1018,40 @@ export default function AssemblyAttendancePage() {
             </button>
           </div>
 
-          {/* Quick Mark All Buttons */}
+          {/* 7. Quick Mark All Buttons */}
           {canManage && (
-            <div style={{ display: 'flex', gap: '5px', marginLeft: 'auto' }}>
+            <div className="assembly-filter-actions">
               <button
                 type="button"
                 onClick={() => handleMarkAll('present')}
                 className="btn btn-outline btn-xs flex-center gap-4"
-                style={{ color: 'var(--success)', borderColor: 'rgba(16,185,129,0.3)', padding: '5px 8px', fontSize: '0.75rem' }}
+                style={{ color: 'var(--success)', borderColor: 'rgba(16,185,129,0.3)' }}
                 title="সবাই উপস্থিত"
               >
-                <CheckCheck size={12} /> সবাই উপস্থিত
+                <CheckCheck size={12} />
+                <span className="assembly-mark-text-full">সবাই উপস্থিত</span>
+                <span className="assembly-mark-text-short">উপস্থিত</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleMarkAll('absent')}
                 className="btn btn-outline btn-xs flex-center gap-4"
-                style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)', padding: '5px 8px', fontSize: '0.75rem' }}
+                style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}
                 title="সবাই অনুপস্থিত"
               >
-                <UserX size={12} /> সবাই অনুপস্থিত
+                <UserX size={12} />
+                <span className="assembly-mark-text-full">সবাই অনুপস্থিত</span>
+                <span className="assembly-mark-text-short">অনুপস্থিত</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleMarkAll('')}
                 className="btn btn-ghost btn-xs flex-center gap-4"
-                style={{ padding: '5px 8px', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+                style={{ color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
                 title="সবাই রিসেট"
               >
-                <RotateCcw size={12} /> রিসেট
+                <RotateCcw size={12} />
+                <span>রিসেট</span>
               </button>
             </div>
           )}
