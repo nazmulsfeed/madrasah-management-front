@@ -544,8 +544,6 @@ export default function AssemblyAttendancePage() {
       }
     });
 
-    const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="26" viewBox="0 0 24 26" fill="%23cbd5e1"><circle cx="12" cy="8" r="5" fill="%2394a3b8"/><path d="M3 24c0-4.5 4-7 9-7s9 2.5 9 7" fill="%2394a3b8"/></svg>`;
-
     // Build Table Rows dynamically based on user-chosen active columns and their selected sequence
     let rowsHtml = '';
     sortedList.forEach((r, idx) => {
@@ -568,17 +566,29 @@ export default function AssemblyAttendancePage() {
             rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; color: #334155; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.studentCode || '—'}</td>`;
             break;
           case 'photo': {
-            const photoUrl = r.photo;
-            rowsHtml += `
-              <td style="width: 32px; height: 33px; text-align: center; vertical-align: middle; padding: 2px 4px; border: 1px solid #cbd5e1;">
-                <div style="width: 24px; height: 26px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 2px; border: 1px solid #cbd5e1; background: #f8fafc;">
-                  ${photoUrl
-                    ? `<img src="${photoUrl}" alt="ছবি" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.src='${fallbackSvg}';" />`
-                    : `<img src="${fallbackSvg}" alt="অবতার" style="width: 18px; height: 20px; opacity: 0.6; display: block;" />`
-                  }
-                </div>
-              </td>
-            `;
+            const photoUrl = (r.photo && String(r.photo).trim() !== '') ? String(r.photo).trim() : null;
+            const blankAvatarSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+
+            if (photoUrl) {
+              rowsHtml += `
+                <td style="width: 32px; height: 33px; text-align: center; vertical-align: middle; padding: 2px 4px; border: 1px solid #cbd5e1;">
+                  <div style="width: 24px; height: 26px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 2px; border: 1px solid #cbd5e1; background: #f8fafc; position: relative;">
+                    <img src="${photoUrl}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" />
+                    <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;">
+                      ${blankAvatarSvg}
+                    </div>
+                  </div>
+                </td>
+              `;
+            } else {
+              rowsHtml += `
+                <td style="width: 32px; height: 33px; text-align: center; vertical-align: middle; padding: 2px 4px; border: 1px solid #cbd5e1;">
+                  <div style="width: 24px; height: 26px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 2px; border: 1px solid #cbd5e1; background: #f8fafc;">
+                    ${blankAvatarSvg}
+                  </div>
+                </td>
+              `;
+            }
             break;
           }
           case 'name':
@@ -695,6 +705,7 @@ export default function AssemblyAttendancePage() {
         table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
         th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 6px; text-align: center; }
         td { border-bottom: 1px solid #cbd5e1; font-size: 11px; }
+        .header-double-divider { display: none !important; margin: 0 !important; padding: 0 !important; }
         @media print {
           .no-print { display: none !important; }
           body { padding: 0 !important; margin: 0 !important; }
@@ -725,7 +736,7 @@ export default function AssemblyAttendancePage() {
           ${getMadrasahHeaderHtml({ orientation: printOrientation, showWatermark: false })}
 
           <!-- Single aligned line: Left: তারিখ, Center: দৈনিক সমাবেশ..., Right: শ্রেণি -->
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 2px solid #0f172a; margin-top: 4px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 6px; border-bottom: 2px solid #0f172a; margin-top: 2px; margin-bottom: 6px;">
             <div style="font-size: 11.5px; font-weight: 700; color: #1e293b; min-width: 160px; text-align: left;">
               <strong>তারিখ:</strong> ${formattedDate}
             </div>
@@ -752,7 +763,7 @@ export default function AssemblyAttendancePage() {
         </table>
 
         <!-- Footer Signatures (Guaranteed distinct, centered signature lines docked to bottom of last page) -->
-        <div class="footer-wrap" style="width: 100%; padding-top: 24px; page-break-inside: avoid; break-inside: avoid;">
+        <div class="footer-wrap" style="width: 100%; padding-top: 16px; page-break-inside: avoid; break-inside: avoid;">
           <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; width: 100%;">
             ${selectedSignatureRoles.map(role => `
               <div style="flex: 1; text-align: center; min-width: 0; padding: 0 10px;">
@@ -764,10 +775,6 @@ export default function AssemblyAttendancePage() {
                 </div>
               </div>
             `).join('')}
-          </div>
-          <div style="margin-top: 14px; font-size: 8pt; color: #64748b; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
-            <span>মুদ্রণের তারিখ ও সময়: ${new Date().toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' })}</span>
-            <span>আন্-নূর ইসলামিক একাডেমি ডিজিটাল ম্যানেজমেন্ট সিস্টেম</span>
           </div>
         </div>
       </div>
