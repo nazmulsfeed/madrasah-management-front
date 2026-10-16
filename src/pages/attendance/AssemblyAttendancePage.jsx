@@ -38,6 +38,35 @@ function parseCustomId(idStr) {
   return digits ? parseInt(digits, 10) : 999999;
 }
 
+// All available columns for assembly report print sheet in default sequence
+const ALL_PRINT_COLUMNS = [
+  { key: 'serial', label: 'ক্রমিক নং (#)' },
+  { key: 'roll', label: 'রোল নম্বর' },
+  { key: 'id', label: 'স্টুডেন্ট আইডি' },
+  { key: 'photo', label: 'প্রোফাইল ছবি' },
+  { key: 'name', label: 'শিক্ষার্থীর নাম' },
+  { key: 'fatherName', label: 'পিতার নাম' },
+  { key: 'phone', label: 'অভিভাবকের মোবাইল' },
+  { key: 'classSection', label: 'শ্রেণি ও সেকশন' },
+  { key: 'status', label: 'সমাবেশ স্ট্যাটাস' },
+  { key: 'signBox', label: 'স্বাক্ষর বক্স (Sign)' },
+  { key: 'remarks', label: 'মন্তব্য' },
+];
+
+const DEFAULT_PRINT_COLUMN_KEYS = [
+  'serial',
+  'roll',
+  'id',
+  'photo',
+  'name',
+  'fatherName',
+  'phone',
+  'classSection',
+  'status',
+  'signBox',
+  'remarks',
+];
+
 export default function AssemblyAttendancePage() {
   const { user } = useAuthStore();
   const { madrasahName, branchName } = getMadrasahInfo(user);
@@ -81,17 +110,7 @@ export default function AssemblyAttendancePage() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printOrientation, setPrintOrientation] = useState('landscape'); // 'landscape' | 'portrait'
   const [printSortBy, setPrintSortBy] = useState('id_custom'); // 'roll' | 'id_custom' | 'name'
-  const [printColumns, setPrintColumns] = useState({
-    serial: true,
-    roll: true,
-    id: true,
-    name: true,
-    fatherName: true,
-    classSection: true,
-    status: true,
-    signBox: true,
-    remarks: true,
-  });
+  const [activePrintColumns, setActivePrintColumns] = useState(DEFAULT_PRINT_COLUMN_KEYS);
 
   const MAX_SIGNATURE_ROLES = 5;
   const DEFAULT_SIGNATURE_ROLES = [
@@ -482,19 +501,52 @@ export default function AssemblyAttendancePage() {
     const selectedClassDoc = classes.find(c => c._id === selectedClass);
     const classNameStr = selectedClass === 'all' ? 'সকল শ্রেণি' : (selectedClassDoc?.name || selectedClass);
 
-    // Build Table Headers with MS Word style "Autofit to contents" for data columns and flexible wide space for remarks
+    // Build Table Headers dynamically based on user-chosen active columns and their selected sequence
+    // All table headers are strictly center aligned as requested
     let thHtml = '';
-    if (printColumns.serial) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">#</th>`;
-    if (printColumns.roll) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">রোল</th>`;
-    if (printColumns.id) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">আইডি</th>`;
-    if (printColumns.name) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: left; padding: 6px 12px; border: 1px solid #0d9488;">শিক্ষার্থীর নাম</th>`;
-    if (printColumns.fatherName) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: left; padding: 6px 12px; border: 1px solid #0d9488;">পিতার নাম</th>`;
-    if (printColumns.classSection) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">শ্রেণি ও সেকশন</th>`;
-    if (printColumns.status) thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">সমাবেশ স্ট্যাটাস</th>`;
-    if (printColumns.signBox) thHtml += `<th style="width: 85px; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">স্বাক্ষর বক্স</th>`;
-    if (printColumns.remarks) thHtml += `<th style="text-align: left; padding: 6px 10px; border: 1px solid #0d9488;">মন্তব্য</th>`;
+    activePrintColumns.forEach(colKey => {
+      switch (colKey) {
+        case 'serial':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">#</th>`;
+          break;
+        case 'roll':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">রোল</th>`;
+          break;
+        case 'id':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">আইডি</th>`;
+          break;
+        case 'photo':
+          thHtml += `<th style="width: 32px; white-space: nowrap; text-align: center; padding: 6px 4px; border: 1px solid #0d9488;">ছবি</th>`;
+          break;
+        case 'name':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 12px; border: 1px solid #0d9488;">শিক্ষার্থীর নাম</th>`;
+          break;
+        case 'fatherName':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 12px; border: 1px solid #0d9488;">পিতার নাম</th>`;
+          break;
+        case 'phone':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 10px; border: 1px solid #0d9488;">মোবাইল নং</th>`;
+          break;
+        case 'classSection':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">শ্রেণি ও সেকশন</th>`;
+          break;
+        case 'status':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">সমাবেশ স্ট্যাটাস</th>`;
+          break;
+        case 'signBox':
+          thHtml += `<th style="width: 85px; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">স্বাক্ষর বক্স</th>`;
+          break;
+        case 'remarks':
+          thHtml += `<th style="text-align: center; padding: 6px 10px; border: 1px solid #0d9488;">মন্তব্য</th>`;
+          break;
+        default:
+          break;
+      }
+    });
 
-    // Build Table Rows dynamically based on checked columns
+    const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="26" viewBox="0 0 24 26" fill="%23cbd5e1"><circle cx="12" cy="8" r="5" fill="%2394a3b8"/><path d="M3 24c0-4.5 4-7 9-7s9 2.5 9 7" fill="%2394a3b8"/></svg>`;
+
+    // Build Table Rows dynamically based on user-chosen active columns and their selected sequence
     let rowsHtml = '';
     sortedList.forEach((r, idx) => {
       const isPresent = r.status === 'present';
@@ -504,31 +556,66 @@ export default function AssemblyAttendancePage() {
       const statusText = isPresent ? 'উপস্থিত' : isAbsent ? 'অনুপস্থিত' : '—';
 
       rowsHtml += `<tr style="height: 33px;">`;
-      if (printColumns.serial) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${idx + 1}</td>`;
-      if (printColumns.roll) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-weight: bold; font-size: 11.5px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.rollNumber || '—'}</td>`;
-      if (printColumns.id) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; color: #334155; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.studentCode || '—'}</td>`;
-      if (printColumns.name) rowsHtml += `<td style="width: 1%; white-space: nowrap; font-weight: 700; font-size: 11.5px; color: #0f172a; padding: 4px 10px; border: 1px solid #cbd5e1;">${r.studentName}</td>`;
-      if (printColumns.fatherName) rowsHtml += `<td style="width: 1%; white-space: nowrap; font-size: 11px; color: #334155; font-weight: 500; padding: 4px 10px; border: 1px solid #cbd5e1;">${r.fatherName || '—'}</td>`;
-      if (printColumns.classSection) rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.className || '—'}${r.sectionName && r.sectionName !== '—' ? ` (${r.sectionName})` : ''}</td>`;
-      if (printColumns.status) {
-        rowsHtml += `
-          <td style="width: 1%; white-space: nowrap; text-align: center; padding: 4px 6px; border: 1px solid #cbd5e1;">
-            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: ${statusColor}; background: ${statusBg}; border: 1px solid ${statusColor};">
-              ${statusText}
-            </span>
-          </td>
-        `;
-      }
-      if (printColumns.signBox) {
-        rowsHtml += `
-          <td style="width: 85px; height: 33px; border: 1px dashed #94a3b8; background: #fafafa; text-align: center; vertical-align: middle; padding: 2px 4px;">
-            <div style="color: #cbd5e1; font-size: 9px;">স্বাক্ষর</div>
-          </td>
-        `;
-      }
-      if (printColumns.remarks) {
-        rowsHtml += `<td style="font-size: 11px; color: #1e293b; padding: 4px 8px; border: 1px solid #cbd5e1; vertical-align: middle;">${r.remarks || ''}</td>`;
-      }
+      activePrintColumns.forEach(colKey => {
+        switch (colKey) {
+          case 'serial':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${idx + 1}</td>`;
+            break;
+          case 'roll':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-weight: bold; font-size: 11.5px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.rollNumber || '—'}</td>`;
+            break;
+          case 'id':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; color: #334155; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.studentCode || '—'}</td>`;
+            break;
+          case 'photo': {
+            const photoUrl = r.photo;
+            rowsHtml += `
+              <td style="width: 32px; height: 33px; text-align: center; vertical-align: middle; padding: 2px 4px; border: 1px solid #cbd5e1;">
+                <div style="width: 24px; height: 26px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 2px; border: 1px solid #cbd5e1; background: #f8fafc;">
+                  ${photoUrl
+                    ? `<img src="${photoUrl}" alt="ছবি" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.src='${fallbackSvg}';" />`
+                    : `<img src="${fallbackSvg}" alt="অবতার" style="width: 18px; height: 20px; opacity: 0.6; display: block;" />`
+                  }
+                </div>
+              </td>
+            `;
+            break;
+          }
+          case 'name':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; font-weight: 700; font-size: 11.5px; color: #0f172a; padding: 4px 10px; border: 1px solid #cbd5e1;">${r.studentName}</td>`;
+            break;
+          case 'fatherName':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; font-size: 11px; color: #334155; font-weight: 500; padding: 4px 10px; border: 1px solid #cbd5e1;">${r.fatherName || '—'}</td>`;
+            break;
+          case 'phone':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-family: monospace; font-size: 11px; color: #1e293b; padding: 4px 8px; border: 1px solid #cbd5e1;">${r.guardianPhone || r.phone || '—'}</td>`;
+            break;
+          case 'classSection':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.className || '—'}${r.sectionName && r.sectionName !== '—' ? ` (${r.sectionName})` : ''}</td>`;
+            break;
+          case 'status':
+            rowsHtml += `
+              <td style="width: 1%; white-space: nowrap; text-align: center; padding: 4px 6px; border: 1px solid #cbd5e1;">
+                <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: ${statusColor}; background: ${statusBg}; border: 1px solid ${statusColor};">
+                  ${statusText}
+                </span>
+              </td>
+            `;
+            break;
+          case 'signBox':
+            rowsHtml += `
+              <td style="width: 85px; height: 33px; border: 1px dashed #94a3b8; background: #fafafa; text-align: center; vertical-align: middle; padding: 2px 4px;">
+                <div style="color: #cbd5e1; font-size: 9px;">স্বাক্ষর</div>
+              </td>
+            `;
+            break;
+          case 'remarks':
+            rowsHtml += `<td style="font-size: 11px; color: #1e293b; padding: 4px 8px; border: 1px solid #cbd5e1; vertical-align: middle;">${r.remarks || ''}</td>`;
+            break;
+          default:
+            break;
+        }
+      });
       rowsHtml += `</tr>`;
     });
 
@@ -606,7 +693,7 @@ export default function AssemblyAttendancePage() {
           object-fit: contain;
         }
         table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
-        th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 6px; text-align: left; }
+        th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; padding: 6px 6px; text-align: center; }
         td { border-bottom: 1px solid #cbd5e1; font-size: 11px; }
         @media print {
           .no-print { display: none !important; }
@@ -644,7 +731,7 @@ export default function AssemblyAttendancePage() {
             </div>
             <div style="text-align: center; flex: 1;">
               <span style="display: inline-block; font-size: 12.5px; font-weight: 800; color: #0f172a; padding: 3px 14px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px;">
-                📋 দৈনিক সমাবেশ ও শৃঙ্খলা উপস্থিতি বিবরণী (Assembly Attendance Sheet)
+                📋 দৈনিক সমাবেশ ও শৃঙ্খলা উপস্থিতি বিবরণী
               </span>
             </div>
             <div style="font-size: 11.5px; font-weight: 700; color: #1e293b; min-width: 160px; text-align: right;">
@@ -1384,39 +1471,83 @@ export default function AssemblyAttendancePage() {
 
               {/* Column Selection */}
               <div style={{ marginBottom: '18px' }}>
-                <label className="text-xs font-semibold mb-6" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                  <Sliders size={14} color="#0f766e" />
-                  প্রিন্ট শিটে কোন কোন কলাম অন্তর্ভুক্ত করবেন:
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label className="text-xs font-semibold" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                    <Sliders size={14} color="#0f766e" />
+                    প্রিন্ট শিটে কোন কোন কলাম অন্তর্ভুক্ত করবেন:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setActivePrintColumns(DEFAULT_PRINT_COLUMN_KEYS)}
+                    className="btn btn-ghost btn-xs"
+                    style={{ fontSize: '11px', color: '#0f766e', padding: '2px 8px', height: 'auto', textDecoration: 'underline', cursor: 'pointer' }}
+                    title="ডিফল্ট সিরিয়ালে ফিরিয়ে নিন"
+                  >
+                    ডিফল্ট ক্রম রিসেট
+                  </button>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                  {[
-                    { key: 'serial', label: 'ক্রমিক নং (#)' },
-                    { key: 'roll', label: 'রোল নম্বর' },
-                    { key: 'id', label: 'স্টুডেন্ট আইডি' },
-                    { key: 'name', label: 'শিক্ষার্থীর নাম' },
-                    { key: 'fatherName', label: 'পিতার নাম' },
-                    { key: 'classSection', label: 'শ্রেণি ও সেকশন' },
-                    { key: 'status', label: 'সমাবেশ স্ট্যাটাস' },
-                    { key: 'signBox', label: 'স্বাক্ষর বক্স (Sign)' },
-                    { key: 'remarks', label: 'মন্তব্য' },
-                  ].map(col => (
-                    <label
-                      key={col.key}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem',
-                        padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
-                        background: printColumns[col.key] ? 'rgba(16,185,129,0.08)' : 'transparent',
-                        border: '1px solid var(--border-color)',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={printColumns[col.key]}
-                        onChange={e => setPrintColumns({ ...printColumns, [col.key]: e.target.checked })}
-                      />
-                      <span>{col.label}</span>
-                    </label>
-                  ))}
+                  {ALL_PRINT_COLUMNS.map(col => {
+                    const orderIndex = activePrintColumns.indexOf(col.key);
+                    const isChecked = orderIndex !== -1;
+                    const bnDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+                    const toBn = (n) => String(n).replace(/\d/g, d => bnDigits[d]);
+                    return (
+                      <label
+                        key={col.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '6px',
+                          fontSize: '0.82rem',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          background: isChecked ? 'rgba(16,185,129,0.08)' : 'transparent',
+                          border: isChecked ? '1px solid rgba(16,185,129,0.3)' : '1px solid var(--border-color)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setActivePrintColumns(prev => [...prev, col.key]);
+                              } else {
+                                setActivePrintColumns(prev => prev.filter(k => k !== col.key));
+                              }
+                            }}
+                          />
+                          <span>{col.label}</span>
+                        </div>
+                        {isChecked && (
+                          <span
+                            title={`প্রিন্ট শিটে সিরিয়াল: ${orderIndex + 1}`}
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              background: '#0f766e',
+                              color: '#ffffff',
+                              padding: '1px 6px',
+                              borderRadius: '10px',
+                              lineHeight: '1.2',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            #{toBn(orderIndex + 1)}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
+                  * কোনো কলাম আনটিক করে পুনরায় টিক দিলে, টিক দেওয়ার ক্রমানুযায়ী প্রিন্ট শিটে কলামের সিরিয়াল সাজানো হবে।
                 </div>
               </div>
 
