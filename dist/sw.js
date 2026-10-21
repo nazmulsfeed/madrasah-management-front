@@ -9,7 +9,7 @@ if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.
     );
   });
 } else {
-  const CACHE_NAME = 'annur-academy-cache-v22'; // Guaranteed fresh navigation & no stale HTML caching
+  const CACHE_NAME = 'annur-academy-cache-v23'; // Guaranteed fresh navigation & no stale HTML caching
   const urlsToCache = [
     '/manifest.json?v=3',
     '/favicon.png?v=3',

@@ -12,8 +12,8 @@
   RewriteRule ^api/ - [L]
 
   # 1.1 Proxy/Rewrite /iclock requests to the Node.js API route
-  RewriteRule ^iclock/cdata$ /api/v1/attendance/iclock/cdata [PT,L]
-  RewriteRule ^iclock/cdata/(.*)$ /api/v1/attendance/iclock/cdata/$1 [PT,L]
+  RewriteRule ^iclock/(.*)$ /api/v1/attendance/iclock/$1 [PT,L]
+  RewriteRule ^iclock$ /api/v1/attendance/iclock/cdata [PT,L]
 
   # 2. Route all other requests to index.html (React Router)
   RewriteRule ^index\.html$ - [L]
