@@ -2,6 +2,12 @@
   RewriteEngine On
   RewriteBase /
 
+  # 0. Redirect all HTTP traffic to HTTPS EXCEPT for ZKTeco hardware push routes (/iclock)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{REQUEST_URI} !^/iclock [NC]
+  RewriteCond %{REQUEST_URI} !^/api/v1/attendance/iclock [NC]
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
   # 1. Let Passenger handle /api requests without any interference
   RewriteRule ^api/ - [L]
 
