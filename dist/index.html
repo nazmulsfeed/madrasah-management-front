@@ -13,8 +13,9 @@
     <link rel="manifest" href="/manifest.json?v=3" />
 
     <script>
-      // Global recovery handler for chunk loading errors (e.g. 404 from stale service worker cache)
+      // Global recovery handler for chunk loading errors (e.g. 404 from stale service worker cache on production)
       window.addEventListener('error', function(e) {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return;
         var target = e.target;
         if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
           console.warn('Critical bundle failed to load:', target.src || target.href);
@@ -35,22 +36,37 @@
         }
       }, true);
     </script>
-    <script type="module" crossorigin src="/assets/index-B3StC5FF.js"></script>
+    <script type="module" crossorigin src="/assets/index-C2MB_6BQ.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D8aPXPu_.css">
   </head>
   <body>
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => {
-              console.log('Service Worker Registered!');
-              // Proactively check for updates immediately on every app visit
-              reg.update();
-            })
-            .catch(err => console.log('Service Worker registration failed: ', err));
-        });
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          // Dev mode on local PC: unregister any leftover service workers
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          });
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              names.forEach(function(name) { caches.delete(name); });
+            });
+          }
+        } else {
+          // Production: register service worker as normal
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then(reg => {
+                console.log('Service Worker Registered!');
+                // Proactively check for updates immediately on every app visit
+                reg.update();
+              })
+              .catch(err => console.log('Service Worker registration failed: ', err));
+          });
+        }
       }
     </script>
   </body>

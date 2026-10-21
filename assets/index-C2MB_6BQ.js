@@ -1906,9 +1906,9 @@ ${(qr=ce[Ye])==null?void 0:qr.punchTimes.map((na,Pa)=>`${Pa+1}. ${na}`).join(`
 
         <!-- Footer Signatures (Guaranteed distinct, centered signature lines docked to bottom of last page) -->
         <div class="footer-wrap" style="width: 100%; padding-top: 16px; page-break-inside: avoid; break-inside: avoid;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; width: 100%;">
+          <div style="display: flex; justify-content: ${Y.length===1?"flex-end":"space-between"}; align-items: flex-end; gap: 16px; width: 100%;">
             ${Y.map(de=>`
-              <div style="flex: 1; text-align: center; min-width: 0; padding: 0 10px;">
+              <div style="${Y.length===1?"flex: 0 0 calc((100% - 32px) / 3);":"flex: 1;"} text-align: center; min-width: 0; padding: 0 10px;">
                 <div style="border-top: 1.5px solid #0f172a; width: 175px; max-width: 90%; margin: 0 auto; padding-top: 5px; font-weight: 700; font-size: 11.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   ${de}
                 </div>
