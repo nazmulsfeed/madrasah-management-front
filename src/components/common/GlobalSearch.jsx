@@ -396,25 +396,34 @@ export default function GlobalSearch() {
                         width: '34px',
                         height: '34px',
                         borderRadius: '50%',
-                        background: 'var(--primary-600, #0d9488)',
-                        color: '#fff',
+                        background: student.photo ? 'transparent' : 'var(--bg-secondary, #f8fafc)',
+                        border: student.photo ? 'none' : '1px solid var(--border-color, #cbd5e1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
                         flexShrink: 0,
+                        position: 'relative',
                       }}
                     >
                       {student.photo ? (
-                        <img
-                          src={student.photo}
-                          alt={student.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        <>
+                          <img
+                            src={student.photo}
+                            alt={student.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={16} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                          </div>
+                        </>
                       ) : (
-                        student.name?.charAt(0) || 'S'
+                        <User size={16} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                       )}
                     </div>
                     <div>
@@ -511,25 +520,34 @@ export default function GlobalSearch() {
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: '#6366f1',
-                        color: '#fff',
+                        background: teacher.photo ? 'transparent' : 'var(--bg-secondary, #f8fafc)',
+                        border: teacher.photo ? 'none' : '1px solid var(--border-color, #cbd5e1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
-                        fontWeight: 600,
-                        fontSize: '0.85rem',
                         flexShrink: 0,
+                        position: 'relative',
                       }}
                     >
                       {teacher.photo ? (
-                        <img
-                          src={teacher.photo}
-                          alt={teacher.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        <>
+                          <img
+                            src={teacher.photo}
+                            alt={teacher.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={16} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                          </div>
+                        </>
                       ) : (
-                        <User size={16} />
+                        <User size={16} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                       )}
                     </div>
                     <div>

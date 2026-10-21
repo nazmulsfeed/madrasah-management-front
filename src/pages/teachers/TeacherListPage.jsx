@@ -772,9 +772,23 @@ export default function TeacherListPage() {
                 title={teacher.user?.photo ? 'ছবি বড় করে দেখতে ক্লিক করুন' : `${teacher.user?.firstName || ''} ${teacher.user?.lastName || ''}`}
               >
                 {teacher.user?.photo ? (
-                  <img src={teacher.user.photo} alt={teacher.user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <>
+                    <img 
+                      src={teacher.user.photo} 
+                      alt={teacher.user.firstName} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={32} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                    </div>
+                  </>
                 ) : (
-                  <User size={32} style={{ color: 'var(--text-muted)' }} />
+                  <User size={32} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                 )}
               </div>
               <h3 style={{ fontSize: '1.125rem' }}>{teacher.user?.firstName} {teacher.user?.lastName}</h3>

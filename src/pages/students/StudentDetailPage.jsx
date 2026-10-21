@@ -434,7 +434,7 @@ export default function StudentDetailPage() {
             <div
               className="avatar xl"
               style={{
-                background: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))',
+                background: (student.photo || student.user?.photo) ? 'transparent' : 'var(--bg-secondary, #f8fafc)',
                 fontSize: '1.8rem',
                 flexShrink: 0,
                 overflow: 'hidden',
@@ -442,18 +442,28 @@ export default function StudentDetailPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                border: '2px solid var(--border-color, #e2e8f0)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                border: '2px solid var(--border-color, #cbd5e1)',
               }}
             >
               {(student.photo || student.user?.photo) ? (
-                <img 
-                  src={student.photo || student.user?.photo} 
-                  alt={name} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                />
+                <>
+                  <img 
+                    src={student.photo || student.user?.photo} 
+                    alt={name} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <User size={46} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                  </div>
+                </>
               ) : (
-                name.charAt(0)
+                <User size={46} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
               )}
               {uploadingDirectPhoto && (
                 <div style={{

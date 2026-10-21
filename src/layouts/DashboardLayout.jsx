@@ -12,6 +12,7 @@ import {
   Download,
   ArrowLeft,
   BookOpen,
+  User,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { getVisibleNavigation } from '../utils/navigationConfig';
@@ -210,13 +211,23 @@ export default function DashboardLayout() {
             >
               <div className="sidebar-user-avatar" style={{ overflow: 'hidden' }}>
                 {user?.photo ? (
-                  <img 
-                    src={user.photo} 
-                    alt="User" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
-                  />
+                  <>
+                    <img 
+                      src={user.photo} 
+                      alt="User" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={18} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                    </div>
+                  </>
                 ) : (
-                  userInitial
+                  <User size={18} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                 )}
               </div>
               <div className="sidebar-user-info" style={{ overflow: 'hidden' }}>

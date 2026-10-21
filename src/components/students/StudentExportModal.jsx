@@ -677,9 +677,15 @@ export default function StudentExportModal({
             <td class="sl-cell">${idx + 1}</td>
             ${cols.map(c => {
               if (c.id === 'photo') {
-                const photoUrl = row.photo;
+                const photoUrl = (row.photo && String(row.photo).trim() !== '') ? String(row.photo).trim() : null;
+                const blankAvatarSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
                 return `<td style="text-align:center; padding:2px; width:44px;">
-                  ${photoUrl ? `<img src="${photoUrl}" alt="ছবি" style="width:28px; height:32px; object-fit:cover; border-radius:3px; border:1px solid #cbd5e1; display:inline-block; vertical-align:middle;" onerror="this.parentElement.innerHTML='—'" />` : '<span style="color:#94a3b8; font-size:11px;">—</span>'}
+                  <div style="width:24px; height:26px; margin:0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:2px; border:1px solid #cbd5e1; background:#f8fafc; position:relative;">
+                    ${photoUrl
+                      ? `<img src="${photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" /><div style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">${blankAvatarSvg}</div>`
+                      : `${blankAvatarSvg}`
+                    }
+                  </div>
                 </td>`;
               }
               const val = row[c.id] || '—';

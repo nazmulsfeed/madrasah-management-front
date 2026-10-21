@@ -393,9 +393,23 @@ export default function GuardianListPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--bg-secondary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border-color)' }}>
                         {guardian.user?.photo ? (
-                          <img src={guardian.user.photo} alt={guardian.user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <>
+                            <img 
+                              src={guardian.user.photo} 
+                              alt={guardian.user.firstName} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                              <User size={18} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                            </div>
+                          </>
                         ) : (
-                          <User size={18} style={{ opacity: 0.4 }} />
+                          <User size={18} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                         )}
                       </div>
                       <div>

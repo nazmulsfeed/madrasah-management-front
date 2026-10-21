@@ -15,6 +15,7 @@ import {
   ZoomIn,
   Maximize2,
   ExternalLink,
+  User,
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
@@ -716,14 +717,11 @@ export default function StudentListPage() {
                           flexShrink: 0,
                           cursor: studentPhoto ? 'pointer' : 'default',
                           position: 'relative',
-                          background: studentPhoto ? '#1e293b' : getAvatarColor(name),
+                          background: studentPhoto ? '#1e293b' : 'var(--bg-secondary, #f8fafc)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#fff',
-                          fontWeight: 700,
-                          fontSize: '1rem',
-                          border: studentPhoto ? '2px solid rgba(16, 185, 129, 0.5)' : 'none',
+                          border: studentPhoto ? '2px solid rgba(16, 185, 129, 0.5)' : '1.5px solid var(--border-color, #cbd5e1)',
                         }}
                         title={studentPhoto ? 'ছবি বড় করে দেখতে ক্লিক করুন' : name}
                       >
@@ -735,18 +733,19 @@ export default function StudentListPage() {
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
-                                if (e.currentTarget.parentElement) {
-                                  e.currentTarget.parentElement.style.background = getAvatarColor(name);
-                                  e.currentTarget.parentElement.innerText = name.charAt(0);
-                                }
+                                const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                                if (fallback) fallback.style.display = 'flex';
                               }}
                             />
                             <div style={{ position: 'absolute', bottom: 0, right: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '50%', padding: '2px' }}>
                               <ZoomIn size={10} color="#fff" />
                             </div>
+                            <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                              <User size={24} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                            </div>
                           </>
                         ) : (
-                          name.charAt(0)
+                          <User size={24} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                         )}
                       </div>
 
@@ -912,7 +911,7 @@ export default function StudentListPage() {
                             <div
                               className="student-avatar-wrap"
                               style={{ 
-                                background: studentPhoto ? 'transparent' : getAvatarColor(name),
+                                background: studentPhoto ? 'transparent' : 'var(--bg-secondary, #f8fafc)',
                                 cursor: studentPhoto ? 'pointer' : 'default',
                                 position: 'relative',
                                 width: '42px',
@@ -923,10 +922,7 @@ export default function StudentListPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#fff',
-                                fontWeight: 700,
-                                fontSize: '0.9rem',
-                                border: studentPhoto ? '2px solid rgba(16, 185, 129, 0.45)' : 'none',
+                                border: studentPhoto ? '2px solid rgba(16, 185, 129, 0.45)' : '1.5px solid var(--border-color, #cbd5e1)',
                                 boxShadow: studentPhoto ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
                                 transition: 'all 0.2s ease',
                               }}
@@ -970,10 +966,8 @@ export default function StudentListPage() {
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none';
-                                      if (e.currentTarget.parentElement) {
-                                        e.currentTarget.parentElement.style.background = getAvatarColor(name);
-                                        e.currentTarget.parentElement.innerText = name.charAt(0);
-                                      }
+                                      const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                                      if (fallback) fallback.style.display = 'flex';
                                     }}
                                   />
                                   <div
@@ -992,9 +986,12 @@ export default function StudentListPage() {
                                   >
                                     <ZoomIn size={16} />
                                   </div>
+                                  <div className="avatar-fallback" style={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                                    <User size={22} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
+                                  </div>
                                 </>
                               ) : (
-                                name.charAt(0)
+                                <User size={22} strokeWidth={1.75} style={{ color: '#94a3b8' }} />
                               )}
                             </div>
                             <div>
