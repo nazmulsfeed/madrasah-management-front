@@ -28,6 +28,7 @@ import {
   Bell,
   MessageSquare,
   Library,
+  Utensils,
   Home,
   Settings,
   Cpu,
@@ -230,7 +231,9 @@ export function getVisibleNavigation(user, permissions = {}) {
 
       if (item.path === '/hostel') {
         if (isSuperOrAdmin) return true;
-        return permissions.can_view_hostel;
+        if (['principal', 'vice_principal', 'teacher', 'hifz_teacher', 'hostel_manager'].includes(user?.userType)) return true;
+        if (user?.userType === 'student' || user?.userType === 'guardian') return true;
+        return Boolean(permissions?.can_view_hostel || permissions?.can_manage_hostel);
       }
 
       if (item.path === '/settings') {
@@ -266,6 +269,13 @@ export function getVisibleNavigation(user, permissions = {}) {
           ...item,
           path: '/student-profile',
           label: user?.userType === 'guardian' ? 'সন্তানের প্রোফাইল' : 'আমার প্রোফাইল',
+        };
+      }
+      if (item.path === '/hostel' && (user?.userType === 'student' || user?.userType === 'guardian')) {
+        return {
+          ...item,
+          label: 'খাবার রুটিন',
+          icon: Utensils,
         };
       }
       return item;

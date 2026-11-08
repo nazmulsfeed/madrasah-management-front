@@ -83,6 +83,8 @@ export default function StudentListPage() {
   const [classFilter, setClassFilter] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [residentialStatusFilter, setResidentialStatusFilter] = useState('');
   const [selectedSectionName, setSelectedSectionName] = useState('');
   const [previewStudent, setPreviewStudent] = useState(null);
 
@@ -121,6 +123,8 @@ export default function StudentListPage() {
       if (statusFilter) params.status = statusFilter;
       if (classFilter) params.classLevel = classFilter;
       if (branchFilter) params.branch = branchFilter;
+      if (departmentFilter) params.department = departmentFilter;
+      if (residentialStatusFilter) params.residentialStatus = residentialStatusFilter;
       params.sortBy = sortBy;
       params.sortOrder = sortOrder;
 
@@ -198,7 +202,7 @@ export default function StudentListPage() {
 
   useEffect(() => {
     fetchStudents();
-  }, [page, limit, statusFilter, classFilter, sectionFilter, branchFilter, debouncedSearch, sortBy, sortOrder]);
+  }, [page, limit, statusFilter, classFilter, sectionFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch, sortBy, sortOrder]);
 
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
@@ -324,6 +328,14 @@ export default function StudentListPage() {
       });
     }
 
+    if (departmentFilter) {
+      list = list.filter(student => student.department === departmentFilter);
+    }
+
+    if (residentialStatusFilter) {
+      list = list.filter(student => student.residentialStatus === residentialStatusFilter);
+    }
+
     const cleanSearch = (debouncedSearch || '').trim();
     const cleanNum = parseBnEnNumber(cleanSearch);
     const isPureNumeric = cleanNum !== null && /^[0-9০-৯\s]+$/.test(cleanSearch);
@@ -402,7 +414,7 @@ export default function StudentListPage() {
     });
 
     return list;
-  }, [students, sortBy, sortOrder, classFilter, statusFilter, branchFilter, debouncedSearch]);
+  }, [students, sortBy, sortOrder, classFilter, statusFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch]);
 
   const SortIcon = ({ col }) => {
     if (sortBy !== col) return <span style={{ opacity: 0.3, fontSize: '0.7rem', marginLeft: '4px' }}>⇅</span>;
@@ -553,6 +565,40 @@ export default function StudentListPage() {
 
             <select
               className="form-input form-select"
+              value={departmentFilter}
+              onChange={(e) => {
+                setDepartmentFilter(e.target.value);
+                setPage(1);
+              }}
+              title="বিভাগ ফিল্টার"
+            >
+              <option value="">সকল বিভাগ</option>
+              <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
+              <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
+              <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+              <option value="নুরানী বিভাগ">নুরানী বিভাগ</option>
+              <option value="উর্দু জামাত">উর্দু জামাত</option>
+              <option value="তাইসীর জামাত">তাইসীর জামাত</option>
+              <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
+            </select>
+
+            <select
+              className="form-input form-select"
+              value={residentialStatusFilter}
+              onChange={(e) => {
+                setResidentialStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              title="আবাসিক অবস্থা ফিল্টার"
+            >
+              <option value="">সকল আবাসন</option>
+              <option value="residential">আবাসিক</option>
+              <option value="non-residential">অনাবাসিক</option>
+              <option value="day_care">ডে-কেয়ার</option>
+            </select>
+
+            <select
+              className="form-input form-select"
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -601,7 +647,7 @@ export default function StudentListPage() {
             </div>
 
             {/* সক্রিয় ফিল্টার রিসেট বাটন */}
-            {(classFilter || selectedSectionName || branchFilter || statusFilter) && (
+            {(classFilter || selectedSectionName || branchFilter || departmentFilter || residentialStatusFilter || statusFilter) && (
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
@@ -609,6 +655,8 @@ export default function StudentListPage() {
                   setClassFilter('');
                   setSelectedSectionName('');
                   setBranchFilter('');
+                  setDepartmentFilter('');
+                  setResidentialStatusFilter('');
                   setStatusFilter('');
                   setPage(1);
                 }}
@@ -1297,6 +1345,8 @@ export default function StudentListPage() {
           classLevel: classFilter,
           branch: branchFilter,
           section: sectionFilter,
+          department: departmentFilter,
+          residentialStatus: residentialStatusFilter,
         }}
         selectedIds={selectedIds}
         classes={classes}

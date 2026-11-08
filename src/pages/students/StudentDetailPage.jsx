@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Mail, Phone, Calendar, BookOpen, CreditCard,
   ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle,
-  Eye, EyeOff, Key, Camera, Trash2, Clock
+  Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
@@ -11,6 +11,9 @@ import useAuthStore from '../../store/authStore';
 import ImageCropModal from '../../components/common/ImageCropModal';
 import AuditBadge from '../../components/common/AuditBadge';
 import { formatDateDDMMYYYY } from '../../utils/helpers';
+import { getTelegramLink } from '../../utils/phoneNormalizer';
+import StudentResultView from '../../components/students/StudentResultView';
+import MealRoutineView from '../../components/hostel/MealRoutineView';
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -18,7 +21,7 @@ export default function StudentDetailPage() {
   const location = useLocation();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('info');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'info');
   const [toast, setToast] = useState(null);
   const [branches, setBranches] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
@@ -373,12 +376,16 @@ export default function StudentDetailPage() {
   const name = student.user?.fullName ||
     `${student.user?.firstName || ''} ${student.user?.lastName || ''}`.trim();
   const enrollment = student.currentEnrollment;
+  const studentPhone = student.user?.phone || student.phone || student.guardianPhone || '';
+  const telegramLink = getTelegramLink(studentPhone);
 
   const tabs = [
     { id: 'info', label: 'ব্যক্তিগত তথ্য', icon: User },
     { id: 'academic', label: 'একাডেমিক', icon: BookOpen },
+    { id: 'results', label: 'পরীক্ষার ফলাফল', icon: Award },
     { id: 'attendance', label: 'উপস্থিতি', icon: ClipboardCheck },
     { id: 'fees', label: 'ফি', icon: CreditCard },
+    ...(student.residentialStatus === 'residential' ? [{ id: 'meal_routine', label: 'খাবার রুটিন', icon: Utensils }] : [])
   ];
 
   const statusMap = {
@@ -551,9 +558,34 @@ export default function StudentDetailPage() {
                 <Mail size={14} style={{ color: 'var(--text-muted)' }} />
                 <span className="text-sm">{student.user?.email || '—'}</span>
               </div>
-              <div className="flex gap-8" style={{ alignItems: 'center' }}>
+              <div className="flex gap-8" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 <Phone size={14} style={{ color: 'var(--text-muted)' }} />
-                <span className="text-sm">{student.user?.phone || '—'}</span>
+                <span className="text-sm">{studentPhone || '—'}</span>
+                {telegramLink && (
+                  <a
+                    href={telegramLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm"
+                    style={{
+                      background: '#0088cc',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '16px',
+                      padding: '2px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      textDecoration: 'none'
+                    }}
+                    title="টেলিগ্রামের মাধ্যমে যোগাযোগ করুন"
+                  >
+                    <Send size={11} />
+                    <span>যোগাযোগ</span>
+                  </a>
+                )}
               </div>
               <div className="flex gap-8" style={{ alignItems: 'center' }}>
                 <GraduationCap size={14} style={{ color: 'var(--text-muted)' }} />
@@ -766,8 +798,35 @@ export default function StudentDetailPage() {
                 <div className="font-semibold">{student.user?.email || '—'}</div>
               </div>
               <div>
-                <div className="text-sm text-muted mb-4">ফোন</div>
-                <div className="font-semibold">{student.user?.phone || '—'}</div>
+                <div className="text-sm text-muted mb-4">ফোন ও যোগাযোগ</div>
+                <div className="font-semibold" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>{studentPhone || '—'}</span>
+                  {telegramLink && (
+                    <a
+                      href={telegramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm"
+                      style={{
+                        background: '#0088cc',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '16px',
+                        padding: '3px 12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        textDecoration: 'none'
+                      }}
+                      title="টেলিগ্রামে মেসেজ করুন"
+                    >
+                      <Send size={12} />
+                      <span>টেলিগ্রাম যোগাযোগ</span>
+                    </a>
+                  )}
+                </div>
               </div>
               <div>
                 <div className="text-sm text-muted mb-4">আবাসিক অবস্থা (Residential Status)</div>
@@ -1180,6 +1239,14 @@ export default function StudentDetailPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'results' && (
+          <StudentResultView studentId={student._id} />
+        )}
+
+        {activeTab === 'meal_routine' && student.residentialStatus === 'residential' && (
+          <MealRoutineView readOnly={true} isStudentView={true} />
         )}
       </div>
 

@@ -13,6 +13,19 @@ import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignatu
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 
 export default function TeacherAttendancePage() {
+  const getStaffDesignation = (t) => {
+    if (!t) return 'শিক্ষক';
+    const isFemale = (t.gender || t.user?.gender) === 'female';
+    const des = (t.designation || '').trim();
+    if (t.teacherType === 'hifz' || des.includes('হিফজ') || des.includes('হিফয')) {
+      return isFemale ? 'হিফজ শিক্ষিকা' : 'হিফজ শিক্ষক';
+    }
+    if (!des || des === 'শিক্ষক' || des === 'শিক্ষিকা' || des === 'সাধারণ শিক্ষক') {
+      return isFemale ? 'শিক্ষিকা' : 'শিক্ষক';
+    }
+    return des;
+  };
+
   const { user } = useAuthStore();
   const { madrasahName, branchName } = getMadrasahInfo(user);
 
@@ -602,7 +615,7 @@ export default function TeacherAttendancePage() {
       if (printColumns.serial) rowsHtml += `<td style="text-align: center; font-family: monospace; font-size: 11px;">${idx + 1}</td>`;
       if (printColumns.id) rowsHtml += `<td style="text-align: center; font-family: monospace; font-size: 11px; color: #475569;">${r.deviceUserId || r.teacherId?.slice(-6) || '—'}</td>`;
       if (printColumns.name) rowsHtml += `<td style="font-weight: 700; font-size: 12px; color: #0f172a;">${r.name}</td>`;
-      if (printColumns.designation) rowsHtml += `<td style="font-size: 11px; color: #334155;">${r.designation || 'শিক্ষক'}</td>`;
+      if (printColumns.designation) rowsHtml += `<td style="font-size: 11px; color: #334155;">${getStaffDesignation(r)}</td>`;
       if (printColumns.phone) rowsHtml += `<td style="text-align: center; font-family: monospace; font-size: 11px; color: #475569;">${r.phone || '—'}</td>`;
       if (printColumns.status) {
         rowsHtml += `
@@ -1049,7 +1062,7 @@ export default function TeacherAttendancePage() {
                             <div>
                               <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>{t.name}</div>
                               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.2 }}>
-                                {t.designation || 'শিক্ষক'} {t.deviceUserId ? `[${t.deviceUserId}]` : ''}
+                                {getStaffDesignation(t)} {t.deviceUserId ? `[${t.deviceUserId}]` : ''}
                               </div>
                             </div>
                           </div>
@@ -1276,7 +1289,7 @@ export default function TeacherAttendancePage() {
                         </td>
                         <td style={{ position: 'sticky', left: '35px', background: 'var(--bg-card)', zIndex: 2, padding: '4px 8px' }}>
                           <div style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>{t.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.2 }}>{t.designation || 'শিক্ষক'}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.2 }}>{getStaffDesignation(t)}</div>
                         </td>
                         {dateRangeList.map(dStr => {
                           const status = matrixAttendance[t.teacherId]?.[dStr]?.status || 'present';

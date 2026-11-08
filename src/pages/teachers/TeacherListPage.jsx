@@ -120,6 +120,7 @@ export default function TeacherListPage() {
     teacherId: '',
     teacherType: 'regular',
     branch: '',
+    gender: 'male',
     userType: 'teacher',
     customUserType: '',
     designation: '',
@@ -146,15 +147,44 @@ export default function TeacherListPage() {
     library_manager: 'লাইব্রেরি ম্যানেজার',
   };
 
-  const getCombinedRoleBadge = (targetUser) => {
+  const getTeacherDisplayRole = (teacher) => {
+    if (!teacher) return 'শিক্ষক';
+    const gender = (teacher.gender || teacher.user?.gender || 'male').toLowerCase();
+    const isFemale = gender === 'female';
+    const rawDesig = (teacher.designation || '').trim();
+    const uType = teacher.user?.userType || '';
+    const tType = teacher.teacherType || '';
+
+    // Check if Hifz teacher
+    if (uType === 'hifz_teacher' || tType === 'hifz' || rawDesig.includes('হিফজ') || rawDesig.includes('হিফয')) {
+      return isFemale ? 'হিফজ শিক্ষিকা' : 'হিফজ শিক্ষক';
+    }
+
+    // Check if General / Regular teacher
+    if (uType === 'teacher' || tType === 'regular' || tType === 'guest' || !rawDesig || rawDesig === 'শিক্ষক' || rawDesig === 'শিক্ষিকা' || rawDesig === 'সাধারণ শিক্ষক') {
+      return isFemale ? 'শিক্ষিকা' : 'শিক্ষক';
+    }
+
+    return rawDesig;
+  };
+
+  const getCombinedRoleBadge = (targetUser, teacherGender = 'male') => {
     if (!targetUser) return 'শিক্ষক';
     const pType = targetUser.userType;
     const aRole = targetUser.adminRole;
-    const pLabel = userTypeLabels[pType] || pType || 'স্টাফ';
+    const gender = (targetUser.gender || teacherGender || 'male').toLowerCase();
+    const isFemale = gender === 'female';
 
+    const getRoleLabel = (type) => {
+      if (type === 'teacher') return isFemale ? 'শিক্ষিকা' : 'শিক্ষক';
+      if (type === 'hifz_teacher') return isFemale ? 'হিফজ শিক্ষিকা' : 'হিফজ শিক্ষক';
+      return userTypeLabels[type] || type || (isFemale ? 'শিক্ষিকা' : 'স্টাফ');
+    };
+
+    const pLabel = getRoleLabel(pType);
     if (pType === 'super_admin') return 'সুপার অ্যাডমিন';
     if (aRole && aRole !== pType) {
-      const aLabel = userTypeLabels[aRole] || aRole;
+      const aLabel = getRoleLabel(aRole);
       return `${pLabel} + ${aLabel}`;
     }
     return pLabel;
@@ -238,7 +268,7 @@ export default function TeacherListPage() {
   const resetForm = () => {
     setFormData({
       firstName: '', lastName: '', email: '', phone: '',
-      username: '', teacherId: '', teacherType: 'regular', branch: '', userType: 'teacher', customUserType: '', designation: '', baseSalary: '', password: '', photo: ''
+      username: '', teacherId: '', teacherType: 'regular', branch: '', gender: 'male', userType: 'teacher', customUserType: '', designation: '', baseSalary: '', password: '', photo: ''
     });
   };
 
@@ -259,6 +289,7 @@ export default function TeacherListPage() {
       teacherId: teacher.employeeId || '',
       teacherType: teacher.teacherType || 'regular',
       branch: teacher.branch || teacher.user?.branch || '',
+      gender: teacher.gender || teacher.user?.gender || 'male',
       userType: isKnown ? existingType : 'other',
       customUserType: isKnown ? '' : existingType,
       designation: teacher.designation || '',
@@ -456,7 +487,7 @@ export default function TeacherListPage() {
           <td style="text-align: center;">${idx + 1}</td>
           <td>${t.employeeId || '—'}</td>
           <td><strong>${t.user?.firstName || ''} ${t.user?.lastName || ''}</strong></td>
-          <td>${t.designation || '—'}</td>
+          <td>${getTeacherDisplayRole(t)}</td>
           <td>${t.teacherType === 'regular' ? 'জেনারেল' : t.teacherType === 'hifz' ? `হিফজ (${(t.branch || t.user?.branch || '').includes('বালিকা') ? 'বালিকা শাখা' : 'বালক শাখা'})` : t.teacherType === 'guest' ? 'গেস্ট' : 'স্টাফ'}</td>
           <td>${userTypeLabels[t.user?.userType] || t.user?.userType || '—'}</td>
           <td>${t.user?.phone || '—'}</td>
@@ -747,7 +778,7 @@ export default function TeacherListPage() {
                     setPreviewTeacher({
                       photo: teacher.user.photo,
                       name: `${teacher.user?.firstName || ''} ${teacher.user?.lastName || ''}`.trim() || 'শিক্ষক',
-                      designation: teacher.designation || userTypeLabels[teacher.user?.userType] || 'স্টাফ',
+                      designation: getTeacherDisplayRole(teacher),
                       employeeId: teacher.employeeId,
                       phone: teacher.user?.phone,
                       email: teacher.user?.email,
@@ -792,10 +823,10 @@ export default function TeacherListPage() {
                 )}
               </div>
               <h3 style={{ fontSize: '1.125rem' }}>{teacher.user?.firstName} {teacher.user?.lastName}</h3>
-              <p className="text-sm text-primary mb-4">{teacher.designation || userTypeLabels[teacher.user?.userType] || 'স্টাফ'}</p>
+              <p className="text-sm text-primary mb-4">{getTeacherDisplayRole(teacher)}</p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
                 <span className="badge badge-info" style={{ fontSize: '0.688rem', padding: '2px 8px' }}>
-                  রোল: {getCombinedRoleBadge(teacher.user)}
+                  রোল: {getCombinedRoleBadge(teacher.user, teacher.gender)}
                 </span>
                 <span className="badge badge-muted" style={{ fontSize: '0.688rem', padding: '2px 8px' }}>
                   বিভাগ: {teacher.teacherType === 'hifz'
@@ -982,8 +1013,16 @@ export default function TeacherListPage() {
                   <input type="text" name="teacherId" className="form-input" value={formData.teacherId} onChange={handleChange} placeholder="যেমন: STF-1001" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">পদবি</label>
+                  <label className="form-label">পদবি (ঐচ্ছিক)</label>
                   <input type="text" name="designation" className="form-input" placeholder="যেমন: লাইব্রেরিয়ান / হিসাবরক্ষক" value={formData.designation} onChange={handleChange} />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700, color: '#0f766e' }}>লিঙ্গ (Gender) *</label>
+                  <select name="gender" className="form-input" required value={formData.gender || 'male'} onChange={handleChange}>
+                    <option value="male">পুরুষ (Male) — শিক্ষক / হিফজ শিক্ষক</option>
+                    <option value="female">মহিলা (Female) — শিক্ষিকা / হিফজ শিক্ষিকা</option>
+                  </select>
                 </div>
 
                 <div className="form-group">

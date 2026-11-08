@@ -16,16 +16,25 @@ export default function StudentPromotionPage() {
   const [academicYears, setAcademicYears] = useState([]);
   const [classLevels, setClassLevels] = useState([]);
   const [sections, setSections] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [termExams, setTermExams] = useState([]);
 
   // Source selection states
   const [sourceYear, setSourceYear] = useState('');
   const [sourceClass, setSourceClass] = useState('');
   const [sourceSection, setSourceSection] = useState('');
+  const [sourceBranch, setSourceBranch] = useState('');
+  const [sourceDepartment, setSourceDepartment] = useState('');
+  const [sourceResidential, setSourceResidential] = useState('');
+  const [selectedTermExamId, setSelectedTermExamId] = useState('');
 
   // Destination selection states
   const [destYear, setDestYear] = useState('');
   const [destClass, setDestClass] = useState('');
   const [destSection, setDestSection] = useState('');
+  const [destBranch, setDestBranch] = useState('');
+  const [destDepartment, setDestDepartment] = useState('');
+  const [destResidential, setDestResidential] = useState('');
 
   // Candidates
   const [candidates, setCandidates] = useState([]);
@@ -45,18 +54,33 @@ export default function StudentPromotionPage() {
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
-        const [yearsRes, classesRes, sectionsRes] = await Promise.all([
+        const [yearsRes, classesRes, secRes, branchRes, examsRes] = await Promise.all([
           api.get('/students/academic-years'),
           api.get('/students/classes'),
-          api.get('/teachers') // we can get sections, wait let's query sections
+          api.get('/students/sections'),
+          api.get('/students/branches'),
+          api.get('/exams')
         ]);
 
-        if (yearsRes.data.success) setAcademicYears(yearsRes.data.data.academicYears || []);
+        if (yearsRes.data.success) {
+          const list = yearsRes.data.data.academicYears || [];
+          setAcademicYears(list);
+          const curr = list.find(y => y.isCurrent);
+          if (curr) setSourceYear(curr._id);
+        }
         if (classesRes.data.success) setClassLevels(classesRes.data.data.classes || []);
-        
-        // Fetch sections
-        const secRes = await api.get('/students/sections');
         if (secRes.data.success) setSections(secRes.data.data.sections || []);
+        if (branchRes.data.success) setBranches(branchRes.data.data.branches || []);
+
+        if (examsRes.data.success) {
+          const allExams = examsRes.data.data.exams || [];
+          // Requirement 8.5: Only Term Exams (সাময়িক পরীক্ষা) can be used for promotion
+          const termList = allExams.filter(e => 
+            e.examCategory === 'term_exam' || 
+            (e.name && (e.name.includes('সাময়িক') || e.name.includes('টার্ম')))
+          );
+          setTermExams(termList);
+        }
       } catch (err) {
         console.error('Error loading promotion dropdowns', err);
       }
@@ -76,6 +100,10 @@ export default function StudentPromotionPage() {
     try {
       const params = { academicYear: sourceYear, classLevel: sourceClass };
       if (sourceSection) params.section = sourceSection;
+      if (sourceBranch) params.branch = sourceBranch;
+      if (sourceDepartment) params.department = sourceDepartment;
+      if (sourceResidential) params.residentialStatus = sourceResidential;
+      if (selectedTermExamId) params.examId = selectedTermExamId;
 
       const res = await api.get('/students/promotion-candidates', { params });
       if (res.data.success) {
@@ -90,6 +118,10 @@ export default function StudentPromotionPage() {
           rolls[c.studentId] = c.rollNumber;
         });
         setCustomRolls(rolls);
+
+        // Pre-fill destination branch & department based on source if empty
+        if (sourceBranch && !destBranch) setDestBranch(sourceBranch);
+        if (sourceDepartment && !destDepartment) setDestDepartment(sourceDepartment);
       }
     } catch (err) {
       console.error(err);
@@ -236,6 +268,11 @@ export default function StudentPromotionPage() {
       }
     }
 
+    const destClassName = classLevels.find(c => c._id === destClass)?.name || 'নতুন শ্রেণি';
+    if (!window.confirm(`আপনি কি নিশ্চিত যে নির্বাচিত ${selectedIds.length} জন শিক্ষার্থীকে "${destClassName}" শ্রেণিতে উত্তীর্ণ (Promote) করতে চান?`)) {
+      return;
+    }
+
     setLoading(true);
     try {
       // Build promotions payload
@@ -252,7 +289,10 @@ export default function StudentPromotionPage() {
         promotions,
         destClassLevelId: destClass,
         destSectionId: destSection,
-        destAcademicYearId: destYear
+        destAcademicYearId: destYear,
+        destBranchId: destBranch || undefined,
+        destDepartment: destDepartment || undefined,
+        destResidentialStatus: destResidential || undefined
       };
 
       const res = await api.post('/students/promote', payload);
@@ -360,7 +400,7 @@ export default function StudentPromotionPage() {
           <div className="card">
             <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <ShieldAlert size={18} style={{ color: 'var(--primary)' }} />
-              উৎস বিবরণী (Source Class)
+              উৎস বিবরণী (Source Class & Filters)
             </h2>
             <div className="flex-column gap-12">
               <div>
@@ -370,6 +410,30 @@ export default function StudentPromotionPage() {
                   {academicYears.map(y => (
                     <option key={y._id} value={y._id}>{y.name} {y.isCurrent ? '(চলতি)' : ''}</option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">উৎস শাখা</label>
+                <select className="form-select form-input" value={sourceBranch} onChange={e => setSourceBranch(e.target.value)}>
+                  <option value="">সকল শাখা</option>
+                  {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
+                    <option key={b._id} value={b._id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">উৎস বিভাগ</label>
+                <select className="form-select form-input" value={sourceDepartment} onChange={e => setSourceDepartment(e.target.value)}>
+                  <option value="">সকল বিভাগ</option>
+                  <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
+                  <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
+                  <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+                  <option value="নুরানী বিভাগ">নুরানী বিভাগ</option>
+                  <option value="উর্দু জামাত">উর্দু জামাত</option>
+                  <option value="তাইসীর জামাত">তাইসীর জামাত</option>
+                  <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
                 </select>
               </div>
 
@@ -384,7 +448,7 @@ export default function StudentPromotionPage() {
               </div>
 
               <div>
-                <label className="form-label">উৎস সেকশন (ঐচ্ছিক)</label>
+                <label className="form-label">উৎস সেকশন</label>
                 <select className="form-select form-input" value={sourceSection} onChange={e => setSourceSection(e.target.value)}>
                   <option value="">সকল সেকশন</option>
                   {SECTION_OPTIONS.map((sec, idx) => (
@@ -393,8 +457,39 @@ export default function StudentPromotionPage() {
                 </select>
               </div>
 
+              <div>
+                <label className="form-label">আবাসিক অবস্থা</label>
+                <select className="form-select form-input" value={sourceResidential} onChange={e => setSourceResidential(e.target.value)}>
+                  <option value="">সকল আবাসন</option>
+                  <option value="residential">আবাসিক</option>
+                  <option value="non-residential">অনাবাসিক</option>
+                </select>
+              </div>
+
+              <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                <label className="form-label" style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Award size={15} /> সাময়িক পরীক্ষার ফলাফল (মেধার জন্য)
+                </label>
+                <select 
+                  className="form-select form-input" 
+                  value={selectedTermExamId} 
+                  onChange={e => setSelectedTermExamId(e.target.value)}
+                >
+                  <option value="">-- সাময়িক পরীক্ষা নির্বাচন করুন (ঐচ্ছিক) --</option>
+                  <option value="annual_combined">🏆 বার্ষিক সমন্বিত ফলাফল (১ম + ২য় + ৩য় সাময়িক সম্মিলিত)</option>
+                  {termExams.map(te => (
+                    <option key={te._id} value={te._id}>
+                      {te.name} {te.termNumber ? `(টার্ম ${te.termNumber})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                  * বার্ষিক সমন্বিত ফলাফল অথবা নির্দিষ্ট সাময়িক পরীক্ষার (১, ২, ৩) ফলাফলের ভিত্তিতে চূড়ান্ত মেধা ও রোল নির্ধারিত হবে।
+                </span>
+              </div>
+
               <button className="btn btn-primary mt-8" onClick={handleLoadCandidates} disabled={loadingCandidates}>
-                {loadingCandidates ? <RefreshCw className="animate-spin" size={16} /> : 'শিক্ষার্থী তালিকা লোড করুন'}
+                {loadingCandidates ? <RefreshCw className="animate-spin" size={16} /> : 'শিক্ষার্থী তালিকা ফিল্টার ও লোড করুন'}
               </button>
             </div>
           </div>
@@ -405,7 +500,7 @@ export default function StudentPromotionPage() {
               <div className="card">
                 <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TrendingUp size={18} style={{ color: 'var(--success)' }} />
-                  গন্তব্য বিবরণী (Destination Class)
+                  গন্তব্য বিবরণী (Destination Class & Settings)
                 </h2>
                 <div className="flex-column gap-12">
                   <div>
@@ -415,6 +510,30 @@ export default function StudentPromotionPage() {
                       {academicYears.map(y => (
                         <option key={y._id} value={y._id}>{y.name}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label">গন্তব্য শাখা</label>
+                    <select className="form-select form-input" value={destBranch} onChange={e => setDestBranch(e.target.value)}>
+                      <option value="">উৎস শাখার অনুরূপ (ডিফল্ট)</option>
+                      {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
+                        <option key={b._id} value={b._id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label">গন্তব্য বিভাগ</label>
+                    <select className="form-select form-input" value={destDepartment} onChange={e => setDestDepartment(e.target.value)}>
+                      <option value="">উৎস বিভাগের অনুরূপ (ডিফল্ট)</option>
+                      <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
+                      <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
+                      <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+                      <option value="নুরানী বিভাগ">নুরানী বিভাগ</option>
+                      <option value="উর্দু জামাত">উর্দু জামাত</option>
+                      <option value="তাইসীর জামাত">তাইসীর জামাত</option>
+                      <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
                     </select>
                   </div>
 
@@ -435,6 +554,15 @@ export default function StudentPromotionPage() {
                       {SECTION_OPTIONS.map((sec, idx) => (
                         <option key={idx} value={sec}>{sec}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label">গন্তব্য আবাসিক অবস্থা</label>
+                    <select className="form-select form-input" value={destResidential} onChange={e => setDestResidential(e.target.value)}>
+                      <option value="">বর্তমান অবস্থা অপরিবর্তিত রাখা</option>
+                      <option value="residential">আবাসিক</option>
+                      <option value="non-residential">অনাবাসিক</option>
                     </select>
                   </div>
                 </div>
@@ -458,7 +586,7 @@ export default function StudentPromotionPage() {
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, color: 'var(--success)' }}>
                       <input type="radio" name="rollOpt" checked={rollOption === 'merit'} onChange={() => setRollOption('merit')} />
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Award size={14} /> মেধাভিত্তিক ক্রমানুসার (Sort by Avg Marks)
+                        <Award size={14} /> সাময়িক পরীক্ষার মেধা অনুযায়ী রোল (Auto Merit Roll)
                       </span>
                     </label>
                   </div>
@@ -608,7 +736,12 @@ export default function StudentPromotionPage() {
                             </td>
                             <td>
                               <div className="font-semibold">{c.name}</div>
-                              <div className="text-xs text-muted">{c.email}</div>
+                              <div className="text-xs text-muted" style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                                {c.department && <span className="badge badge-info" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>{c.department}</span>}
+                                <span style={{ fontSize: '0.72rem', color: c.residentialStatus === 'residential' ? 'var(--primary)' : 'var(--text-muted)' }}>
+                                  {c.residentialStatus === 'residential' ? 'আবাসিক' : 'অনাবাসিক'}
+                                </span>
+                              </div>
                             </td>
                             <td>
                               <span style={{ fontFamily: 'Inter', fontWeight: 500 }}>{c.admissionNumber}</span>

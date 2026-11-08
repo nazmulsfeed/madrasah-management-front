@@ -1,19 +1,41 @@
 import { useState, useEffect } from 'react';
-import { Home, Plus, Users, Bed, Edit, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Home, Plus, Users, Bed, Edit, Trash2, CheckCircle, AlertCircle, Utensils, ArrowLeft } from 'lucide-react';
+import MealRoutineView from '../../components/hostel/MealRoutineView';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 
 export default function HostelPage() {
   const { user, permissions } = useAuthStore();
-  const canManageHostel = user?.userType === 'super_admin' || permissions?.can_manage_hostel;
+  const navigate = useNavigate();
+
+  const isAuthority = 
+    user?.userType === 'super_admin' || 
+    user?.userType === 'co_super_admin' || 
+    user?.userType === 'admin' || 
+    user?.userType === 'principal' ||
+    user?.userType === 'vice_principal' ||
+    user?.userType === 'teacher' || 
+    user?.userType === 'hifz_teacher' || 
+    user?.userType === 'hostel_manager' ||
+    ['super_admin', 'co_super_admin', 'admin'].includes(user?.adminRole) ||
+    Boolean(permissions?.can_manage_hostel);
+
+  const canManageHostel = isAuthority;
+
+  const isStudent = user?.userType === 'student';
+  const isGuardian = user?.userType === 'guardian';
+  const isStudentOrGuardian = isStudent || isGuardian;
+  const isResidentialStudent = isStudent && (user?.residentialStatus === 'residential' || user?.residentialStatus === 'আবাসিক');
 
   const [hostels, setHostels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isStudentOrGuardian);
   const [toast, setToast] = useState(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editHostelId, setEditHostelId] = useState(null);
+  const [activeMainTab, setActiveMainTab] = useState(isStudentOrGuardian ? 'meal_routine' : 'hostels');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -47,8 +69,10 @@ export default function HostelPage() {
   };
 
   useEffect(() => {
-    fetchHostels();
-  }, []);
+    if (!isStudentOrGuardian) {
+      fetchHostels();
+    }
+  }, [isStudentOrGuardian]);
 
   const handleChange = (e) => {
     const value = e.target.type === 'number' ? parseInt(e.target.value) || 0 : e.target.value;
@@ -115,6 +139,14 @@ export default function HostelPage() {
     setFormData({ name: '', type: 'ছাত্র', capacity: 0, rooms: 0, address: '', description: '', status: 'active' });
   };
 
+  if (isStudentOrGuardian) {
+    return (
+      <div className="animate-fade-in" style={{ padding: '8px 0' }}>
+        <MealRoutineView readOnly={true} isStudentView={true} />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       {toast && (
@@ -133,15 +165,42 @@ export default function HostelPage() {
 
       <div className="page-header">
         <div>
-          <h1 className="page-title">হোস্টেল</h1>
-          <p className="page-subtitle">আবাসন ব্যবস্থাপনা ও রুম বরাদ্দ</p>
+          <h1 className="page-title">হোস্টেল ও খাবার রুটিন</h1>
+          <p className="page-subtitle">আবাসন ব্যবস্থাপনা, রুম বরাদ্দ ও সাপ্তাহিক খাবারের তালিকা</p>
         </div>
-        {canManageHostel && (
+        {activeMainTab === 'hostels' && canManageHostel && (
           <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={16} /> নতুন হোস্টেল
           </button>
         )}
       </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('hostels')}
+          className={`btn ${activeMainTab === 'hostels' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Home size={16} />
+          <span>হোস্টেল ও রুম ব্যবস্থাপনা</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('meal_routine')}
+          className={`btn ${activeMainTab === 'meal_routine' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Utensils size={16} />
+          <span>খাবার রুটিন (Meal Routine)</span>
+        </button>
+      </div>
+
+      {activeMainTab === 'meal_routine' ? (
+        <MealRoutineView />
+      ) : (
+        <>
 
       {loading ? (
         <div className="flex-center" style={{ padding: '60px' }}>
@@ -226,6 +285,9 @@ export default function HostelPage() {
             );
           })}
         </div>
+      )}
+
+        </>
       )}
 
       {/* Modal */}

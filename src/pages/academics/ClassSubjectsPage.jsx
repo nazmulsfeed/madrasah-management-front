@@ -54,7 +54,8 @@ export default function ClassSubjectsPage() {
     name: '',
     code: '',
     subjectType: 'mandatory',
-    isHifzSubject: false
+    isHifzSubject: false,
+    totalMarks: 100
   });
 
   // Auto-hide toast
@@ -226,7 +227,7 @@ export default function ClassSubjectsPage() {
     const { name, value, type, checked } = e.target;
     setSubjectForm({
       ...subjectForm,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : (name === 'totalMarks' ? (value === '' ? '' : Number(value)) : value)
     });
   };
 
@@ -235,7 +236,8 @@ export default function ClassSubjectsPage() {
       name: subject.name,
       code: subject.code,
       subjectType: subject.subjectType || 'mandatory',
-      isHifzSubject: !!subject.isHifzSubject
+      isHifzSubject: !!subject.isHifzSubject,
+      totalMarks: subject.totalMarks || 100
     });
     setIsEditingSubject(true);
     setEditingSubjectId(subject._id);
@@ -278,7 +280,7 @@ export default function ClassSubjectsPage() {
           message: isEditingSubject ? 'বিষয় সফলভাবে আপডেট করা হয়েছে!' : 'নতুন বিষয় সফলভাবে তৈরি এবং ম্যাপিং করা হয়েছে!' 
         });
         setIsSubjectModalOpen(false);
-        setSubjectForm({ name: '', code: '', subjectType: 'mandatory', isHifzSubject: false });
+        setSubjectForm({ name: '', code: '', subjectType: 'mandatory', isHifzSubject: false, totalMarks: 100 });
         setIsEditingSubject(false);
         setEditingSubjectId(null);
         
@@ -460,6 +462,7 @@ export default function ClassSubjectsPage() {
                               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <span className="font-semibold text-sm">{s.name}</span>
                                 <span className="badge badge-muted text-xs" style={{ padding: '2px 6px' }}>{s.code}</span>
+                                <span className="badge badge-active text-xs" style={{ padding: '2px 6px', background: 'rgba(16, 185, 129, 0.1)', color: '#059669' }}>পূর্ণমান: {s.totalMarks || 100}</span>
                                 {s.classLevels && s.classLevels.length > 0 && (
                                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginLeft: 'auto' }}>
                                     {s.classLevels.map(c => {
@@ -662,16 +665,33 @@ export default function ClassSubjectsPage() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">বিষয় কোড (ঐচ্ছিক)</label>
-                <input 
-                  type="text" 
-                  name="code" 
-                  className="form-input" 
-                  value={subjectForm.code} 
-                  onChange={handleSubjectFormChange} 
-                  placeholder="যেমন: ENG-1 (যদি দিতে চান)" 
-                />
+              <div className="grid grid-2" style={{ gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label">বিষয় কোড (ঐচ্ছিক)</label>
+                  <input 
+                    type="text" 
+                    name="code" 
+                    className="form-input" 
+                    value={subjectForm.code} 
+                    onChange={handleSubjectFormChange} 
+                    placeholder="যেমন: ENG-1 (যদি দিতে চান)" 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">বিষয়ের পূর্ণমান (Total Marks) *</label>
+                  <input 
+                    type="number" 
+                    name="totalMarks" 
+                    className="form-input" 
+                    required 
+                    min="1"
+                    max="1000"
+                    value={subjectForm.totalMarks} 
+                    onChange={handleSubjectFormChange} 
+                    placeholder="যেমন: 100, 50, 75" 
+                  />
+                </div>
               </div>
 
               <div className="grid grid-2" style={{ gap: '16px' }}>

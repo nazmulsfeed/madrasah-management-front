@@ -10,6 +10,8 @@ import {
   BookOpenCheck,
   ArrowUpRight,
   LayoutGrid,
+  Award,
+  Utensils,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
@@ -314,6 +316,22 @@ export default function DashboardPage() {
             <div className="stats-card-value font-mono">উপস্থিতি</div>
             <div className="stats-card-label mt-2">মাসিক উপস্থিতির রেকর্ড</div>
           </div>
+          <div className="stats-card animate-slide-up stagger-4" style={{ borderLeft: '4px solid #f59e0b', cursor: 'pointer' }} onClick={() => navigate('/student-profile', { state: { tab: 'results' } })}>
+            <div className="stats-card-icon orange">
+              <Award size={24} />
+            </div>
+            <div className="stats-card-value font-mono">পরীক্ষার ফলাফল</div>
+            <div className="stats-card-label mt-2">মেধা স্থান ও বিষয়ভিত্তিক নম্বর</div>
+          </div>
+          {user?.residentialStatus === 'residential' && (
+            <div className="stats-card animate-slide-up stagger-5" style={{ borderLeft: '4px solid #10b981', cursor: 'pointer' }} onClick={() => navigate('/hostel')}>
+              <div className="stats-card-icon teal">
+                <Utensils size={24} />
+              </div>
+              <div className="stats-card-value font-mono">খাবার রুটিন</div>
+              <div className="stats-card-label mt-2">আবাসিক সাপ্তাহিক মেনু দেখুন</div>
+            </div>
+          )}
         </div>
       )}
 

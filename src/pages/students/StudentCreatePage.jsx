@@ -143,11 +143,15 @@ export default function StudentCreatePage() {
   };
 
   // Branch list filtered according to education stream:
-  // For Hifz: remove 'নুরানী শাখা' and 'হিফজ শাখা', only show বালক শাখা, বালিকা শাখা, বালক শাখা + নুরানী, বালিকা শাখা + নুরানী
+  // For Hifz: remove 'নুরানী শাখা' and 'হিফজ শাখা', only show বালক শাখা, বালিকা শাখা, বালক শাখা + নুরানী, বালিকা শাখা + নুরানী, বালিকা শাখা (কিতাব বিভাগ)
   // For Noorani: show all active branches (excluding deprecated 'হিফজ শাখা')
   const displayedBranches = useMemo(() => {
     if (stream === 'hifz') {
       return branches.filter(b => b.name !== 'নুরানী শাখা' && b.name !== 'হিফজ শাখা');
+    }
+    if (stream === 'kitab') {
+      const kb = branches.filter(b => b.name === 'বালিকা শাখা (কিতাব বিভাগ)' || b.code === 'GIRLS_KITAB');
+      return kb.length > 0 ? kb : branches.filter(b => b.name !== 'হিফজ শাখা');
     }
     return branches.filter(b => b.name !== 'হিফজ শাখা');
   }, [branches, stream]);
@@ -155,30 +159,82 @@ export default function StudentCreatePage() {
   const handleStreamChange = (val) => {
     setStream(val);
     const nooraniBranch = branches.find(b => b.name === 'নুরানী শাখা' || b.code === 'NOORANI');
-    setFormData(prev => ({ 
-      ...prev, 
-      classLevelId: '', 
-      sectionId: '', 
-      rollNumber: '',
-      branchId: val === 'noorani' ? (nooraniBranch?._id || '') : '',
-      department: val === 'noorani' ? 'নুরানী বিভাগ' : '',
-      hifzProgramType: val === 'hifz' ? 'only_hifz' : ''
-    }));
+    const kitabBranch = branches.find(b => b.name === 'বালিকা শাখা (কিতাব বিভাগ)' || b.code === 'GIRLS_KITAB');
+
+    if (val === 'noorani') {
+      setFormData(prev => ({ 
+        ...prev, 
+        classLevelId: '', 
+        sectionId: '', 
+        rollNumber: '',
+        branchId: nooraniBranch?._id || '',
+        department: 'নুরানী বিভাগ',
+        hifzProgramType: ''
+      }));
+    } else if (val === 'kitab') {
+      const defaultDept = 'উর্দু জামাত';
+      setFormData(prev => ({ 
+        ...prev, 
+        classLevelId: '', 
+        sectionId: '', 
+        rollNumber: '',
+        branchId: kitabBranch?._id || '',
+        gender: 'female',
+        department: defaultDept,
+        hifzProgramType: ''
+      }));
+    } else {
+      setFormData(prev => ({ 
+        ...prev, 
+        classLevelId: '', 
+        sectionId: '', 
+        rollNumber: '',
+        branchId: '',
+        department: '',
+        hifzProgramType: 'only_hifz'
+      }));
+    }
   };
 
   const filteredClassLevels = (() => {
-    const filtered = classLevels.filter(c => {
-      const name = c.name || '';
-      const isHifz = name.includes('হিফজ') || name.includes('নাজেরা') || name.includes('শুনানী') || name.includes('মুসাবাকাহ');
-      const isNoorani = name.includes('নুরানি') || name.includes('নুরানী') || name.includes('প্লে') || name.includes('নার্সারী');
-      
-      if (stream === 'noorani') {
-        return isNoorani || !isHifz;
+    const selectedBranch = branches.find(b => b._id === formData.branchId);
+    const isKitab = selectedBranch?.name?.includes('কিতাব') || selectedBranch?.code === 'GIRLS_KITAB' || stream === 'kitab';
+
+    const KITAB_CLASSES = ['উর্দু জামাত', 'তাইসীর জামাত', 'মিযান মুনশায়িব জামাত'];
+
+    if (isKitab) {
+      // কিতাব বিভাগের জামাতসমূহ
+      const kitabClasses = classLevels.filter(c => KITAB_CLASSES.includes((c.name || '').trim()));
+      return kitabClasses.length > 0 ? kitabClasses : classLevels;
+    }
+
+    if (stream === 'hifz') {
+      if (formData.hifzProgramType === 'only_hifz') {
+        // শুধু হিফজ: শ্রেণি হবে মক্তব বিভাগ, নাজেরা বিভাগ, হিফজ বিভাগ
+        const hifzOnly = classLevels.filter(c => {
+          const n = (c.name || '').trim();
+          return n.includes('হিফজ') || n.includes('নাজেরা') || n.includes('মক্তব');
+        });
+        return hifzOnly;
       } else {
-        return isHifz;
+        // হিফজ + আলিয়া: জেনারেল একাডেমিক ক্লাস (প্লে থেকে ৯ম/১০ম শ্রেণি), কিতাব জামাত বা হিফজ জামাত সম্পূর্ণ বাদ
+        const aliyaClasses = classLevels.filter(c => {
+          const n = (c.name || '').trim();
+          const isKitabClass = KITAB_CLASSES.includes(n);
+          const isHifzClass = n.includes('হিফজ') || n.includes('নাজেরা') || n.includes('মক্তব');
+          return !isKitabClass && !isHifzClass;
+        });
+        return aliyaClasses;
       }
+    }
+
+    // নুরানী স্ট্রিম: সাধারণ ক্লাস (প্লে থেকে ৫ম শ্রেণি), কোনো কিতাব জামাত বা হিফজ জামাত থাকবে না
+    return classLevels.filter(c => {
+      const n = (c.name || '').trim();
+      const isKitabClass = KITAB_CLASSES.includes(n);
+      const isHifzClass = n.includes('হিফজ') || n.includes('নাজেরা') || n.includes('মক্তব');
+      return !isKitabClass && !isHifzClass;
     });
-    return filtered.length > 0 ? filtered : classLevels;
   })();
 
   // Automatically update sectionId when it is missing
@@ -235,22 +291,28 @@ export default function StudentCreatePage() {
       setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শিক্ষাবর্ষ" নির্বাচন করা আবশ্যক' });
       return;
     }
-    if (!formData.classLevelId) {
-      setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শ্রেণি" নির্বাচন করা আবশ্যক' });
+    let submitData = { ...formData };
+    if (!submitData.classLevelId && submitData.department) {
+      const match = classLevels.find(c => (c.name || '').trim() === submitData.department.trim());
+      if (match) submitData.classLevelId = match._id;
+    }
+
+    if (!submitData.classLevelId) {
+      setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শ্রেণি / বিভাগ" নির্বাচন করা আবশ্যক' });
       return;
     }
-    if (!formData.sectionId) {
+    if (!submitData.sectionId) {
       setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "সেকশন" নির্বাচন করা আবশ্যক। অনুগ্রহ করে সেকশনটি আবার সিলেক্ট করুন।' });
       return;
     }
-    if (!formData.branchId) {
+    if (!submitData.branchId) {
       setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শাখা" নির্বাচন করা আবশ্যক' });
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await api.post('/students', formData);
+      const res = await api.post('/students', submitData);
       if (res.data.success) {
         setToast({ type: 'success', message: 'নতুন ছাত্র/ছাত্রী সফলভাবে নিবন্ধিত হয়েছে!' });
         setTimeout(() => {
@@ -656,6 +718,7 @@ export default function StudentCreatePage() {
                   <select className="form-select form-input" value={stream} onChange={e => handleStreamChange(e.target.value)} required>
                     <option value="noorani">নুরানী (Noorani)</option>
                     <option value="hifz">হিফজ (Hifz)</option>
+                    <option value="kitab">কিতাব বিভাগ (Kitab - বালিকা শাখা)</option>
                   </select>
                 </div>
 
@@ -676,7 +739,7 @@ export default function StudentCreatePage() {
 
                 {stream === 'noorani' ? (
                   <div>
-                    <label className="form-label">শাখা (Branch) *</label>
+                    <label className="form-label"> শাখা (Branch) *</label>
                     <div 
                       className="form-input" 
                       style={{ 
@@ -700,9 +763,31 @@ export default function StudentCreatePage() {
                       className="form-select form-input" 
                       value={formData.branchId} 
                       onChange={e => {
-                        const selectedBranch = branches.find(b => b._id === e.target.value);
-                        const inferredGender = selectedBranch?.name.includes('বালিকা') ? 'female' : (selectedBranch?.name.includes('বালক') ? 'male' : formData.gender);
-                        setFormData(prev => ({ ...prev, branchId: e.target.value, gender: inferredGender }));
+                        const bId = e.target.value;
+                        const selectedBranch = branches.find(b => b._id === bId);
+                        const isKitab = selectedBranch?.name?.includes('কিতাব') || selectedBranch?.code === 'GIRLS_KITAB';
+                        const inferredGender = (isKitab || selectedBranch?.name?.includes('বালিকা')) 
+                          ? 'female' 
+                          : (selectedBranch?.name?.includes('বালক') ? 'male' : formData.gender);
+                        
+                        if (isKitab) {
+                          const defaultDept = 'উর্দু জামাত';
+                          setFormData(prev => ({
+                            ...prev,
+                            branchId: bId,
+                            gender: 'female',
+                            department: defaultDept,
+                            classLevelId: prev.classLevelId || ''
+                          }));
+                          if (stream !== 'kitab') setStream('kitab');
+                        } else {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            branchId: bId, 
+                            gender: inferredGender,
+                            department: ['উর্দু জামাত', 'তাইসীর জামাত', 'মিযান মুনশায়িব জামাত'].includes(prev.department) ? '' : prev.department
+                          }));
+                        }
                       }} 
                       required
                     >
@@ -714,32 +799,89 @@ export default function StudentCreatePage() {
                   </div>
                 )}
 
-                {stream === 'hifz' && formData.branchId && (
+                {(() => {
+                  const currentBranch = branches.find(b => b._id === formData.branchId);
+                  const isKitab = currentBranch?.name?.includes('কিতাব') || currentBranch?.code === 'GIRLS_KITAB' || stream === 'kitab';
+
+                  if (isKitab) {
+                    return (
+                      <div>
+                        <label className="form-label">জামাত / শ্রেণি (Kitab Class) *</label>
+                        <select 
+                          className="form-select form-input" 
+                          value={formData.department} 
+                          onChange={e => {
+                            const dept = e.target.value;
+                            const matchClass = classLevels.find(c => (c.name || '').trim() === dept.trim());
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              department: dept, 
+                              classLevelId: matchClass ? matchClass._id : prev.classLevelId 
+                            }));
+                          }} 
+                          required
+                        >
+                          <option value="">-- জামাত নির্বাচন করুন --</option>
+                          <option value="উর্দু জামাত">উর্দু জামাত</option>
+                          <option value="তাইসীর জামাত">তাইসীর জামাত</option>
+                          <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
+                        </select>
+                      </div>
+                    );
+                  }
+
+                  if (stream === 'hifz' && formData.branchId) {
+                    const isOnlyHifz = formData.hifzProgramType === 'only_hifz';
+                    return (
+                      <div>
+                        <label className="form-label">{isOnlyHifz ? 'হিফজ বিভাগ / শ্রেণি *' : 'হিফজ বিভাগ *'}</label>
+                        <select 
+                          className="form-select form-input" 
+                          value={formData.department} 
+                          onChange={e => {
+                            const dept = e.target.value;
+                            let autoClassId = formData.classLevelId;
+                            if (isOnlyHifz) {
+                              const matchClass = classLevels.find(c => (c.name || '').trim() === dept.trim());
+                              if (matchClass) autoClassId = matchClass._id;
+                            }
+                            setFormData(prev => ({ ...prev, department: dept, classLevelId: autoClassId }));
+                          }} 
+                          required
+                        >
+                          <option value="">-- বিভাগ নির্বাচন করুন --</option>
+                          <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
+                          <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
+                          <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+                        </select>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
+
+                {/* শ্রেণি (Class) Dropdown - শুধু হিফজ (only_hifz) অথবা কিতাব বিভাগের জন্য লুকানো থাকবে, কারণ তাদের বিভাগই তাদের শ্রেণি */}
+                {!(stream === 'hifz' && formData.hifzProgramType === 'only_hifz') && !(['কিতাব'].some(k => branches.find(b => b._id === formData.branchId)?.name?.includes(k)) || stream === 'kitab') && (
                   <div>
-                    <label className="form-label">বিভাগ *</label>
+                    <label className="form-label">
+                      {stream === 'hifz' && formData.hifzProgramType === 'hifz_aliya' 
+                        ? 'আলিয়া শ্রেণি (General Academic Class) *' 
+                        : 'শ্রেণি *'}
+                    </label>
                     <select 
                       className="form-select form-input" 
-                      value={formData.department} 
-                      onChange={e => setFormData({ ...formData, department: e.target.value })} 
+                      value={formData.classLevelId} 
+                      onChange={e => setFormData({ ...formData, classLevelId: e.target.value })} 
                       required
                     >
-                      <option value="">-- বিভাগ নির্বাচন করুন --</option>
-                      <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
-                      <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
-                      <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+                      <option value="">-- শ্রেণি নির্বাচন করুন --</option>
+                      {filteredClassLevels.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
                 )}
-
-                <div>
-                  <label className="form-label">শ্রেণি *</label>
-                  <select className="form-select form-input" value={formData.classLevelId} onChange={e => setFormData({ ...formData, classLevelId: e.target.value })} required>
-                    <option value="">-- শ্রেণি নির্বাচন করুন --</option>
-                    {filteredClassLevels.map(c => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
 
                 <div>
                   <label className="form-label">সেকশন (Section) *</label>

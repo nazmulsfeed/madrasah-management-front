@@ -1980,6 +1980,42 @@ h4 { font-size: 1.125rem; }
   white-space: nowrap;
 }
 
+/* Single-row desktop optimization for student list filters */
+@media (min-width: 1280px) {
+  .filter-card-content {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+  }
+  .filter-search-form {
+    flex: 1 1 190px !important;
+    min-width: 170px !important;
+  }
+  .filter-dropdowns-wrap {
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
+    flex: 0 1 auto !important;
+  }
+  .filter-dropdowns-wrap select,
+  .filter-dropdowns-wrap .form-select {
+    min-width: 82px !important;
+    max-width: 125px !important;
+    height: 36px !important;
+    font-size: 0.8rem !important;
+    padding: 0 20px 0 8px !important;
+  }
+  .filter-dropdowns-wrap .sort-controls-wrap select {
+    min-width: 90px !important;
+    max-width: 115px !important;
+    height: 36px !important;
+    font-size: 0.8rem !important;
+  }
+  .filter-dropdowns-wrap .sort-controls-wrap .btn {
+    height: 36px !important;
+    padding: 0 8px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
 .attendance-stats-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

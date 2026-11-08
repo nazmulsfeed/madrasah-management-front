@@ -91,6 +91,7 @@ export default function App() {
           <Route path="/hifz" element={<HifzPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/my-payments" element={<MyPaymentsPage />} />
+          <Route path="/hostel" element={<HostelPage />} />
 
           {/* অ্যাডমিন, শিক্ষক ও স্টাফদের জন্য সংরক্ষিত রুট (শিক্ষার্থী ও অভিভাবক সম্পূর্ণ নিষিদ্ধ) */}
           <Route path="/students" element={<RoleRoute><StudentListPage /></RoleRoute>} />
@@ -142,7 +143,6 @@ export default function App() {
           {/* অন্যান্য অ্যাডমিন ও ব্যবস্থাপনা রুটসমূহ */}
           <Route path="/messaging" element={<RoleRoute><MessagingPage /></RoleRoute>} />
           <Route path="/library" element={<RoleRoute><LibraryPage /></RoleRoute>} />
-          <Route path="/hostel" element={<RoleRoute><HostelPage /></RoleRoute>} />
           <Route path="/role-management" element={<RoleRoute allowedRoles={['super_admin', 'co_super_admin', 'admin']}><RoleManagementPage /></RoleRoute>} />
           <Route path="/biometric-attendance" element={<RoleRoute allowedRoles={['super_admin']}><BiometricAttendancePage /></RoleRoute>} />
           <Route path="/reports" element={<RoleRoute><ReportsPage /></RoleRoute>} />

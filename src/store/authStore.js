@@ -53,7 +53,11 @@ const useAuthStore = create((set, get) => ({
       localStorage.setItem('user', JSON.stringify(user));
       set({ user });
     } catch (err) {
-      get().logout();
+      if (err.response?.status === 401) {
+        get().logout();
+      } else {
+        console.warn('fetchMe non-auth error:', err);
+      }
     }
   },
 
