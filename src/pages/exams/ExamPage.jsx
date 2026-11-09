@@ -1195,21 +1195,36 @@ export default function ExamPage() {
       // Filter to subjects that have actual marks entered in this exam (Dynamic Subject Columns)
       let finalSubjects = assignedSubs.filter(sub => {
         return marks.some(m => {
-          const sSubId = typeof m.subject === 'object' ? m.subject?._id : m.subject;
+          const sSubId = typeof m.subject === 'object' ? (m.subject?._id || m.subject?.id) : m.subject;
           return String(sSubId) === String(sub._id) && m.marksObtained !== null && m.marksObtained !== undefined && m.marksObtained !== '';
         });
       });
 
-      // Fallback: If no assigned subject matched but marks exist, derive from mark entry subject records
-      if (finalSubjects.length === 0) {
+      // Fallback 1: If assignedSubs filtering yielded none, derive from mark entry subject records directly
+      if (finalSubjects.length === 0 && marks.length > 0) {
         const subMap = {};
         marks.forEach(m => {
-          if (m.subject && typeof m.subject === 'object' && m.subject._id && m.marksObtained !== null && m.marksObtained !== undefined && m.marksObtained !== '') {
-            subMap[m.subject._id] = m.subject;
+          const sId = typeof m.subject === 'object' ? (m.subject?._id || m.subject?.id) : m.subject;
+          if (sId && m.marksObtained !== null && m.marksObtained !== undefined && m.marksObtained !== '') {
+            const subName = typeof m.subject === 'object' ? (m.subject.name || m.subject.code) : 'বিষয়';
+            const subCode = typeof m.subject === 'object' ? m.subject.code : '';
+            const subTotal = typeof m.subject === 'object' ? (m.subject.totalMarks || m.totalMarks || 100) : (m.totalMarks || 100);
+            subMap[String(sId)] = {
+              _id: String(sId),
+              name: subName,
+              code: subCode,
+              totalMarks: Number(subTotal) || 100
+            };
           }
         });
         finalSubjects = Object.values(subMap);
       }
+
+      // Fallback 2: If no marks entered yet, show assignedSubs so the columns always exist
+      if (finalSubjects.length === 0 && assignedSubs.length > 0) {
+        finalSubjects = assignedSubs;
+      }
+
       setMeritSubjectsList(finalSubjects);
 
       // Total max marks of evaluated subjects
@@ -1244,11 +1259,13 @@ export default function ExamPage() {
       // Index marks by student ID & subject ID
       const marksByStudent = {};
       marks.forEach(m => {
-        const sId = typeof m.student === 'object' ? m.student?._id : m.student;
-        const subId = typeof m.subject === 'object' ? m.subject?._id : m.subject;
-        if (!sId) return;
-        if (!marksByStudent[sId]) marksByStudent[sId] = {};
-        marksByStudent[sId][subId] = {
+        const sId = typeof m.student === 'object' ? (m.student?._id || m.student?.id) : m.student;
+        const subId = typeof m.subject === 'object' ? (m.subject?._id || m.subject?.id) : m.subject;
+        if (!sId || !subId) return;
+        const strSId = String(sId);
+        const strSubId = String(subId);
+        if (!marksByStudent[strSId]) marksByStudent[strSId] = {};
+        marksByStudent[strSId][strSubId] = {
           marksObtained: m.marksObtained,
           grade: m.grade
         };
@@ -1497,36 +1514,39 @@ export default function ExamPage() {
       const student = item.student;
       const roll = student.currentEnrollment?.rollNumber || student.roll || '—';
       const name = student.user?.fullName || `${student.user?.firstName || ''} ${student.user?.lastName || ''}`.trim() || student.studentId || '—';
+      const studentId = student.studentId || '—';
+      const sectionStr = typeof student.currentEnrollment?.section === 'object' ? (student.currentEnrollment?.section?.name || student.currentEnrollment?.section?._id) : (student.currentEnrollment?.section || student.section || '—');
 
       const isTop3 = item.rankNum && item.rankNum <= 3;
       const rankBg = item.rankNum === 1 ? '#fef3c7' : item.rankNum === 2 ? '#f1f5f9' : item.rankNum === 3 ? '#ffedd5' : 'transparent';
       const rankBadge = item.rankNum === 1 ? '🥇 ' : item.rankNum === 2 ? '🥈 ' : item.rankNum === 3 ? '🥉 ' : '';
 
       const subjectCellsHtml = meritSubjectsList.map(s => {
-        const score = item.studentMarksObj?.[s._id]?.marksObtained;
+        const score = item.studentMarksObj?.[String(s._id)]?.marksObtained;
         const hasScore = score !== null && score !== undefined && score !== '';
         const subFullMarks = Number(s.totalMarks) || 100;
         const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
-        return `<td style="text-align: center; font-weight: 600; font-size: 10px; ${isSubFail ? 'color: #dc2626;' : ''}">${hasScore ? score : '—'}</td>`;
+        return `<td style="text-align: center; font-weight: 600; font-size: 10px; ${isSubFail ? 'color: #dc2626; background: rgba(239, 68, 68, 0.05);' : ''}">${hasScore ? score : '—'}</td>`;
       }).join('');
 
       rowsHtml += `
         <tr style="background-color: ${rankBg};">
-          <td style="text-align: center; font-weight: bold; font-size: 10.5px;">${index + 1}</td>
+          <td style="text-align: center; font-weight: bold; font-size: 10px;">${index + 1}</td>
           <td>
             <div style="font-weight: 700; font-size: 10.5px;">${name}</div>
+            <div style="font-size: 8.5px; color: #475569;">আইডি: ${studentId} • সেকশন: ${sectionStr}</div>
           </td>
           <td style="text-align: center; font-weight: bold; font-size: 10.5px;">${roll}</td>
           ${subjectCellsHtml}
-          <td style="text-align: center; font-weight: bold; font-size: 10.5px; color: #0f766e;">
+          <td style="text-align: center; font-weight: bold; font-size: 10px; color: #0f766e;">
             ${item.subjectsCountWithMarks === 0 ? '—' : `${item.totalObtained} / ${item.totalFullMarks || 100}`}
           </td>
           <td style="text-align: center; font-weight: bold; font-size: 10px;">${rankBadge}${item.rankText || '—'}</td>
-          <td style="text-align: center; font-weight: bold; font-size: 10.5px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
+          <td style="text-align: center; font-weight: bold; font-size: 10px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
             ${item.overallGrade}
           </td>
-          <td style="text-align: center; font-size: 10.5px; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
-          <td style="text-align: center; font-size: 10px; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
+          <td style="text-align: center; font-size: 10px; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
+          <td style="text-align: center; font-size: 9.5px; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
             ${item.subjectsCountWithMarks === 0 ? 'অনুপস্থিত' : (item.isIncomplete ? 'অসম্পূর্ণ' : (item.isPassed ? 'উত্তীর্ণ' : 'অনুত্তীর্ণ'))}
           </td>
         </tr>
@@ -1534,9 +1554,9 @@ export default function ExamPage() {
     });
 
     const subjectHeadersHtml = meritSubjectsList.map(s => `
-      <th style="text-align: center; font-size: 9.5px; min-width: 45px; white-space: nowrap;">
+      <th style="text-align: center; font-size: 9.5px; min-width: 50px; white-space: nowrap;">
         <div>${s.name}</div>
-        <div style="font-size: 8.5px; font-weight: normal; opacity: 0.85;">(${s.totalMarks || 100})</div>
+        <div style="font-size: 8.5px; font-weight: normal; opacity: 0.9;">(${s.totalMarks || 100})</div>
       </th>
     `).join('');
 
@@ -1570,14 +1590,14 @@ export default function ExamPage() {
           <thead>
             <tr>
               <th style="width: 35px; text-align: center;">ক্রম</th>
-              <th style="min-width: 140px;">শিক্ষার্থীর নাম</th>
+              <th style="min-width: 150px; text-align: left;">শিক্ষার্থীর নাম ও আইডি</th>
               <th style="width: 45px; text-align: center;">রোল</th>
               ${subjectHeadersHtml}
               <th style="width: 80px; text-align: center;">সর্বমোট মার্ক</th>
-              <th style="width: 90px; text-align: center;">মেধা স্থান</th>
+              <th style="width: 80px; text-align: center;">স্থান</th>
               <th style="width: 45px; text-align: center;">গ্রেড</th>
-              <th style="width: 55px; text-align: center;">শতকরা (%)</th>
-              <th style="width: 65px; text-align: center;">ফলাফল</th>
+              <th style="width: 60px; text-align: center;">শতকরা হার</th>
+              <th style="width: 65px; text-align: center;">স্ট্যাটাস</th>
             </tr>
           </thead>
           <tbody>
@@ -1751,7 +1771,7 @@ export default function ExamPage() {
                   handlePrintSingleStudentMarksheet();
                 } else if (examViewMode === 'subject_result') {
                   handlePrintSubjectResult();
-                } else if (examViewMode === 'merit_list') {
+                } else if (examViewMode === 'merit' || examViewMode === 'merit_list') {
                   handlePrintMeritList();
                 } else if (examViewMode === 'marks') {
                   handlePrintMarkEntrySheet();
