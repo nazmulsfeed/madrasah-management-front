@@ -1177,31 +1177,43 @@ export default function ExamPage() {
       const marksRes = await api.get('/exams/marks', { params: { exam: activeExam._id } });
       const marks = marksRes.data?.data?.marks || [];
 
-      // 2. Fetch all subjects for this class (or fallback to marks)
-      let subs = [];
+      // 2. Fetch assigned subjects for this class
+      let assignedSubs = [];
       if (classLevelId) {
         try {
           const subRes = await api.get(`/students/subjects?classLevel=${classLevelId}`);
-          subs = subRes.data?.data?.subjects || [];
+          assignedSubs = subRes.data?.data?.subjects || [];
         } catch (subErr) {
           console.warn('Subject fetch warning:', subErr);
         }
       }
       if (activeExam.examCategory === 'monthly_test' && Array.isArray(activeExam.selectedSubjects) && activeExam.selectedSubjects.length > 0) {
         const allowed = activeExam.selectedSubjects.map(s => typeof s === 'object' ? String(s._id) : String(s));
-        subs = subs.filter(s => allowed.includes(String(s._id)));
+        assignedSubs = assignedSubs.filter(s => allowed.includes(String(s._id)));
       }
-      // If subs is empty, derive subjects from existing marks
-      if (subs.length === 0) {
+
+      // Filter to subjects that have actual marks entered in this exam (Dynamic Subject Columns)
+      let finalSubjects = assignedSubs.filter(sub => {
+        return marks.some(m => {
+          const sSubId = typeof m.subject === 'object' ? m.subject?._id : m.subject;
+          return String(sSubId) === String(sub._id) && m.marksObtained !== null && m.marksObtained !== undefined && m.marksObtained !== '';
+        });
+      });
+
+      // Fallback: If no assigned subject matched but marks exist, derive from mark entry subject records
+      if (finalSubjects.length === 0) {
         const subMap = {};
         marks.forEach(m => {
-          if (m.subject && typeof m.subject === 'object' && m.subject._id) {
+          if (m.subject && typeof m.subject === 'object' && m.subject._id && m.marksObtained !== null && m.marksObtained !== undefined && m.marksObtained !== '') {
             subMap[m.subject._id] = m.subject;
           }
         });
-        subs = Object.values(subMap);
+        finalSubjects = Object.values(subMap);
       }
-      setMeritSubjectsList(subs);
+      setMeritSubjectsList(finalSubjects);
+
+      // Total max marks of evaluated subjects
+      const totalFullMarks = finalSubjects.reduce((sum, s) => sum + (Number(s.totalMarks) || 100), 0);
 
       // 3. Fetch all students in this class (filtered by section if selected)
       let studList = [];
@@ -1249,40 +1261,42 @@ export default function ExamPage() {
         let subjectsCountWithMarks = 0;
         let failedCount = 0;
 
-        subs.forEach(sub => {
+        finalSubjects.forEach(sub => {
           const record = studentMarksObj[sub._id];
-          if (record && record.marksObtained !== null && record.marksObtained !== undefined) {
+          if (record && record.marksObtained !== null && record.marksObtained !== undefined && record.marksObtained !== '') {
             const num = Number(record.marksObtained);
             totalObtained += num;
             subjectsCountWithMarks += 1;
-            if (num < 33) {
+            const subFullMarks = Number(sub.totalMarks) || 100;
+            if (num < subFullMarks * 0.33) {
               failedCount += 1;
             }
           }
         });
 
-        let totalMaxMarks = 0;
-        subs.forEach(sub => {
-          totalMaxMarks += Number(sub.totalMarks) || 100;
-        });
-        const percentage = totalMaxMarks > 0 ? (totalObtained / totalMaxMarks) * 100 : 0;
-        const isPassed = subjectsCountWithMarks > 0 && failedCount === 0;
-        const overallGrade = isPassed ? calculateGrade(percentage) : (subjectsCountWithMarks > 0 ? 'F' : '—');
+        const percentage = totalFullMarks > 0 ? Number(((totalObtained / totalFullMarks) * 100).toFixed(1)) : 0;
+        const isIncomplete = finalSubjects.length > 0 && subjectsCountWithMarks > 0 && subjectsCountWithMarks < finalSubjects.length;
+        const isPassed = subjectsCountWithMarks > 0 && failedCount === 0 && !isIncomplete;
+        const overallGrade = isPassed 
+          ? calculateGrade(percentage) 
+          : (failedCount > 0 ? 'F' : (isIncomplete ? calculateGrade(percentage) : (subjectsCountWithMarks > 0 ? 'F' : '—')));
 
         return {
           student: st,
           studentMarksObj,
           totalObtained,
+          totalFullMarks,
           subjectsCountWithMarks,
           failedCount,
-          percentage: Number(percentage.toFixed(1)),
+          isIncomplete,
+          percentage,
           isPassed,
           overallGrade,
           roll: parseInt(st.currentEnrollment?.rollNumber) || 9999
         };
       });
 
-      // Sort: Students with marks first (passed students by totalObtained desc, then failed by totalObtained desc, then roll)
+      // Sort: Students with marks first (by totalObtained desc, then roll)
       calculated.sort((a, b) => {
         if (a.subjectsCountWithMarks === 0 && b.subjectsCountWithMarks === 0) {
           return a.roll - b.roll;
@@ -1331,8 +1345,10 @@ export default function ExamPage() {
         else if (rankNum === 10) rankText = isTie ? '১০ম (যৌথ)' : '১০ম';
         else rankText = isTie ? `${rankNum}তম (যৌথ)` : `${rankNum}তম`;
 
-        if (!item.isPassed) {
+        if (item.failedCount > 0) {
           rankText += ' (অনুত্তীর্ণ)';
+        } else if (item.isIncomplete) {
+          rankText += ' (অসম্পূর্ণ)';
         }
 
         return { ...item, rankNum, rankText };
@@ -1481,56 +1497,71 @@ export default function ExamPage() {
       const student = item.student;
       const roll = student.currentEnrollment?.rollNumber || student.roll || '—';
       const name = student.user?.fullName || `${student.user?.firstName || ''} ${student.user?.lastName || ''}`.trim() || student.studentId || '—';
-      const studentId = student.studentId || '—';
-      const sectionStr = typeof student.currentEnrollment?.section === 'object' ? (student.currentEnrollment?.section?.name || student.currentEnrollment?.section?._id) : (student.currentEnrollment?.section || student.section || '—');
 
       const isTop3 = item.rankNum && item.rankNum <= 3;
       const rankBg = item.rankNum === 1 ? '#fef3c7' : item.rankNum === 2 ? '#f1f5f9' : item.rankNum === 3 ? '#ffedd5' : 'transparent';
       const rankBadge = item.rankNum === 1 ? '🥇 ' : item.rankNum === 2 ? '🥈 ' : item.rankNum === 3 ? '🥉 ' : '';
 
+      const subjectCellsHtml = meritSubjectsList.map(s => {
+        const score = item.studentMarksObj?.[s._id]?.marksObtained;
+        const hasScore = score !== null && score !== undefined && score !== '';
+        const subFullMarks = Number(s.totalMarks) || 100;
+        const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
+        return `<td style="text-align: center; font-weight: 600; font-size: 10px; ${isSubFail ? 'color: #dc2626;' : ''}">${hasScore ? score : '—'}</td>`;
+      }).join('');
+
       rowsHtml += `
         <tr style="background-color: ${rankBg};">
-          <td style="text-align: center; font-weight: bold; font-size: 11px;">${rankBadge}${item.rankText || '—'}</td>
-          <td style="text-align: center; font-weight: bold; font-size: 11px;">${roll}</td>
+          <td style="text-align: center; font-weight: bold; font-size: 10.5px;">${index + 1}</td>
           <td>
-            <div style="font-weight: 700; font-size: 11px;">${name}</div>
+            <div style="font-weight: 700; font-size: 10.5px;">${name}</div>
           </td>
-          <td style="text-align: center; font-size: 10.5px;">${studentId}</td>
-          <td style="text-align: center; font-size: 10.5px;">${sectionStr}</td>
-          <td style="text-align: center; font-weight: bold; font-size: 11px; color: #0f766e;">${item.totalObtained}</td>
-          <td style="text-align: center; font-size: 11px; font-weight: 600;">${item.percentage}%</td>
-          <td style="text-align: center; font-weight: bold; font-size: 11px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
+          <td style="text-align: center; font-weight: bold; font-size: 10.5px;">${roll}</td>
+          ${subjectCellsHtml}
+          <td style="text-align: center; font-weight: bold; font-size: 10.5px; color: #0f766e;">
+            ${item.subjectsCountWithMarks === 0 ? '—' : `${item.totalObtained} / ${item.totalFullMarks || 100}`}
+          </td>
+          <td style="text-align: center; font-weight: bold; font-size: 10px;">${rankBadge}${item.rankText || '—'}</td>
+          <td style="text-align: center; font-weight: bold; font-size: 10.5px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
             ${item.overallGrade}
           </td>
-          <td style="text-align: center; font-size: 10.5px; font-weight: 600; color: ${item.isPassed ? '#059669' : '#dc2626'};">
-            ${item.subjectsCountWithMarks === 0 ? 'অনুপস্থিত' : item.isPassed ? 'উত্তীর্ণ' : 'অনুত্তীর্ণ'}
+          <td style="text-align: center; font-size: 10.5px; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
+          <td style="text-align: center; font-size: 10px; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
+            ${item.subjectsCountWithMarks === 0 ? 'অনুপস্থিত' : (item.isIncomplete ? 'অসম্পূর্ণ' : (item.isPassed ? 'উত্তীর্ণ' : 'অনুত্তীর্ণ'))}
           </td>
         </tr>
       `;
     });
 
+    const subjectHeadersHtml = meritSubjectsList.map(s => `
+      <th style="text-align: center; font-size: 9.5px; min-width: 45px; white-space: nowrap;">
+        <div>${s.name}</div>
+        <div style="font-size: 8.5px; font-weight: normal; opacity: 0.85;">(${s.totalMarks || 100})</div>
+      </th>
+    `).join('');
+
     const html = `<!DOCTYPE html>
     <html lang="bn">
     <head>
       <meta charset="UTF-8">
-      <title>${examTitle} - মেধা তালিকা ও র‍্যাঙ্কিং</title>
-      ${getMadrasahPrintStyles('portrait')}
+      <title>${examTitle} - মেধা তালিকা ও ফলাফল</title>
+      ${getMadrasahPrintStyles('landscape')}
       <style>
-        @page { size: A4 portrait; margin: 8mm 10mm !important; }
-        table.compact-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 10.5px; }
-        table.compact-table th, table.compact-table td { border: 1px solid #cbd5e1; padding: 3px 5px; text-align: left; }
-        table.compact-table th { background: #0f766e; color: #fff; font-size: 11px; font-weight: 700; text-align: center; }
-        .print-footer-signatures { padding-top: 14px !important; margin-top: auto !important; }
-        .sig-line { font-size: 11px !important; padding-top: 3px !important; }
-        .sig-sub { font-size: 9.5px !important; }
+        @page { size: A4 landscape; margin: 6mm 8mm !important; }
+        table.compact-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10px; }
+        table.compact-table th, table.compact-table td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; }
+        table.compact-table th { background: #0f766e; color: #fff; font-size: 10px; font-weight: 700; text-align: center; }
+        .print-footer-signatures { padding-top: 10px !important; margin-top: auto !important; }
+        .sig-line { font-size: 10.5px !important; padding-top: 3px !important; }
+        .sig-sub { font-size: 9px !important; }
       </style>
     </head>
     <body>
       <div class="print-sheet-container">
         <div class="print-content-layer">
           ${getMadrasahHeaderHtml({
-            title: `🏆 পরীক্ষার সমন্বিত মেধা তালিকা ও র‍্যাঙ্কিং (Merit List) — ${examTitle}`,
-            orientation: 'portrait',
+            title: `🏆 পরীক্ষার মেধা তালিকা ও বিষয়ভিত্তিক ফলাফল (Merit List) — ${examTitle}`,
+            orientation: 'landscape',
             metaLeft: `<strong>শ্রেণি:</strong> ${classNameStr} | <strong>সেকশন:</strong> ${sectionNameStr}`,
             metaRight: `<strong>মোট পরীক্ষার্থী:</strong> ${meritList.length} জন | <strong>তারিখ:</strong> ${reportDate}`
           })}
@@ -1538,14 +1569,14 @@ export default function ExamPage() {
         <table class="compact-table">
           <thead>
             <tr>
-              <th style="width: 85px; text-align: center;">মেধা স্থান (Rank)</th>
+              <th style="width: 35px; text-align: center;">ক্রম</th>
+              <th style="min-width: 140px;">শিক্ষার্থীর নাম</th>
               <th style="width: 45px; text-align: center;">রোল</th>
-              <th>শিক্ষার্থীর নাম</th>
-              <th style="width: 75px; text-align: center;">আইডি</th>
-              <th style="width: 55px; text-align: center;">সেকশন</th>
-              <th style="width: 80px; text-align: center;">মোট নম্বর</th>
-              <th style="width: 60px; text-align: center;">শতকরা (%)</th>
-              <th style="width: 50px; text-align: center;">গ্রেড</th>
+              ${subjectHeadersHtml}
+              <th style="width: 80px; text-align: center;">সর্বমোট মার্ক</th>
+              <th style="width: 90px; text-align: center;">মেধা স্থান</th>
+              <th style="width: 45px; text-align: center;">গ্রেড</th>
+              <th style="width: 55px; text-align: center;">শতকরা (%)</th>
               <th style="width: 65px; text-align: center;">ফলাফল</th>
             </tr>
           </thead>
@@ -1810,17 +1841,16 @@ export default function ExamPage() {
           {!isStudentOrGuardian && (
             <div className="card mb-24">
               <div className="flex gap-16" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <div className="form-group" style={{ marginBottom: 0, minWidth: '200px' }}>
-                  <label className="form-label">বিষয় (Subject)</label>
+                <div className="form-group" style={{ marginBottom: 0, minWidth: '220px' }}>
+                  <label className="form-label">বিষয় (Subject) *</label>
                   <select 
                     className="form-input form-select"
                     value={selectedSubject}
                     onChange={(e) => { setSelectedSubject(e.target.value); setStudents([]); }}
                   >
-                    <option value="">বিষয় নির্বাচন করুন</option>
-                    <option value="all">সকল বিষয়</option>
+                    <option value="">-- বিষয় নির্বাচন করুন --</option>
                     {subjects.map(s => (
-                      <option key={s._id} value={s._id}>{s.name} ({s.code})</option>
+                      <option key={s._id} value={s._id}>{s.name} ({s.totalMarks || 100})</option>
                     ))}
                   </select>
                 </div>
@@ -1843,12 +1873,18 @@ export default function ExamPage() {
                 <button 
                   className="btn btn-primary"
                   onClick={loadStudentsForMarks}
-                  disabled={loadingStudents || !selectedSubject || !selectedSection}
+                  disabled={loadingStudents || !selectedSubject || !selectedSection || subjects.length === 0}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <Search size={16} /> লোড করুন
                 </button>
               </div>
+              {subjects.length === 0 && (
+                <div style={{ marginTop: '14px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#dc2626', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} />
+                  <span>এই শ্রেণির জন্য কোনো বিষয় নির্ধারিত (Assign) করা হয়নি। অনুগ্রহ করে বিষয় ব্যবস্থাপনা থেকে বিষয় যুক্ত করুন।</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -2518,17 +2554,24 @@ export default function ExamPage() {
                   <p className="text-muted text-sm mt-8">রিফ্রেশ বাটনে ক্লিক করে ফলাফল লোড করুন।</p>
                 </div>
               ) : (
-                <div className="card table-container" style={{ padding: 0 }}>
-                  <table className="table">
+                <div className="card table-container" style={{ padding: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table className="table" style={{ width: '100%', minWidth: `${680 + (meritSubjectsList.length * 105)}px` }}>
                     <thead>
                       <tr>
-                        <th style={{ width: '130px', textAlign: 'center' }}>মেধা স্থান (Rank)</th>
-                        <th style={{ width: '80px', textAlign: 'center' }}>রোল নম্বর</th>
-                        <th>শিক্ষার্থীর নাম ও আইডি</th>
-                        <th style={{ textAlign: 'center', width: '110px' }}>মোট প্রাপ্ত নম্বর</th>
-                        <th style={{ textAlign: 'center', width: '90px' }}>শতকরা (%)</th>
-                        <th style={{ textAlign: 'center', width: '80px' }}>গ্রেড</th>
-                        <th style={{ textAlign: 'center', width: '110px' }}>ফলাফল স্ট্যাটাস</th>
+                        <th style={{ width: '50px', textAlign: 'center' }}>ক্রম</th>
+                        <th style={{ minWidth: '180px' }}>শিক্ষার্থীর নাম ও আইডি</th>
+                        <th style={{ width: '70px', textAlign: 'center' }}>রোল</th>
+                        {meritSubjectsList.map(sub => (
+                          <th key={sub._id} style={{ textAlign: 'center', minWidth: '100px', whiteSpace: 'nowrap' }}>
+                            <div>{sub.name}</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, opacity: 0.85 }}>({sub.totalMarks || 100})</div>
+                          </th>
+                        ))}
+                        <th style={{ textAlign: 'center', minWidth: '120px' }}>সর্বমোট মার্ক</th>
+                        <th style={{ minWidth: '130px', textAlign: 'center' }}>স্থান</th>
+                        <th style={{ textAlign: 'center', width: '75px' }}>গ্রেড</th>
+                        <th style={{ textAlign: 'center', width: '85px' }}>শতকরা হার</th>
+                        <th style={{ textAlign: 'center', minWidth: '110px' }}>স্ট্যাটাস</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2547,26 +2590,8 @@ export default function ExamPage() {
                               background: isTop1 ? 'rgba(245, 158, 11, 0.08)' : isTop2 ? 'rgba(100, 116, 139, 0.05)' : isTop3 ? 'rgba(217, 119, 6, 0.05)' : 'transparent'
                             }}
                           >
-                            <td style={{ textAlign: 'center' }}>
-                              <span 
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 800,
-                                  fontSize: isTop1 || isTop2 || isTop3 ? '0.95rem' : '0.88rem',
-                                  color: isTop1 ? '#b45309' : isTop2 ? '#475569' : isTop3 ? '#c2410c' : 'inherit',
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  background: isTop1 ? '#fef3c7' : isTop2 ? '#f1f5f9' : isTop3 ? '#ffedd5' : 'transparent',
-                                  border: isTop1 ? '1px solid #fde68a' : isTop2 ? '1px solid #cbd5e1' : isTop3 ? '1px solid #fed7aa' : 'none'
-                                }}
-                              >
-                                {item.rankText}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 700, fontSize: '0.95rem' }}>
-                              {roll}
+                            <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>
+                              {idx + 1}
                             </td>
                             <td>
                               <div className="font-semibold" style={{ fontSize: '0.92rem' }}>
@@ -2576,20 +2601,66 @@ export default function ExamPage() {
                                 আইডি: {student.studentId} • সেকশন: {student.currentEnrollment?.section?.name || (typeof student.currentEnrollment?.section === 'string' ? student.currentEnrollment.section : '—')}
                               </div>
                             </td>
-                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 800, fontSize: '1.05rem', color: '#0f766e' }}>
-                              {item.totalObtained}
+                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 700, fontSize: '0.95rem' }}>
+                              {roll}
                             </td>
-                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 600 }}>
-                              {item.percentage}%
+                            {meritSubjectsList.map(sub => {
+                              const rec = item.studentMarksObj?.[sub._id];
+                              const score = rec?.marksObtained;
+                              const hasScore = score !== null && score !== undefined && score !== '';
+                              const subFullMarks = Number(sub.totalMarks) || 100;
+                              const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
+
+                              return (
+                                <td 
+                                  key={sub._id} 
+                                  style={{ 
+                                    textAlign: 'center', 
+                                    fontFamily: 'Inter', 
+                                    fontWeight: 700, 
+                                    fontSize: '0.95rem',
+                                    color: isSubFail ? '#dc2626' : (hasScore ? '#0f172a' : 'var(--text-muted)'),
+                                    background: isSubFail ? 'rgba(239, 68, 68, 0.06)' : 'transparent'
+                                  }}
+                                >
+                                  {hasScore ? score : '—'}
+                                </td>
+                              );
+                            })}
+                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 800, fontSize: '0.95rem', color: '#0f766e' }}>
+                              {item.subjectsCountWithMarks === 0 ? '—' : `${item.totalObtained} / ${item.totalFullMarks || 100}`}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span 
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 800,
+                                  fontSize: isTop1 || isTop2 || isTop3 ? '0.92rem' : '0.85rem',
+                                  color: isTop1 ? '#b45309' : isTop2 ? '#475569' : isTop3 ? '#c2410c' : 'inherit',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  background: isTop1 ? '#fef3c7' : isTop2 ? '#f1f5f9' : isTop3 ? '#ffedd5' : 'transparent',
+                                  border: isTop1 ? '1px solid #fde68a' : isTop2 ? '1px solid #cbd5e1' : isTop3 ? '1px solid #fed7aa' : 'none'
+                                }}
+                              >
+                                {item.rankText}
+                              </span>
                             </td>
                             <td style={{ textAlign: 'center' }}>
                               <span className={`badge ${getGradeBadgeClass(item.overallGrade)}`} style={{ fontSize: '0.85rem', width: '45px', justifyContent: 'center' }}>
                                 {item.overallGrade}
                               </span>
                             </td>
+                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 700 }}>
+                              {item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}
+                            </td>
                             <td style={{ textAlign: 'center' }}>
                               {item.subjectsCountWithMarks === 0 ? (
                                 <span className="badge badge-muted">অনুপস্থিত</span>
+                              ) : item.isIncomplete ? (
+                                <span className="badge badge-warning" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>অসম্পূর্ণ</span>
                               ) : item.isPassed ? (
                                 <span className="badge badge-active">উত্তীর্ণ (Pass)</span>
                               ) : (
