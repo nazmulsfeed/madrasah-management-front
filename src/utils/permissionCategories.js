@@ -75,7 +75,8 @@ export const permissionCategories = [
       { key: 'routine.view', label: 'View Routine (রুটিন দেখুন)' },
       { key: 'routine.create', label: 'Create Routine (নতুন রুটিন)' },
       { key: 'routine.update', label: 'Update Routine (আপডেট করুন)' },
-      { key: 'routine.delete', label: 'Delete Routine (ডিলিট করুন)' }
+      { key: 'routine.delete', label: 'Delete Routine (ডিলিট করুন)' },
+      { key: 'academic.manage', label: 'Academic Management (অ্যাকাডেমিক সেটিংস ও রুটিন ব্যবস্থাপনা)' }
     ]
   },
   {

@@ -1,10 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, Plus, Clock, Calendar, Edit, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 
 export default function AcademicsPage() {
   const { user } = useAuthStore();
+
+  // Read cached permissions (populated by DashboardLayout from /permissions/me)
+  const myPermissions = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
+  }, []);
+
+  // Helper: check if user has elevated role OR specific academic.manage permission
+  const canManageAcademics = useMemo(() => {
+    const isElevated = ['super_admin', 'co_super_admin', 'admin', 'principal'].includes(user?.userType) ||
+                       ['co_super_admin', 'admin'].includes(user?.adminRole);
+    if (isElevated) return true;
+    return !!(myPermissions['academic.manage'] || myPermissions['subject.create'] || myPermissions['routine.create']);
+  }, [user, myPermissions]);
   const [activeTab, setActiveTab] = useState('subjects');
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -607,22 +620,22 @@ export default function AcademicsPage() {
           <h1 className="page-title">একাডেমিক</h1>
           <p className="page-subtitle">বিষয়, সিলেবাস এবং ক্লাস রুটিন ব্যবস্থাপনা</p>
         </div>
-        {activeTab === 'subjects' && ['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+        {activeTab === 'subjects' && canManageAcademics && (
           <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={16} /> নতুন বিষয় তৈরি
           </button>
         )}
-        {activeTab === 'timetable' && ['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+        {activeTab === 'timetable' && canManageAcademics && (
           <button className="btn btn-primary" onClick={() => setIsTimetableModalOpen(true)}>
             <Plus size={16} /> নতুন রুটিন স্লট
           </button>
         )}
-        {activeTab === 'calendar' && ['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+        {activeTab === 'calendar' && canManageAcademics && (
           <button className="btn btn-primary" onClick={() => setIsCalendarModalOpen(true)}>
             <Plus size={16} /> নতুন ইভেন্ট যুক্ত করুন
           </button>
         )}
-        {activeTab === 'academicYears' && ['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+        {activeTab === 'academicYears' && canManageAcademics && (
           <button className="btn btn-primary" onClick={() => setIsAYModalOpen(true)}>
             <Plus size={16} /> নতুন শিক্ষাবর্ষ যুক্ত করুন
           </button>
@@ -667,7 +680,7 @@ export default function AcademicsPage() {
                   <th>বিষয়ের নাম</th>
                   <th>ধরন</th>
                   <th>প্রযোজ্য শ্রেণি</th>
-                  {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                  {canManageAcademics && (
                     <th style={{ width: '150px', textAlign: 'center' }}>অ্যাকশন</th>
                   )}
                 </tr>
@@ -687,7 +700,7 @@ export default function AcademicsPage() {
                         ? sub.classLevels.map(c => c.name).join(', ') 
                         : 'সকল শ্রেণি'}
                     </td>
-                    {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                    {canManageAcademics && (
                       <td>
                         <div className="flex-center gap-8">
                           <button className="btn btn-ghost btn-sm" onClick={() => handleEditSubject(sub)} title="সম্পাদনা">
@@ -743,7 +756,7 @@ export default function AcademicsPage() {
                 <th>মঙ্গল</th>
                 <th>বুধ</th>
                 <th>বৃহ</th>
-                {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                {canManageAcademics && (
                   <th style={{ width: '150px', textAlign: 'center' }}>অ্যাকশন</th>
                 )}
               </tr>
@@ -751,7 +764,7 @@ export default function AcademicsPage() {
             <tbody>
               {getCurrentTimetable().length === 0 ? (
                 <tr>
-                  <td colSpan={['super_admin', 'admin', 'principal'].includes(user?.userType) ? 8 : 7} style={{ textAlign: 'center', padding: '36px 16px', color: '#64748b' }}>
+                  <td colSpan={canManageAcademics ? 8 : 7} style={{ textAlign: 'center', padding: '36px 16px', color: '#64748b' }}>
                     <div style={{ fontSize: '15px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                       এই শ্রেণির জন্য এখনো কোনো ক্লাস রুটিন বা বিরতি স্লট তৈরি করা হয়নি।
                     </div>
@@ -768,7 +781,7 @@ export default function AcademicsPage() {
                       <td colSpan={6} style={{ textAlign: 'center', letterSpacing: '0.5px', padding: '10px' }}>
                         ☕ {row.label || 'টিফিন ও নাস্তা বিরতি'}
                       </td>
-                      {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                      {canManageAcademics && (
                         <td>
                           <div className="flex-center gap-8">
                             <button className="btn btn-ghost btn-sm" onClick={() => handleEditTimetable(i, row)} title="সম্পাদনা">
@@ -790,7 +803,7 @@ export default function AcademicsPage() {
                       <td>{renderTimetableCell(row.tue)}</td>
                       <td>{renderTimetableCell(row.wed)}</td>
                       <td>{renderTimetableCell(row.thu)}</td>
-                      {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                      {canManageAcademics && (
                         <td>
                           <div className="flex-center gap-8">
                             <button className="btn btn-ghost btn-sm" onClick={() => handleEditTimetable(i, row)} title="সম্পাদনা">
@@ -823,7 +836,7 @@ export default function AcademicsPage() {
                       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary-500)', flexShrink: 0 }}></div>
                       <span className="text-sm">{ev}</span>
                     </div>
-                    {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                    {canManageAcademics && (
                       <div className="flex gap-4">
                         <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={() => handleEditCalendarEvent(m.month, i, ev)} title="সম্পাদনা">
                           <Edit size={12} />
@@ -850,7 +863,7 @@ export default function AcademicsPage() {
                 <th>শুরুর তারিখ</th>
                 <th>শেষের তারিখ</th>
                 <th>অবস্থা (Status)</th>
-                {['super_admin', 'admin', 'principal'].includes(user?.userType) && <th style={{ width: '150px', textAlign: 'center' }}>অ্যাকশন</th>}
+                {canManageAcademics && <th style={{ width: '150px', textAlign: 'center' }}>অ্যাকশন</th>}
               </tr>
             </thead>
             <tbody>
@@ -867,11 +880,11 @@ export default function AcademicsPage() {
                     <td>{new Date(ay.startDate).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
                     <td>{new Date(ay.endDate).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
                     <td>
-                      <span className={`badge ${ay.isCurrent ? 'badge-success' : 'badge-secondary'}`} style={{ cursor: 'pointer' }} onClick={() => handleAYToggleCurrent(ay._id, ay.isCurrent)}>
-                        {ay.isCurrent ? 'চলতি শিক্ষাবর্ষ' : 'সাধারণ শিক্ষাবর্ষ (ক্লিক করে চলতি করুন)'}
+                      <span className={`badge ${ay.isCurrent ? 'badge-success' : 'badge-secondary'}`} style={{ cursor: canManageAcademics ? 'pointer' : 'default' }} onClick={() => canManageAcademics && handleAYToggleCurrent(ay._id, ay.isCurrent)}>
+                        {ay.isCurrent ? 'চলতি শিক্ষাবর্ষ' : 'সাধারণ শিক্ষাবর্ষ'}
                       </span>
                     </td>
-                    {['super_admin', 'admin', 'principal'].includes(user?.userType) && (
+                    {canManageAcademics && (
                       <td>
                         <div className="flex-center gap-8">
                           <button className="btn btn-ghost btn-sm" onClick={() => {

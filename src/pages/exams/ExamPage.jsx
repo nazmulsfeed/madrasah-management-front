@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, ChevronDown, Check, Edit, Trash2, Printer, Trophy, Award, RefreshCw, GraduationCap, User, BookOpen, CheckSquare, Square, X } from 'lucide-react';
+import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, ChevronDown, Check, Edit, Trash2, Printer, Trophy, Award, RefreshCw, GraduationCap, User, BookOpen, CheckSquare, Square, X, Calendar, Clock, MapPin } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
-import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
+import { formatDateDDMMYYYY, getMadrasahInfo, parseBnToEnNumber, toBnNumber } from '../../utils/helpers';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
@@ -110,6 +110,28 @@ export default function ExamPage() {
   const [annualLoading, setAnnualLoading] = useState(false);
   const [annualData, setAnnualData] = useState(null);
 
+  // Exam Routine State
+  const [routines, setRoutines] = useState([]);
+  const [routinesLoading, setRoutinesLoading] = useState(false);
+  const [routineStreamFilter, setRoutineStreamFilter] = useState('all'); // 'all', 'noorani', 'hifz', 'kitab'
+  const [routineExamFilter, setRoutineExamFilter] = useState('all');
+  const [routineClassFilter, setRoutineClassFilter] = useState('all');
+  const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
+  const [routineSubmitting, setRoutineSubmitting] = useState(false);
+  const [editingRoutineId, setEditingRoutineId] = useState(null);
+  const [studentRoutineData, setStudentRoutineData] = useState(null);
+  const [routineForm, setRoutineForm] = useState({
+    title: '',
+    exam: '',
+    examName: '',
+    classLevel: '',
+    className: '',
+    stream: 'noorani',
+    status: 'published',
+    instructions: 'পরীক্ষা শুরুর ১৫ মিনিট পূর্বে নিজ নিজ আসনে উপস্থিত থাকতে হবে। প্রবেশপত্র ও প্রয়োজনীয় শিক্ষা উপকরণ সাথে রাখতে হবে।',
+    schedule: []
+  });
+
   const isStudentOrGuardian = user?.userType === 'student' || user?.userType === 'guardian';
 
   // Auto-hide toast
@@ -165,6 +187,10 @@ export default function ExamPage() {
   useEffect(() => {
     fetchExams();
     fetchClasses();
+    fetchRoutines();
+    if (isStudentOrGuardian) {
+      loadStudentRoutine();
+    }
   }, []);
 
   useEffect(() => {
@@ -374,7 +400,8 @@ export default function ExamPage() {
 
   // Fetch single student results across all subjects
   const fetchSingleStudentResult = async (targetId) => {
-    const idToSearch = targetId || studentSearchId;
+    const rawId = targetId || studentSearchId;
+    const idToSearch = parseBnToEnNumber(rawId);
     if (!idToSearch || !String(idToSearch).trim()) {
       setToast({ type: 'error', message: 'অনুগ্রহ করে শিক্ষার্থীর আইডি লিখুন বা নির্বাচন করুন' });
       return;
@@ -1497,6 +1524,394 @@ export default function ExamPage() {
     printWin.document.close();
   };
 
+  const getBnDayName = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+    return days[d.getDay()];
+  };
+
+  const fetchRoutines = async (stream = routineStreamFilter, examId = routineExamFilter, classId = routineClassFilter, isExplicit = false) => {
+    setRoutinesLoading(true);
+    try {
+      const params = {};
+      if (stream && stream !== 'all') params.stream = stream;
+      if (examId && examId !== 'all') params.exam = examId;
+      if (classId && classId !== 'all') params.classLevel = classId;
+      const res = await api.get('/exams/routines', { params });
+      if (res.data.success) {
+        setRoutines(res.data.data.routines || []);
+      }
+    } catch (err) {
+      console.error('Failed to load routines', err);
+      if (isExplicit) {
+        setToast({ type: 'error', message: err.response?.data?.message || 'পরীক্ষার রুটিন লোড করতে সমস্যা হয়েছে' });
+      }
+    } finally {
+      setRoutinesLoading(false);
+    }
+  };
+
+  const loadStudentRoutine = async (isExplicit = false) => {
+    setRoutinesLoading(true);
+    try {
+      const res = await api.get('/exams/student-routine');
+      if (res.data.success) {
+        setStudentRoutineData(res.data.data);
+        setRoutines(res.data.data.routines || []);
+      }
+    } catch (err) {
+      console.error('Failed to load student routine', err);
+    } finally {
+      setRoutinesLoading(false);
+    }
+  };
+
+  const handleOpenRoutineModal = (routine = null) => {
+    const targetClassId = routine?.classLevel || selectedExam?.classLevel?._id || (classes[0]?._id || '');
+    if (targetClassId) {
+      loadSubjectsForModal(targetClassId);
+    }
+
+    if (routine) {
+      setEditingRoutineId(routine._id);
+      setRoutineForm({
+        title: routine.title || '',
+        exam: routine.exam || '',
+        examName: routine.examName || '',
+        classLevel: routine.classLevel || '',
+        className: routine.className || '',
+        stream: routine.stream || 'noorani',
+        status: routine.status || 'published',
+        instructions: routine.instructions || '',
+        schedule: Array.isArray(routine.schedule) && routine.schedule.length > 0 
+          ? routine.schedule 
+          : [{ date: '', day: '', subject: '', subjectName: '', startTime: 'সকাল ০৯:৩০', endTime: 'দুপুর ১২:৩০', roomNo: '১০১', totalMarks: 100 }]
+      });
+    } else {
+      setEditingRoutineId(null);
+      setRoutineForm({
+        title: selectedExam ? `${selectedExam.name} — পরীক্ষার রুটিন` : 'পরীক্ষার রুটিন',
+        exam: selectedExam?._id || (exams[0]?._id || ''),
+        examName: selectedExam?.name || (exams[0]?.name || ''),
+        classLevel: targetClassId,
+        className: selectedExam?.classLevel?.name || (classes[0]?.name || ''),
+        stream: 'noorani',
+        status: 'published',
+        instructions: 'পরীক্ষা শুরুর ১৫ মিনিট পূর্বে নিজ নিজ আসনে উপস্থিত থাকতে হবে। প্রবেশপত্র ও প্রয়োজনীয় শিক্ষা উপকরণ সাথে রাখতে হবে।',
+        schedule: [
+          { date: '', day: '', subject: '', subjectName: '', startTime: 'সকাল ০৯:৩০', endTime: 'দুপুর ১২:৩০', roomNo: '১০১', totalMarks: 100 }
+        ]
+      });
+    }
+    setIsRoutineModalOpen(true);
+  };
+
+  const handlePopulateAllClassSubjects = () => {
+    if (!modalClassSubjects || modalClassSubjects.length === 0) {
+      setToast({ type: 'error', message: 'নির্বাচিত শ্রেণির কোনো নির্ধারিত বিষয় পাওয়া যায়নি' });
+      return;
+    }
+    const populated = modalClassSubjects.map(sub => ({
+      date: '',
+      day: '',
+      subject: sub._id,
+      subjectName: sub.name,
+      startTime: 'সকাল ০৯:৩০',
+      endTime: 'দুপুর ১২:৩০',
+      roomNo: '১০১',
+      totalMarks: Number(sub.totalMarks) || 100
+    }));
+    setRoutineForm(prev => ({
+      ...prev,
+      schedule: populated
+    }));
+    setToast({ type: 'success', message: `${modalClassSubjects.length}টি বিষয় সফলভাবে সময়সূচিতে যোগ করা হয়েছে!` });
+  };
+
+  const handleSaveRoutine = async (e) => {
+    if (e) e.preventDefault();
+    if (!routineForm.title.trim()) {
+      setToast({ type: 'error', message: 'রুটিনের শিরোনাম আবশ্যক' });
+      return;
+    }
+
+    setRoutineSubmitting(true);
+    try {
+      const payload = {
+        ...routineForm,
+        _id: editingRoutineId
+      };
+      const res = await api.post('/exams/routines', payload);
+      if (res.data.success) {
+        setToast({ type: 'success', message: res.data.message || 'রুটিন সফলভাবে সংরক্ষিত হয়েছে' });
+        setIsRoutineModalOpen(false);
+        fetchRoutines();
+      }
+    } catch (err) {
+      console.error('Failed to save routine', err);
+      setToast({ type: 'error', message: err.response?.data?.message || 'রুটিন সংরক্ষণ করতে সমস্যা হয়েছে' });
+    } finally {
+      setRoutineSubmitting(false);
+    }
+  };
+
+  const handleDeleteRoutine = async (id) => {
+    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই পরীক্ষার রুটিনটি মুছে ফেলতে চান?')) return;
+    try {
+      const res = await api.delete(`/exams/routines/${id}`);
+      if (res.data.success) {
+        setToast({ type: 'success', message: 'রুটিন মুছে ফেলা হয়েছে' });
+        setRoutines(prev => prev.filter(r => r._id !== id));
+      }
+    } catch (err) {
+      console.error('Failed to delete routine', err);
+      setToast({ type: 'error', message: err.response?.data?.message || 'রুটিন মুছতে ব্যর্থ হয়েছে' });
+    }
+  };
+
+  const handleAddScheduleRow = () => {
+    setRoutineForm(prev => ({
+      ...prev,
+      schedule: [
+        ...prev.schedule,
+        { date: '', day: '', subject: '', subjectName: '', startTime: 'সকাল ০৯:৩০', endTime: 'দুপুর ১২:৩০', roomNo: '১০১', totalMarks: 100 }
+      ]
+    }));
+  };
+
+  const handleRemoveScheduleRow = (index) => {
+    setRoutineForm(prev => ({
+      ...prev,
+      schedule: prev.schedule.filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleScheduleRowChange = (index, field, value) => {
+    setRoutineForm(prev => {
+      const updated = [...prev.schedule];
+      const row = { ...updated[index], [field]: value };
+      if (field === 'date') {
+        row.day = getBnDayName(value);
+      }
+      if (field === 'subject') {
+        const foundSub = (modalClassSubjects && modalClassSubjects.find(s => s._id === value)) || subjects.find(s => s._id === value);
+        if (foundSub) {
+          row.subject = foundSub._id;
+          row.subjectName = foundSub.name;
+          row.totalMarks = Number(foundSub.totalMarks) || 100;
+        } else {
+          row.subject = value;
+          row.subjectName = value;
+        }
+      }
+      updated[index] = row;
+      return { ...prev, schedule: updated };
+    });
+  };
+
+  const handlePrintExamRoutine = (routine) => {
+    if (!routine || !routine.schedule || routine.schedule.length === 0) {
+      setToast({ type: 'error', message: 'প্রিন্ট করার মতো কোনো সময়সূচি নেই' });
+      return;
+    }
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      alert('পপআপ ব্লক করা আছে! প্রিন্ট উইন্ডো ওপেন করতে ব্রাউজার পারমিশন দিন।');
+      return;
+    }
+
+    const streamLabel = routine.stream === 'hifz' 
+      ? 'হিফজ বিভাগ' 
+      : (routine.stream === 'noorani' ? 'নূরানী বিভাগ' : (routine.stream === 'kitab' ? 'কিতাব বিভাগ' : 'সাধারণ বিভাগ'));
+
+    const dateStr = new Date().toLocaleDateString('bn-BD', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>${routine.title || 'পরীক্ষার রুটিন'} - ${routine.className || ''}</title>
+  ${getMadrasahPrintStyles('portrait')}
+  <style>
+    @page { size: A4 portrait; margin: 8mm 12mm !important; }
+    
+    .routine-banner {
+      margin: 12px 0 14px 0;
+      text-align: center;
+      position: relative;
+    }
+    .routine-badge-title {
+      display: inline-block;
+      background: #0f766e;
+      color: #ffffff;
+      padding: 6px 24px;
+      font-size: 15px;
+      font-weight: 800;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+    }
+    .routine-sub-meta {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #1e293b;
+      font-weight: 600;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .routine-sub-meta span {
+      background: #f8fafc;
+      padding: 2.5px 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    table.routine-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 11px;
+      border: 1.5px solid #0f766e;
+    }
+    table.routine-table th, table.routine-table td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      vertical-align: middle;
+    }
+    table.routine-table th {
+      background: #0f766e;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 11px;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+    table.routine-table tbody tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .text-center { text-align: center; }
+    .font-bold { font-weight: 700; }
+    
+    .instructions-box {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border: 1.5px dashed #0f766e;
+      border-radius: 8px;
+      font-size: 10px;
+      background: rgba(15, 118, 110, 0.03);
+      page-break-inside: avoid;
+    }
+    .instructions-title {
+      font-weight: 800;
+      color: #0f766e;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+    .instructions-list {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.55;
+      color: #1e293b;
+    }
+    .instructions-list li {
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="print-sheet-container">
+    <div class="print-content-layer">
+      ${getMadrasahHeaderHtml({
+        title: '',
+        orientation: 'portrait',
+        metaLeft: `<strong>বিভাগ:</strong> ${streamLabel} ${routine.className ? `| <strong>শ্রেণি:</strong> ${routine.className}` : ''}`,
+        metaRight: `<strong>তারিখ:</strong> ${dateStr}`
+      })}
+
+      <div class="routine-banner">
+        <div class="routine-badge-title">
+          ${routine.title || 'পরীক্ষার রুটিন ও সময়সূচি'}
+        </div>
+        <div class="routine-sub-meta">
+          <span><strong>বিভাগ:</strong> ${streamLabel}</span>
+          ${routine.className ? `<span><strong>শ্রেণি:</strong> ${routine.className}</span>` : ''}
+          ${routine.examName ? `<span><strong>পরীক্ষা:</strong> ${routine.examName}</span>` : ''}
+        </div>
+      </div>
+
+      <table class="routine-table">
+        <thead>
+          <tr>
+            <th style="width: 38px;">ক্রম</th>
+            <th style="width: 140px;">তারিখ ও বার</th>
+            <th style="text-align: left; padding-left: 14px;">পরীক্ষার বিষয়</th>
+            <th style="width: 75px;">পূর্ণমান</th>
+            <th style="width: 165px;">সময়সূচি</th>
+            <th style="width: 80px;">কক্ষ নম্বর</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${routine.schedule.map((item, idx) => `
+            <tr>
+              <td class="text-center font-bold" style="color: #0f766e;">${toBnNumber(idx + 1)}</td>
+              <td class="text-center">
+                <div style="font-weight: 700; color: #0f172a; font-size: 11.5px;">${formatDateDDMMYYYY(item.date)}</div>
+                <div style="font-size: 9.5px; color: #64748b; font-weight: 600;">${item.day || getBnDayName(item.date)}</div>
+              </td>
+              <td style="font-weight: 700; font-size: 11.5px; color: #042f2e; padding-left: 14px;">
+                ${item.subjectName || item.subject || '—'}
+              </td>
+              <td class="text-center font-bold" style="color: #0f766e;">${toBnNumber(item.totalMarks || 100)}</td>
+              <td class="text-center" style="font-weight: 700; font-size: 10.5px; color: #1e293b;">
+                ${item.startTime || '—'} থেকে ${item.endTime || '—'}
+              </td>
+              <td class="text-center">
+                <span style="font-weight: 700; background: #e2e8f0; padding: 2.5px 8px; border-radius: 4px; font-size: 10px;">${item.roomNo || '১০১'}</span>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="instructions-box">
+        <div class="instructions-title">
+          <span>📋 পরীক্ষার্থীদের জন্য জরুরি নিয়মাবলী ও নির্দেশনাবলী:</span>
+        </div>
+        <ul class="instructions-list">
+          ${routine.instructions ? `<li><strong>বিশেষ নির্দেশ:</strong> ${routine.instructions}</li>` : ''}
+          <li>পরীক্ষা শুরুর অন্তত ১৫ মিনিট পূর্বে নিজ নিজ নির্ধারিত আসনে উপস্থিত থাকতে হবে।</li>
+          <li>প্রবেশপত্র (Admit Card) এবং প্রয়োজনীয় শিক্ষা উপকরণ (কলম, পেন্সিল, স্কেল ইত্যাদি) সাথে রাখতে হবে।</li>
+          <li>পরীক্ষার হলে মোবাইল ফোন বা কোনো অননুমোদিত ডিজিটাল ডিভাইস বহন সম্পূর্ণ নিষিদ্ধ।</li>
+          <li>পরীক্ষার্থীর রোল ও আইডি উত্তরপত্রে নির্ভুলভাবে লিখতে হবে।</li>
+        </ul>
+      </div>
+
+      ${getMadrasahFooterSignaturesHtml(['শ্রেণি শিক্ষক / হল সুপার', 'পরীক্ষা নিয়ন্ত্রক', 'প্রতিষ্ঠান প্রধান / পরিচালক'])}
+    </div>
+  </div>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => { window.print(); }, 400);
+    });
+  </script>
+</body>
+</html>
+    `;
+
+    printWin.document.open();
+    printWin.document.write(htmlContent);
+    printWin.document.close();
+  };
+
+
   const handlePrintMeritList = () => {
     const printWin = window.open('', '_blank');
     if (!printWin) {
@@ -1630,7 +2045,8 @@ export default function ExamPage() {
   };
 
   const calculateGrade = (val, max = 100) => {
-    const marks = parseFloat(val);
+    const clean = parseBnToEnNumber(val);
+    const marks = parseFloat(clean);
     if (isNaN(marks)) return '—';
     const total = Number(max) || 100;
     const pct = total > 0 ? (marks / total) * 100 : marks;
@@ -1655,10 +2071,14 @@ export default function ExamPage() {
     const maxMarks = Number(currentSub?.totalMarks) || 100;
 
     const studentMarksPayload = Object.keys(marksData)
-      .map(studentId => ({
-        studentId,
-        marksObtained: marksData[studentId] === '' ? null : parseFloat(marksData[studentId])
-      }));
+      .map(studentId => {
+        const raw = marksData[studentId];
+        const clean = parseBnToEnNumber(raw);
+        return {
+          studentId,
+          marksObtained: clean === '' ? null : parseFloat(clean)
+        };
+      });
 
     if (studentMarksPayload.length === 0) {
       setToast({ type: 'error', message: 'সংরক্ষণ করার মতো কোনো নম্বর দেওয়া হয়নি' });
@@ -1724,6 +2144,444 @@ export default function ExamPage() {
       status: 'upcoming'
     });
     setModalClassSubjects([]);
+  };
+
+  const renderExamRoutineWorkspace = (isInsideSelectedExam = false) => {
+    const canManageRoutine = ['super_admin', 'admin', 'principal', 'teacher', 'hifz_teacher'].includes(user?.userType) ||
+      user?.permissions?.includes?.('academic.manage') ||
+      user?.permissions?.includes?.('exam.manage');
+
+    const filteredRoutines = routines.filter(r => {
+      if (isInsideSelectedExam && selectedExam) {
+        if (r.exam && r.exam !== selectedExam._id) return false;
+      } else if (routineExamFilter !== 'all') {
+        if (r.exam !== routineExamFilter) return false;
+      }
+
+      if (routineStreamFilter !== 'all' && r.stream !== routineStreamFilter) {
+        return false;
+      }
+
+      if (routineClassFilter !== 'all' && r.classLevel !== routineClassFilter) {
+        return false;
+      }
+
+      return true;
+    });
+
+    return (
+      <div className="animate-fade-in">
+        {/* Header / Nav */}
+        <div className="page-header no-print" style={{ marginBottom: '20px' }}>
+          <div className="flex gap-16" style={{ alignItems: 'center' }}>
+            {!isInsideSelectedExam && (
+              <button 
+                type="button" 
+                className="btn btn-secondary btn-icon" 
+                onClick={() => {
+                  setExamViewMode('marks');
+                  setSelectedExam(null);
+                }}
+                title="ফিরে যান"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div>
+              <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={22} style={{ color: '#2563eb' }} />
+                <span>
+                  {isInsideSelectedExam && selectedExam 
+                    ? `পরীক্ষার রুটিন — ${selectedExam.name}` 
+                    : 'পরীক্ষার রুটিন ও সময়সূচি (Exam Routine)'}
+                </span>
+              </h1>
+              <p className="page-subtitle">
+                {isStudentOrGuardian 
+                  ? 'আপনার শ্রেণির পরীক্ষার সময়সূচি, তারিখ ও আসন বিবরণী' 
+                  : 'নূরানী ও হিফজ বিভাগের শিক্ষার্থীদের পরীক্ষার সময়সূচি পরিচালনা, ফিল্টারিং ও প্রিন্ট'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                if (isStudentOrGuardian) {
+                  loadStudentRoutine(true);
+                } else {
+                  fetchRoutines(routineStreamFilter, routineExamFilter, routineClassFilter, true);
+                }
+              }}
+              disabled={routinesLoading}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              title="রুটিন তালিকা রিফ্রেশ করুন"
+            >
+              <RefreshCw size={14} className={routinesLoading ? 'animate-spin' : ''} /> <span>রিফ্রেশ</span>
+            </button>
+            {canManageRoutine && (
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={() => handleOpenRoutineModal()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={16} /> <span>নতুন রুটিন তৈরি</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Toolbar (Stream, Class, Exam) */}
+        {!isStudentOrGuardian && (
+          <div className="card mb-20 no-print" style={{ padding: '16px 20px', background: 'var(--card-bg, #fff)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
+              {/* Stream Tabs: All, Noorani, Hifz, Kitab */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={`btn ${routineStreamFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '6px 14px', fontSize: '0.85rem', borderRadius: '8px' }}
+                  onClick={() => setRoutineStreamFilter('all')}
+                >
+                  সকল বিভাগ ({routines.length})
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${routineStreamFilter === 'noorani' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '6px 14px', fontSize: '0.85rem', borderRadius: '8px' }}
+                  onClick={() => setRoutineStreamFilter('noorani')}
+                >
+                  📖 নূরানী বিভাগ ({routines.filter(r => r.stream === 'noorani').length})
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${routineStreamFilter === 'hifz' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '6px 14px', fontSize: '0.85rem', borderRadius: '8px' }}
+                  onClick={() => setRoutineStreamFilter('hifz')}
+                >
+                  🕌 হিফজ বিভাগ ({routines.filter(r => r.stream === 'hifz').length})
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${routineStreamFilter === 'kitab' ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '6px 14px', fontSize: '0.85rem', borderRadius: '8px' }}
+                  onClick={() => setRoutineStreamFilter('kitab')}
+                >
+                  📚 কিতাব বিভাগ ({routines.filter(r => r.stream === 'kitab').length})
+                </button>
+              </div>
+
+              {/* Class & Exam Dropdowns */}
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {!isInsideSelectedExam && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>পরীক্ষা:</span>
+                    <select
+                      className="form-control"
+                      style={{ padding: '6px 12px', fontSize: '0.85rem', minWidth: '160px', height: '36px' }}
+                      value={routineExamFilter}
+                      onChange={(e) => setRoutineExamFilter(e.target.value)}
+                    >
+                      <option value="all">সকল পরীক্ষা</option>
+                      {exams.map(ex => (
+                        <option key={ex._id} value={ex._id}>{ex.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>শ্রেণি:</span>
+                  <select
+                    className="form-control"
+                    style={{ padding: '6px 12px', fontSize: '0.85rem', minWidth: '140px', height: '36px' }}
+                    value={routineClassFilter}
+                    onChange={(e) => setRoutineClassFilter(e.target.value)}
+                  >
+                    <option value="all">সকল শ্রেণি</option>
+                    {classes.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Routines Listing */}
+        {routinesLoading ? (
+          <div className="card text-center" style={{ padding: '40px' }}>
+            <div className="spinner" style={{ margin: '0 auto 12px' }}></div>
+            <p>পরীক্ষার রুটিন লোড হচ্ছে...</p>
+          </div>
+        ) : filteredRoutines.length === 0 ? (
+          <div className="card text-center" style={{ padding: '50px 20px', color: 'var(--text-secondary)' }}>
+            <Calendar size={44} style={{ margin: '0 auto 12px', color: '#94a3b8', opacity: 0.6 }} />
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '6px' }}>কোনো পরীক্ষার রুটিন পাওয়া যায়নি</h3>
+            <p style={{ fontSize: '0.9rem', maxWidth: '450px', margin: '0 auto 16px' }}>
+              {isStudentOrGuardian 
+                ? 'আপনার শ্রেণির জন্য এখনো কোনো পরীক্ষার রুটিন প্রকাশ করা হয়নি।' 
+                : 'বর্তমান ফিল্টারের আওতায় কোনো রুটিন তৈরি করা হয়নি। নতুন রুটিন তৈরি করতে নিচের বাটনে ক্লিক করুন।'}
+            </p>
+            {canManageRoutine && (
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={() => handleOpenRoutineModal()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={16} /> <span>নতুন রুটিন তৈরি করুন</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {filteredRoutines.map(routine => {
+              const streamBadge = routine.stream === 'hifz'
+                ? { label: 'হিফজ বিভাগ', bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' }
+                : routine.stream === 'kitab'
+                ? { label: 'কিতাব বিভাগ', bg: '#f5f3ff', color: '#5b21b6', border: '#ddd6fe' }
+                : { label: 'নূরানী বিভাগ', bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe' };
+
+              return (
+                <div key={routine._id} className="card" style={{ padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                        <span style={{ 
+                          padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, 
+                          background: streamBadge.bg, color: streamBadge.color, border: `1px solid ${streamBadge.border}` 
+                        }}>
+                          {streamBadge.label}
+                        </span>
+                        {routine.className && (
+                          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, background: '#f1f5f9', color: '#334155' }}>
+                            শ্রেণি: {routine.className}
+                          </span>
+                        )}
+                        {routine.examName && (
+                          <span style={{ padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, background: '#fef3c7', color: '#92400e' }}>
+                            {routine.examName}
+                          </span>
+                        )}
+                        <span style={{ 
+                          padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600,
+                          background: routine.status === 'published' ? '#dcfce7' : '#f1f5f9',
+                          color: routine.status === 'published' ? '#166534' : '#64748b'
+                        }}>
+                          {routine.status === 'published' ? 'প্রকাশিত' : 'খসড়া'}
+                        </span>
+                      </div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                        {routine.title}
+                      </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => handlePrintExamRoutine(routine)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', padding: '6px 12px' }}
+                        title="রুটিন প্রিন্ট বা ডাউনলোড করুন"
+                      >
+                        <Printer size={15} /> <span>প্রিন্ট</span>
+                      </button>
+                      {canManageRoutine && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={() => handleOpenRoutineModal(routine)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', padding: '6px 10px', color: '#2563eb' }}
+                            title="রুটিন সম্পাদনা করুন"
+                          >
+                            <Edit size={15} /> <span>সম্পাদনা</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={() => handleDeleteRoutine(routine._id)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', padding: '6px 10px', color: '#dc2626' }}
+                            title="রুটিন মুছে ফেলুন"
+                          >
+                            <Trash2 size={15} /> <span>মুছুন</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Instructions Callout */}
+                  {routine.instructions && (
+                    <div style={{ 
+                      padding: '10px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.05)', 
+                      borderLeft: '4px solid #3b82f6', marginBottom: '14px', fontSize: '0.85rem', color: '#1e40af' 
+                    }}>
+                      <strong>বিশেষ নির্দেশনাবলী:</strong> {routine.instructions}
+                    </div>
+                  )}
+
+                  {/* Schedule: Desktop Table View */}
+                  <div className="table-responsive routine-desktop-table" style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <table className="table" style={{ width: '100%', fontSize: '0.9rem', borderCollapse: 'collapse', margin: 0 }}>
+                      <thead>
+                        <tr style={{ background: '#0f766e', color: '#ffffff' }}>
+                          <th style={{ width: '50px', textAlign: 'center', color: '#ffffff', fontWeight: 700 }}>ক্রম</th>
+                          <th style={{ width: '190px', color: '#ffffff', fontWeight: 700 }}>তারিখ ও বার</th>
+                          <th style={{ color: '#ffffff', fontWeight: 700, paddingLeft: '16px' }}>পরীক্ষার বিষয়</th>
+                          <th style={{ width: '110px', textAlign: 'center', color: '#ffffff', fontWeight: 700 }}>পূর্ণমান</th>
+                          <th style={{ width: '210px', color: '#ffffff', fontWeight: 700 }}>সময়সূচি</th>
+                          <th style={{ width: '110px', textAlign: 'center', color: '#ffffff', fontWeight: 700 }}>কক্ষ নম্বর</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.isArray(routine.schedule) && routine.schedule.length > 0 ? (
+                          routine.schedule.map((item, idx) => (
+                            <tr key={idx} style={{ background: idx % 2 === 1 ? 'rgba(248, 250, 252, 0.7)' : '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ textAlign: 'center', fontWeight: 700, color: '#0f766e', verticalAlign: 'middle' }}>
+                                {toBnNumber(idx + 1)}
+                              </td>
+                              <td style={{ verticalAlign: 'middle' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Calendar size={15} style={{ color: '#0f766e', flexShrink: 0 }} />
+                                  <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.92rem' }}>
+                                    {formatDateDDMMYYYY(item.date)}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, paddingLeft: '21px', marginTop: '1px' }}>
+                                  {item.day || getBnDayName(item.date)}
+                                </div>
+                              </td>
+                              <td style={{ verticalAlign: 'middle', paddingLeft: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <BookOpen size={16} style={{ color: '#0f766e', flexShrink: 0 }} />
+                                  <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                                    {item.subjectName || item.subject || '—'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                <span style={{ 
+                                  padding: '3px 12px', borderRadius: '16px', fontSize: '0.82rem', fontWeight: 700,
+                                  background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', display: 'inline-block' 
+                                }}>
+                                  {toBnNumber(item.totalMarks || 100)} নম্বর
+                                </span>
+                              </td>
+                              <td style={{ verticalAlign: 'middle' }}>
+                                <div style={{ 
+                                  display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                                  background: '#eff6ff', color: '#1e40af', padding: '4px 10px', 
+                                  borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '0.83rem', fontWeight: 600 
+                                }}>
+                                  <Clock size={14} style={{ color: '#2563eb', flexShrink: 0 }} />
+                                  <span>{item.startTime || 'সকাল ০৯:৩০'} — {item.endTime || 'দুপুর ১২:৩০'}</span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                <div style={{ 
+                                  display: 'inline-flex', alignItems: 'center', gap: '4px', 
+                                  background: '#f8fafc', color: '#334155', padding: '3px 8px', 
+                                  borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.83rem', fontWeight: 600 
+                                }}>
+                                  <MapPin size={13} style={{ color: '#64748b' }} />
+                                  <span>{item.roomNo || '১০১'}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                              কোনো সময়সূচি এন্ট্রি করা হয়নি
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Schedule: Mobile Day Cards View */}
+                  <div className="routine-mobile-cards" style={{ display: 'none', flexDirection: 'column', gap: '10px' }}>
+                    {Array.isArray(routine.schedule) && routine.schedule.length > 0 ? (
+                      routine.schedule.map((item, idx) => (
+                        <div key={idx} style={{ 
+                          padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', 
+                          background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' 
+                        }}>
+                          {/* Top Row: Date & Room */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ 
+                                width: '22px', height: '22px', borderRadius: '50%', background: '#0f766e', color: '#fff', 
+                                fontSize: '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' 
+                              }}>
+                                {toBnNumber(idx + 1)}
+                              </span>
+                              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                                {formatDateDDMMYYYY(item.date)}
+                              </div>
+                              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                                ({item.day || getBnDayName(item.date)})
+                              </span>
+                            </div>
+
+                            <span style={{ 
+                              display: 'inline-flex', alignItems: 'center', gap: '3px', 
+                              background: '#f8fafc', color: '#334155', padding: '2px 8px', 
+                              borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 600 
+                            }}>
+                              <MapPin size={11} style={{ color: '#64748b' }} />
+                              <span>{item.roomNo || '১০১'}</span>
+                            </span>
+                          </div>
+
+                          {/* Middle Row: Subject Name & Full Marks */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <BookOpen size={16} style={{ color: '#0f766e', flexShrink: 0 }} />
+                              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+                                {item.subjectName || item.subject || '—'}
+                              </span>
+                            </div>
+                            <span style={{ 
+                              padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700,
+                              background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' 
+                            }}>
+                              {toBnNumber(item.totalMarks || 100)} নম্বর
+                            </span>
+                          </div>
+
+                          {/* Bottom Row: Time Range */}
+                          <div style={{ 
+                            display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                            background: '#eff6ff', color: '#1e40af', padding: '4px 10px', 
+                            borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '0.8rem', fontWeight: 600, width: '100%' 
+                          }}>
+                            <Clock size={13} style={{ color: '#2563eb' }} />
+                            <span>সময়: {item.startTime || 'সকাল ০৯:৩০'} — {item.endTime || 'দুপুর ১২:৩০'}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        কোনো সময়সূচি এন্ট্রি করা হয়নি
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -1807,7 +2665,32 @@ export default function ExamPage() {
             />
           </div>
 
-          {/* View Mode Toggle: নম্বর এন্ট্রি vs ছাত্রভিত্তিক ফলাফল vs বিষয়ভিত্তিক ফলাফল vs মেধা তালিকা ও র‍্যাঙ্কিং */}
+          {/* View Mode Toggle for Student/Guardian */}
+          {isStudentOrGuardian && (
+            <div className="flex gap-10 mb-20 no-print" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`btn ${examViewMode !== 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setExamViewMode('student_result')}
+                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <User size={16} /> 📊 পরীক্ষার ফলাফল (My Results)
+              </button>
+              <button
+                type="button"
+                className={`btn ${examViewMode === 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => {
+                  setExamViewMode('routine');
+                  loadStudentRoutine();
+                }}
+                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Calendar size={16} /> 📅 পরীক্ষার রুটিন (Exam Routine)
+              </button>
+            </div>
+          )}
+
+          {/* View Mode Toggle: নম্বর এন্ট্রি vs ছাত্রভিত্তিক ফলাফল vs বিষয়ভিত্তিক ফলাফল vs মেধা তালিকা ও র‍্যাঙ্কিং vs পরীক্ষার রুটিন */}
           {!isStudentOrGuardian && (
             <div className="flex gap-10 mb-20 no-print" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap' }}>
               <button
@@ -1852,6 +2735,18 @@ export default function ExamPage() {
                 style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <Trophy size={16} /> 🏆 মেধা তালিকা ও র‍্যাঙ্কিং (Merit List)
+              </button>
+              <button
+                type="button"
+                className={`btn ${examViewMode === 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => {
+                  setExamViewMode('routine');
+                  setRoutineExamFilter(selectedExam?._id || 'all');
+                  fetchRoutines('all', selectedExam?._id || 'all', 'all');
+                }}
+                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Calendar size={16} /> 📅 পরীক্ষার রুটিন (Routine)
               </button>
             </div>
           )}
@@ -2024,17 +2919,21 @@ export default function ExamPage() {
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="decimal"
                               className="form-input"
                               style={{
                                 width: '120px', margin: '0 auto', textAlign: 'center', marginBottom: 0,
-                                borderColor: currentMarks !== '' && Number(currentMarks) > subMaxMarks ? 'var(--danger, #ef4444)' : undefined
+                                borderColor: currentMarks !== '' && Number(parseBnToEnNumber(currentMarks)) > subMaxMarks ? 'var(--danger, #ef4444)' : undefined
                               }}
                               placeholder={`০ - ${subMaxMarks}`}
-                              min="0"
-                              max={subMaxMarks}
                               value={currentMarks}
-                              onChange={(e) => handleMarkChange(studentId, e.target.value)}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                if (/^[0-9০-৯.]*$/.test(raw)) {
+                                  handleMarkChange(studentId, raw);
+                                }
+                              }}
                             />
                           </td>
                           <td style={{ textAlign: 'center' }}>
@@ -2267,11 +3166,11 @@ export default function ExamPage() {
                       onClick={() => {
                         const filtered = subjectViewMarks.filter(m => {
                           if (!subjectViewSearch.trim()) return true;
-                          const q = subjectViewSearch.toLowerCase();
+                          const q = parseBnToEnNumber(subjectViewSearch.trim().toLowerCase());
                           const name = (m.student?.fullName || m.student?.user?.fullName || `${m.student?.user?.firstName || ''} ${m.student?.user?.lastName || ''}`).toLowerCase();
                           const roll = String(m.student?.currentEnrollment?.rollNumber || '').toLowerCase();
                           const sId = String(m.student?.studentId || '').toLowerCase();
-                          return name.includes(q) || roll.includes(q) || sId.includes(q);
+                          return name.includes(subjectViewSearch.toLowerCase()) || roll.includes(q) || sId.includes(q);
                         });
                         handlePrintSubjectResult(filtered);
                       }}
@@ -2303,11 +3202,11 @@ export default function ExamPage() {
 
                   const filtered = subjectViewMarks.filter(m => {
                     if (!subjectViewSearch.trim()) return true;
-                    const q = subjectViewSearch.toLowerCase();
+                    const q = parseBnToEnNumber(subjectViewSearch.trim().toLowerCase());
                     const name = (m.student?.fullName || m.student?.user?.fullName || `${m.student?.user?.firstName || ''} ${m.student?.user?.lastName || ''}`).toLowerCase();
                     const roll = String(m.student?.currentEnrollment?.rollNumber || '').toLowerCase();
                     const sId = String(m.student?.studentId || '').toLowerCase();
-                    return name.includes(q) || roll.includes(q) || sId.includes(q);
+                    return name.includes(subjectViewSearch.toLowerCase()) || roll.includes(q) || sId.includes(q);
                   });
 
                   // Stats calculation
@@ -2697,6 +3596,9 @@ export default function ExamPage() {
             </div>
           )}
 
+          {/* Routine View inside Selected Exam */}
+          {examViewMode === 'routine' && renderExamRoutineWorkspace(true)}
+
           {/* Official Footer Signatures for Exam Results Print */}
           <div className="print-only">
             <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '40px' }} />
@@ -2895,6 +3797,8 @@ export default function ExamPage() {
             )}
           </div>
         </div>
+      ) : examViewMode === 'routine' ? (
+        renderExamRoutineWorkspace(false)
       ) : (
         // EXAMS LIST
         <div>
@@ -2904,6 +3808,22 @@ export default function ExamPage() {
               <p className="page-subtitle">শাখা: {branchName} • মাদ্রাসার সমস্ত পরীক্ষা এবং পরীক্ষার ফলাফল পরিচালনা</p>
             </div>
             <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#2563eb', color: '#1d4ed8', background: 'rgba(37, 99, 235, 0.08)' }}
+                onClick={() => {
+                  setExamViewMode('routine');
+                  if (isStudentOrGuardian) {
+                    loadStudentRoutine();
+                  } else {
+                    fetchRoutines();
+                  }
+                }}
+              >
+                <Calendar size={16} style={{ color: '#2563eb' }} />
+                <span>📅 পরীক্ষার রুটিন</span>
+              </button>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -3321,6 +4241,593 @@ export default function ExamPage() {
         </div>
       )}
 
+      {/* EXAM ROUTINE CREATE / EDIT MODAL */}
+      {isRoutineModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1200 }}>
+          <div className="modal-content" style={{ maxWidth: '920px', width: '96%', maxHeight: '92vh', overflowY: 'auto', borderRadius: '16px' }}>
+            <div className="modal-header" style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-color)', padding: '16px 24px' }}>
+              <div>
+                <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', color: '#0f766e', margin: 0 }}>
+                  <Calendar size={22} style={{ color: '#0f766e' }} />
+                  <span>{editingRoutineId ? 'পরীক্ষার রুটিন সম্পাদনা' : 'নতুন পরীক্ষার রুটিন তৈরি'}</span>
+                </h2>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  শ্রেণি ও বিভাগ নির্বাচন করে বিষয়ভিত্তিক পরীক্ষার সময়সূচি সহজে তৈরি ও প্রকাশ করুন
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-ghost btn-icon" 
+                onClick={() => setIsRoutineModalOpen(false)}
+                title="বন্ধ করুন"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRoutine}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px 24px' }}>
+                {/* Section 1: General Details */}
+                <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Title */}
+                  <div className="form-group" style={{ marginBottom: 0, width: '100%' }}>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '4px', color: '#0f172a' }}>
+                      রুটিনের শিরোনাম *
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ width: '100%', height: '36px', fontSize: '0.9rem', padding: '6px 12px', borderRadius: '8px' }}
+                      placeholder="যেমন: ১ম সাময়িক পরীক্ষা ২০২৬ — পরীক্ষার রুটিন"
+                      value={routineForm.title}
+                      onChange={(e) => setRoutineForm(prev => ({ ...prev, title: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  {/* Stream, Exam, Class, Status 4-column Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                        বিভাগ (Stream) *
+                      </label>
+                      <select
+                        className="form-input form-select"
+                        style={{ width: '100%', height: '36px', fontSize: '0.85rem', padding: '6px 10px', borderRadius: '8px' }}
+                        value={routineForm.stream}
+                        onChange={(e) => setRoutineForm(prev => ({ ...prev, stream: e.target.value }))}
+                        required
+                      >
+                        <option value="noorani">📖 নূরানী বিভাগ (Noorani)</option>
+                        <option value="hifz">🕌 হিফজ বিভাগ (Hifz)</option>
+                        <option value="kitab">📚 কিতাব বিভাগ (Kitab)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                        সংশ্লিষ্ট পরীক্ষা *
+                      </label>
+                      <select
+                        className="form-input form-select"
+                        style={{ width: '100%', height: '36px', fontSize: '0.85rem', padding: '6px 10px', borderRadius: '8px' }}
+                        value={routineForm.exam}
+                        onChange={(e) => {
+                          const ex = exams.find(x => x._id === e.target.value);
+                          setRoutineForm(prev => ({
+                            ...prev,
+                            exam: e.target.value,
+                            examName: ex ? ex.name : ''
+                          }));
+                        }}
+                        required
+                      >
+                        <option value="">পরীক্ষা নির্বাচন করুন</option>
+                        {exams.map(ex => (
+                          <option key={ex._id} value={ex._id}>{ex.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                        শ্রেণি (Class Level)
+                      </label>
+                      <select
+                        className="form-input form-select"
+                        style={{ width: '100%', height: '36px', fontSize: '0.85rem', padding: '6px 10px', borderRadius: '8px' }}
+                        value={routineForm.classLevel}
+                        onChange={(e) => {
+                          const clsId = e.target.value;
+                          const cls = classes.find(c => c._id === clsId);
+                          setRoutineForm(prev => ({
+                            ...prev,
+                            classLevel: clsId,
+                            className: cls ? cls.name : ''
+                          }));
+                          if (clsId) {
+                            loadSubjectsForModal(clsId);
+                          }
+                        }}
+                      >
+                        <option value="">সাধারণ / সকল শ্রেণি</option>
+                        {classes.map(c => (
+                          <option key={c._id} value={c._id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                        স্ট্যাটাস
+                      </label>
+                      <select
+                        className="form-input form-select"
+                        style={{ width: '100%', height: '36px', fontSize: '0.85rem', padding: '6px 10px', borderRadius: '8px' }}
+                        value={routineForm.status}
+                        onChange={(e) => setRoutineForm(prev => ({ ...prev, status: e.target.value }))}
+                      >
+                        <option value="published">🟢 প্রকাশিত (Published)</option>
+                        <option value="draft">⚪ খসড়া (Draft)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="form-group" style={{ marginBottom: 0, width: '100%' }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '4px' }}>
+                      পরীক্ষার্থীদের জন্য বিশেষ নির্দেশনাবলী
+                    </label>
+                    <textarea
+                      className="form-input"
+                      rows="2"
+                      style={{ width: '100%', fontSize: '0.82rem', padding: '6px 10px', borderRadius: '8px', resize: 'vertical' }}
+                      placeholder="যেমন: পরীক্ষা শুরুর ১৫ মিনিট পূর্বে নিজ নিজ আসনে উপস্থিত থাকতে হবে..."
+                      value={routineForm.instructions}
+                      onChange={(e) => setRoutineForm(prev => ({ ...prev, instructions: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Section 2: Ultra-Concise Schedule Builder */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h3 style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>📋 সময়সূচি ও বিষয়ের তালিকা</span>
+                      </h3>
+                      <span style={{ fontSize: '0.75rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                        {toBnNumber(routineForm.schedule.length)}টি বিষয়
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {modalClassSubjects && modalClassSubjects.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={handlePopulateAllClassSubjects}
+                          style={{ fontSize: '0.8rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderColor: '#0f766e', color: '#0f766e', background: 'rgba(15, 118, 110, 0.06)' }}
+                          title="নির্বাচিত শ্রেণির সকল নির্ধারিত বিষয় এক ক্লিকে সময়সূচিতে যোগ করুন"
+                        >
+                          <span>⚡ শ্রেণির সকল বিষয় যোগ করুন</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleAddScheduleRow}
+                        style={{ fontSize: '0.8rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Plus size={14} /> <span>সারি যোগ করুন</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* PC Desktop View: Ultra-Concise 1-Line Row per Subject */}
+                  <div className="routine-form-desktop-rows" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {/* Header Bar */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 10px',
+                      background: '#0f766e',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700
+                    }}>
+                      <span style={{ width: '28px', textAlign: 'center', flexShrink: 0 }}>#</span>
+                      <span style={{ width: '135px', flexShrink: 0 }}>তারিখ</span>
+                      <span style={{ width: '62px', textAlign: 'center', flexShrink: 0 }}>বার</span>
+                      <span style={{ flex: 1, minWidth: '150px' }}>পরীক্ষার বিষয়</span>
+                      <span style={{ width: '60px', textAlign: 'center', flexShrink: 0 }}>পূর্ণমান</span>
+                      <span style={{ width: '168px', textAlign: 'center', flexShrink: 0 }}>সময়সূচি (শুরু — শেষ)</span>
+                      <span style={{ width: '55px', textAlign: 'center', flexShrink: 0 }}>কক্ষ</span>
+                      <span style={{ width: '28px', flexShrink: 0 }}></span>
+                    </div>
+
+                    {/* Row List */}
+                    {routineForm.schedule.map((row, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '4px 10px',
+                          background: idx % 2 === 1 ? '#f8fafc' : '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                          transition: 'border-color 0.15s'
+                        }}
+                      >
+                        {/* 1. Serial */}
+                        <span style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: '#0f766e',
+                          color: '#fff',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {toBnNumber(idx + 1)}
+                        </span>
+
+                        {/* 2. Date */}
+                        <input
+                          type="date"
+                          className="form-input"
+                          style={{ width: '135px', padding: '4px 6px', fontSize: '0.82rem', height: '32px', flexShrink: 0, borderRadius: '6px' }}
+                          value={row.date || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            handleScheduleRowChange(idx, 'date', val);
+                            if (val) handleScheduleRowChange(idx, 'day', getBnDayName(val));
+                          }}
+                          required
+                        />
+
+                        {/* 3. Day badge */}
+                        <span style={{
+                          width: '62px',
+                          textAlign: 'center',
+                          background: row.day ? '#ecfdf5' : '#f8fafc',
+                          color: row.day ? '#065f46' : '#94a3b8',
+                          border: `1px solid ${row.day ? '#a7f3d0' : '#e2e8f0'}`,
+                          padding: '4px 0',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }} title={row.day || 'তারিখ দিলে স্বয়ংক্রিয় আসবে'}>
+                          {row.day || 'স্বয়ংক্রিয়'}
+                        </span>
+
+                        {/* 4. Subject */}
+                        <div style={{ flex: 1, minWidth: '150px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {modalClassSubjects && modalClassSubjects.length > 0 ? (
+                            <>
+                              <select
+                                className="form-input form-select"
+                                style={{ width: '100%', padding: '4px 8px', fontSize: '0.82rem', height: '32px', borderRadius: '6px' }}
+                                value={row.subject || (modalClassSubjects.find(s => s.name === row.subjectName)?._id || 'custom')}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === 'custom') {
+                                    handleScheduleRowChange(idx, 'subject', 'custom');
+                                  } else {
+                                    const selectedSub = modalClassSubjects.find(s => s._id === val);
+                                    if (selectedSub) {
+                                      handleScheduleRowChange(idx, 'subject', selectedSub._id);
+                                      handleScheduleRowChange(idx, 'subjectName', selectedSub.name);
+                                      handleScheduleRowChange(idx, 'totalMarks', Number(selectedSub.totalMarks) || 100);
+                                    }
+                                  }
+                                }}
+                                required
+                              >
+                                <option value="">বিষয় বেছে নিন</option>
+                                {modalClassSubjects.map(s => (
+                                  <option key={s._id} value={s._id}>{s.name} ({s.totalMarks || 100} নম্বর)</option>
+                                ))}
+                                <option value="custom">✏️ অন্যান্য বিষয় (কাস্টম টাইপ)</option>
+                              </select>
+                              {(row.subject === 'custom' || (!modalClassSubjects.some(s => s._id === row.subject) && row.subjectName)) && (
+                                <input
+                                  type="text"
+                                  className="form-input"
+                                  style={{ width: '130px', padding: '4px 6px', fontSize: '0.8rem', height: '32px', flexShrink: 0, borderRadius: '6px' }}
+                                  placeholder="বিষয়ের নাম..."
+                                  value={row.subjectName || ''}
+                                  onChange={(e) => {
+                                    handleScheduleRowChange(idx, 'subjectName', e.target.value);
+                                    handleScheduleRowChange(idx, 'subject', e.target.value);
+                                  }}
+                                  required
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ width: '100%', padding: '4px 8px', fontSize: '0.82rem', height: '32px', borderRadius: '6px' }}
+                              placeholder="যেমন: বাংলা / আল-কুরআন"
+                              value={row.subjectName || ''}
+                              onChange={(e) => {
+                                handleScheduleRowChange(idx, 'subjectName', e.target.value);
+                                handleScheduleRowChange(idx, 'subject', e.target.value);
+                              }}
+                              required
+                            />
+                          )}
+                        </div>
+
+                        {/* 5. Total Marks */}
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          className="form-input"
+                          style={{ width: '60px', textAlign: 'center', padding: '4px 2px', fontSize: '0.82rem', height: '32px', flexShrink: 0, borderRadius: '6px' }}
+                          placeholder="১০০"
+                          value={row.totalMarks || ''}
+                          onChange={(e) => handleScheduleRowChange(idx, 'totalMarks', e.target.value)}
+                        />
+
+                        {/* 6. Time Range */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', width: '168px', flexShrink: 0 }}>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ width: '80px', textAlign: 'center', padding: '4px 2px', fontSize: '0.78rem', height: '32px', borderRadius: '6px' }}
+                            placeholder="০৯:৩০"
+                            value={row.startTime || ''}
+                            onChange={(e) => handleScheduleRowChange(idx, 'startTime', e.target.value)}
+                          />
+                          <span style={{ color: '#94a3b8', fontSize: '0.75rem', userSelect: 'none' }}>—</span>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ width: '80px', textAlign: 'center', padding: '4px 2px', fontSize: '0.78rem', height: '32px', borderRadius: '6px' }}
+                            placeholder="১২:৩০"
+                            value={row.endTime || ''}
+                            onChange={(e) => handleScheduleRowChange(idx, 'endTime', e.target.value)}
+                          />
+                        </div>
+
+                        {/* 7. Room No */}
+                        <input
+                          type="text"
+                          className="form-input"
+                          style={{ width: '55px', textAlign: 'center', padding: '4px 2px', fontSize: '0.8rem', height: '32px', flexShrink: 0, borderRadius: '6px' }}
+                          placeholder="১০১"
+                          value={row.roomNo || ''}
+                          onChange={(e) => handleScheduleRowChange(idx, 'roomNo', e.target.value)}
+                        />
+
+                        {/* 8. Delete Button */}
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-icon"
+                          style={{ color: '#ef4444', padding: '4px', width: '28px', height: '28px', flexShrink: 0 }}
+                          onClick={() => handleRemoveScheduleRow(idx)}
+                          disabled={routineForm.schedule.length <= 1}
+                          title="এই বিষয়টি মুছুন"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Mobile View: Ultra-Concise 2-Line Mini Card per Subject */}
+                  <div className="routine-form-mobile-cards" style={{ display: 'none', flexDirection: 'column', gap: '8px' }}>
+                    {routineForm.schedule.map((row, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '10px',
+                          padding: '8px 10px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px'
+                        }}
+                      >
+                        {/* Line 1: Serial + Date + Day + Trash */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                          <span style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: '#0f766e',
+                            color: '#fff',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            {toBnNumber(idx + 1)}
+                          </span>
+
+                          <input
+                            type="date"
+                            className="form-input"
+                            style={{ flex: 1, padding: '4px 6px', fontSize: '0.8rem', height: '30px', borderRadius: '6px' }}
+                            value={row.date || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleScheduleRowChange(idx, 'date', val);
+                              if (val) handleScheduleRowChange(idx, 'day', getBnDayName(val));
+                            }}
+                            required
+                          />
+
+                          <span style={{
+                            background: row.day ? '#ecfdf5' : '#f8fafc',
+                            color: row.day ? '#065f46' : '#94a3b8',
+                            border: `1px solid ${row.day ? '#a7f3d0' : '#e2e8f0'}`,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            flexShrink: 0
+                          }}>
+                            {row.day || 'বার'}
+                          </span>
+
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-icon"
+                            style={{ color: '#ef4444', padding: '3px', width: '26px', height: '26px', flexShrink: 0 }}
+                            onClick={() => handleRemoveScheduleRow(idx)}
+                            disabled={routineForm.schedule.length <= 1}
+                            title="মুছুন"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+
+                        {/* Line 2: Subject + Marks + Time + Room */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+                          <div style={{ flex: 1, minWidth: '95px' }}>
+                            {modalClassSubjects && modalClassSubjects.length > 0 ? (
+                              <select
+                                className="form-input form-select"
+                                style={{ width: '100%', padding: '3px 6px', fontSize: '0.78rem', height: '30px', borderRadius: '6px' }}
+                                value={row.subject || (modalClassSubjects.find(s => s.name === row.subjectName)?._id || 'custom')}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === 'custom') {
+                                    handleScheduleRowChange(idx, 'subject', 'custom');
+                                  } else {
+                                    const selectedSub = modalClassSubjects.find(s => s._id === val);
+                                    if (selectedSub) {
+                                      handleScheduleRowChange(idx, 'subject', selectedSub._id);
+                                      handleScheduleRowChange(idx, 'subjectName', selectedSub.name);
+                                      handleScheduleRowChange(idx, 'totalMarks', Number(selectedSub.totalMarks) || 100);
+                                    }
+                                  }
+                                }}
+                                required
+                              >
+                                <option value="">বিষয়...</option>
+                                {modalClassSubjects.map(s => (
+                                  <option key={s._id} value={s._id}>{s.name}</option>
+                                ))}
+                                <option value="custom">✏️ কাস্টম</option>
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                className="form-input"
+                                style={{ width: '100%', padding: '3px 6px', fontSize: '0.78rem', height: '30px', borderRadius: '6px' }}
+                                placeholder="বিষয়..."
+                                value={row.subjectName || ''}
+                                onChange={(e) => {
+                                  handleScheduleRowChange(idx, 'subjectName', e.target.value);
+                                  handleScheduleRowChange(idx, 'subject', e.target.value);
+                                }}
+                                required
+                              />
+                            )}
+                          </div>
+
+                          {/* Custom Subject input if needed on mobile */}
+                          {modalClassSubjects && modalClassSubjects.length > 0 && (row.subject === 'custom' || (!modalClassSubjects.some(s => s._id === row.subject) && row.subjectName)) && (
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ width: '70px', padding: '3px 4px', fontSize: '0.75rem', height: '30px', flexShrink: 0, borderRadius: '6px' }}
+                              placeholder="নাম..."
+                              value={row.subjectName || ''}
+                              onChange={(e) => {
+                                handleScheduleRowChange(idx, 'subjectName', e.target.value);
+                                handleScheduleRowChange(idx, 'subject', e.target.value);
+                              }}
+                              required
+                            />
+                          )}
+
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="form-input"
+                            style={{ width: '45px', textAlign: 'center', padding: '2px', fontSize: '0.78rem', height: '30px', flexShrink: 0, borderRadius: '6px' }}
+                            placeholder="পূর্ণমান"
+                            value={row.totalMarks || ''}
+                            onChange={(e) => handleScheduleRowChange(idx, 'totalMarks', e.target.value)}
+                            title="পূর্ণমান"
+                          />
+
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ width: '65px', textAlign: 'center', padding: '2px', fontSize: '0.75rem', height: '30px', flexShrink: 0, borderRadius: '6px' }}
+                            placeholder="০৯:৩০"
+                            value={row.startTime || ''}
+                            onChange={(e) => handleScheduleRowChange(idx, 'startTime', e.target.value)}
+                            title="শুরুর সময়"
+                          />
+
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ width: '40px', textAlign: 'center', padding: '2px', fontSize: '0.75rem', height: '30px', flexShrink: 0, borderRadius: '6px' }}
+                            placeholder="কক্ষ"
+                            value={row.roomNo || ''}
+                            onChange={(e) => handleScheduleRowChange(idx, 'roomNo', e.target.value)}
+                            title="কক্ষ নম্বর"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  * সকল তথ্য যাচাই করে সংরক্ষণ করুন
+                </span>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setIsRoutineModalOpen(false)}
+                    disabled={routineSubmitting}
+                  >
+                    বাতিল
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={routineSubmitting}
+                  >
+                    {routineSubmitting ? 'সংরক্ষণ হচ্ছে...' : (editingRoutineId ? 'রুটিন আপডেট করুন' : 'রুটিন প্রকাশ করুন')}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes slideDown {
           from { transform: translateY(-20px); opacity: 0; }
@@ -3348,6 +4855,34 @@ export default function ExamPage() {
         }
         @media screen {
           .print-only {
+            display: none !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .routine-desktop-table {
+            display: none !important;
+          }
+          .routine-mobile-cards {
+            display: flex !important;
+          }
+          .routine-form-desktop-rows {
+            display: none !important;
+          }
+          .routine-form-mobile-cards {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .routine-desktop-table {
+            display: block !important;
+          }
+          .routine-mobile-cards {
+            display: none !important;
+          }
+          .routine-form-desktop-rows {
+            display: flex !important;
+          }
+          .routine-form-mobile-cards {
             display: none !important;
           }
         }

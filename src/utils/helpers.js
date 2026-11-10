@@ -90,3 +90,26 @@ export function getMadrasahInfo(customUser) {
     logo: inst?.logo || '',
   };
 }
+
+/**
+ * বাংলা সংখ্যাকে ইংরেজি সংখ্যায় রূপান্তর করে (যেমন: '৮৫' ➔ '85')
+ * @param {string|number} val - বাংলা বা মিশ্র ডিজিট
+ * @returns {string} ইংরেজি ডিজিট স্ট্রিং
+ */
+export function parseBnToEnNumber(val) {
+  if (val === null || val === undefined) return '';
+  const bnToEnMap = { '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9' };
+  return String(val).replace(/[০-৯]/g, d => bnToEnMap[d]);
+}
+
+/**
+ * ইংরেজি সংখ্যাকে বাংলা সংখ্যায় রূপান্তর করে (যেমন: '85' ➔ '৮৫')
+ * @param {string|number} val - ইংরেজি বা মিশ্র ডিজিট
+ * @returns {string} বাংলা ডিজিট স্ট্রিং
+ */
+export function toBnNumber(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const enToBnMap = { '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯' };
+  return String(val).replace(/[0-9]/g, d => enToBnMap[d]);
+}
+

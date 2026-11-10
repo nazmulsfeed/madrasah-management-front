@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Calendar, BookOpen, BookOpenCheck, FileText, X, 
   CheckCircle, AlertCircle, Trash2, Edit, ChevronLeft, ChevronRight, 
-  User, Award, Layers, Hash, BookMarked, Sparkles
+  User, Award, Layers, Hash, BookMarked, Sparkles, Bell
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
@@ -205,6 +205,51 @@ export default function HomeworkPage() {
   // Student picker helper in Hifz modal
   const [hifzModalClassFilter, setHifzModalClassFilter] = useState('');
   const [hifzModalStudentSearch, setHifzModalStudentSearch] = useState('');
+
+  // -------------------------------------------------------------
+  // NOTICES STATE & FETCH (For Student & Guardian view)
+  // -------------------------------------------------------------
+  const [notices, setNotices] = useState([]);
+  const [selectedNotice, setSelectedNotice] = useState(null);
+  const [showAllNotices, setShowAllNotices] = useState(false);
+
+  useEffect(() => {
+    if (isStudentOrGuardian) {
+      const fetchNotices = async () => {
+        try {
+          const res = await api.get('/notices');
+          if (res.data.success) {
+            setNotices(res.data.data?.notices || []);
+          }
+        } catch (err) {
+          try {
+            const pubRes = await api.get('/notices/public');
+            if (pubRes.data?.success) {
+              setNotices(pubRes.data.data?.notices || []);
+            }
+          } catch (pubErr) {
+            console.error('Failed to fetch notices:', pubErr);
+          }
+        }
+      };
+      fetchNotices();
+    }
+  }, [isStudentOrGuardian]);
+
+  const handleOpenNotice = (notice) => {
+    setSelectedNotice(notice);
+    if (notice?._id && !notice.isSeen) {
+      api.post(`/notices/${notice._id}/seen`).catch(console.error);
+      setNotices(prev => prev.map(n => n._id === notice._id ? { ...n, isSeen: true } : n));
+    }
+  };
+
+  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+  const recentNotices = notices.filter(n => new Date(n.publishedAt || n.createdAt) >= twoDaysAgo);
+  const hasNewNotices = recentNotices.length > 0;
+  const visibleNotices = recentNotices.slice(0, 2);
+  const hiddenNotices = notices.filter(n => !visibleNotices.includes(n));
+  const displayedNotices = showAllNotices ? notices : visibleNotices;
 
   // -------------------------------------------------------------
   // FETCH NOORANI SETTINGS & DATA
@@ -785,6 +830,158 @@ export default function HomeworkPage() {
     return true;
   });
 
+  const renderNoticeBoard = () => {
+    if (!isStudentOrGuardian) return null;
+    if (displayedNotices.length === 0 && !hasNewNotices && hiddenNotices.length === 0 && notices.length === 0) return null;
+
+    return (
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '16px',
+        padding: '20px 24px',
+        marginBottom: '24px',
+        boxShadow: 'var(--shadow-md)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Top Glowing Accent Line */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, #f59e0b, #ef4444, #14b8a6)'
+        }} />
+
+        {/* Section Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(245, 158, 11, 0.15)',
+              color: '#f59e0b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Bell size={20} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                নোটিশ বোর্ড
+                {hasNewNotices && (
+                  <span style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                    <span style={{ position: 'relative', display: 'flex', width: '8px', height: '8px', marginRight: '2px' }}>
+                      <span className="animate-ping-slow" style={{ position: 'absolute', display: 'inline-flex', height: '100%', width: '100%', borderRadius: '50%', background: '#ef4444', opacity: 0.75 }}></span>
+                      <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', width: '8px', height: '8px', background: '#ef4444' }}></span>
+                    </span>
+                    নতুন নোটিশ
+                  </span>
+                )}
+                {!hasNewNotices && (
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                    {notices.length} টি নোটিশ
+                  </span>
+                )}
+              </h2>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>প্রতিষ্ঠানের অফিসিয়াল ঘোষণা ও জরুরি তথ্যাবলী</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Notice Cards List */}
+        {displayedNotices.length > 0 ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '16px'
+          }}>
+            {displayedNotices.map((notice) => {
+              const isUrgent = notice.priority === 'urgent' || notice.priority === 'high';
+              return (
+                <div
+                  key={notice._id || notice.id}
+                  onClick={() => handleOpenNotice(notice)}
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: `1px solid ${isUrgent ? 'rgba(239, 68, 68, 0.4)' : 'var(--border-color)'}`,
+                    borderLeft: `4px solid ${isUrgent ? '#ef4444' : '#14b8a6'}`,
+                    borderRadius: '12px',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={12} />
+                        {new Date(notice.publishedAt || notice.createdAt).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                      {isUrgent && (
+                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontWeight: 600 }}>
+                          জরুরি
+                        </span>
+                      )}
+                    </div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '0 0 6px 0', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                      {notice.title}
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {notice.content}
+                    </p>
+                  </div>
+                  <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--primary, #0d9488)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      বিস্তারিত পড়ুন →
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ padding: '20px', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}>
+            সাম্প্রতিক ২ দিনের মধ্যে কোনো নতুন নোটিশ নেই।
+          </div>
+        )}
+
+        {/* See More Button */}
+        {hiddenNotices.length > 0 && (
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <button
+              type="button"
+              onClick={() => setShowAllNotices(!showAllNotices)}
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '8px 24px',
+                borderRadius: '20px',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.borderColor = 'var(--primary, #0d9488)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+            >
+              {showAllNotices ? 'সংকোচন করুন' : `আরও ${hiddenNotices.length} টি নোটিশ দেখুন`}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="animate-fade-in" style={{ position: 'relative' }}>
       {/* Toast Notification */}
@@ -881,6 +1078,8 @@ export default function HomeworkPage() {
               )}
             </div>
           </div>
+
+          {renderNoticeBoard()}
 
           <div className="card mb-24" style={{ padding: '16px 20px' }}>
             <div className="flex-between" style={{ flexWrap: 'wrap', gap: '16px' }}>
@@ -1098,6 +1297,8 @@ export default function HomeworkPage() {
               </button>
             )}
           </div>
+
+          {renderNoticeBoard()}
 
           {/* Filters Bar for Hifz */}
           <div className="card mb-24" style={{ padding: '16px 20px' }}>
@@ -1995,10 +2196,111 @@ export default function HomeworkPage() {
         </div>
       )}
 
+      {/* Full Notice Modal */}
+      {selectedNotice && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '20px'
+          }}
+          onClick={() => setSelectedNotice(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '20px',
+              padding: '28px',
+              maxWidth: '650px',
+              width: '100%',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              boxShadow: 'var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.2))',
+              animation: 'slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(20, 184, 166, 0.1)', color: 'var(--primary, #0d9488)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                    অফিসিয়াল নোটিশ
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {new Date(selectedNotice.publishedAt || selectedNotice.createdAt).toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
+                </div>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  {selectedNotice.title}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNotice(null)}
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.7, whiteSpace: 'pre-line', padding: '8px 0' }}>
+              {selectedNotice.content}
+            </div>
+
+            <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedNotice(null)}
+                style={{
+                  background: 'var(--primary, #0d9488)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes slideDown {
           from { transform: translateY(-20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes ping-slow {
+          75%, 100% {
+            transform: scale(2);
+            opacity: 0;
+          }
+        }
+        .animate-ping-slow {
+          animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
       `}</style>
     </div>
