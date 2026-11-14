@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   Award,
   Utensils,
+  Calendar,
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
@@ -322,6 +323,13 @@ export default function DashboardPage() {
             </div>
             <div className="stats-card-value font-mono">পরীক্ষার ফলাফল</div>
             <div className="stats-card-label mt-2">মেধা স্থান ও বিষয়ভিত্তিক নম্বর</div>
+          </div>
+          <div className="stats-card animate-slide-up stagger-5" style={{ borderLeft: '4px solid #2563eb', cursor: 'pointer' }} onClick={() => navigate('/exam-routine')}>
+            <div className="stats-card-icon blue">
+              <Calendar size={24} />
+            </div>
+            <div className="stats-card-value font-mono">পরীক্ষার রুটিন</div>
+            <div className="stats-card-label mt-2">পরীক্ষার সময়সূচি ও আসন বিবরণী</div>
           </div>
           {user?.residentialStatus === 'residential' && (
             <div className="stats-card animate-slide-up stagger-5" style={{ borderLeft: '4px solid #10b981', cursor: 'pointer' }} onClick={() => navigate('/hostel')}>

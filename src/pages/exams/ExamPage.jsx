@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, ChevronDown, Check, Edit, Trash2, Printer, Trophy, Award, RefreshCw, GraduationCap, User, BookOpen, CheckSquare, Square, X, Calendar, Clock, MapPin } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
@@ -36,8 +36,9 @@ const MONTH_OPTIONS = [
   { value: 'december', label: 'ডিসেম্বর (১২তম মাস)' },
 ];
 
-export default function ExamPage() {
+export default function ExamPage({ initialViewMode }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const { madrasahName, branchName } = getMadrasahInfo(user);
   const [exams, setExams] = useState([]);
@@ -83,7 +84,8 @@ export default function ExamPage() {
   const [studentResults, setStudentResults] = useState([]); // Array of marks for student/guardian
 
   // Merit List & Ranking State
-  const [examViewMode, setExamViewMode] = useState('marks'); // 'marks' | 'student_result' | 'subject_result' | 'merit'
+  const isRoutineInitial = initialViewMode === 'routine' || location?.pathname === '/exam-routine';
+  const [examViewMode, setExamViewMode] = useState(isRoutineInitial ? 'routine' : 'marks'); // 'marks' | 'student_result' | 'subject_result' | 'merit'
   const [meritLoading, setMeritLoading] = useState(false);
   const [meritSection, setMeritSection] = useState('all');
   const [meritList, setMeritList] = useState([]);
@@ -1275,6 +1277,60 @@ export default function ExamPage() {
 
     setMeritLoading(true);
     try {
+      if (isStudentOrGuardian) {
+        const rankRes = await api.get(`/exams/${activeExam._id}/rankings`);
+        if (rankRes.data.success && rankRes.data.data) {
+          const { rankings = [], evaluatedSubjects = [] } = rankRes.data.data;
+          setMeritSubjectsList(evaluatedSubjects);
+
+          const filteredRankings = targetSection && targetSection !== 'all'
+            ? rankings.filter(r => String(r.section || '') === String(targetSection))
+            : rankings;
+
+          const formattedList = filteredRankings.map((r, index) => {
+            const studentObj = {
+              _id: r.studentId,
+              studentId: r.studentCode || r.studentId,
+              user: {
+                fullName: r.name,
+                firstName: r.name,
+              },
+              currentEnrollment: {
+                rollNumber: r.rollNumber,
+                section: r.section,
+              }
+            };
+
+            const studentMarksObj = {};
+            if (r.subjectMarks) {
+              Object.keys(r.subjectMarks).forEach(subId => {
+                studentMarksObj[subId] = {
+                  marksObtained: r.subjectMarks[subId],
+                  grade: calculateGrade(r.subjectMarks[subId])
+                };
+              });
+            }
+
+            return {
+              student: studentObj,
+              studentMarksObj,
+              totalObtained: r.totalObtained,
+              totalFullMarks: r.totalMaxMarks,
+              percentage: r.percentage,
+              overallGrade: r.grade,
+              isPassed: r.grade !== 'F',
+              subjectsCountWithMarks: Object.keys(studentMarksObj).length,
+              rankNum: r.rank || (index + 1),
+              rankText: formatRank(r.rank || (index + 1)),
+              roll: getNumericRoll(r.rollNumber)
+            };
+          });
+
+          setMeritList(formattedList);
+          return;
+        }
+      }
+
       // 1. Fetch all marks recorded for this exam
       const marksRes = await api.get('/exams/marks', { params: { exam: activeExam._id } });
       const marks = marksRes.data?.data?.marks || [];
@@ -2750,10 +2806,20 @@ export default function ExamPage() {
             <div className="exam-tabs-strip mb-20 no-print">
               <button
                 type="button"
-                className={`btn exam-tab-btn ${examViewMode !== 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'student_result' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setExamViewMode('student_result')}
               >
                 <User size={15} /> <span>পরীক্ষার ফলাফল</span>
+              </button>
+              <button
+                type="button"
+                className={`btn exam-tab-btn ${examViewMode === 'merit' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => {
+                  setExamViewMode('merit');
+                  loadMeritListData(meritSection);
+                }}
+              >
+                <Trophy size={15} /> <span>মেধা তালিকা</span>
               </button>
               <button
                 type="button"
@@ -3052,103 +3118,105 @@ export default function ExamPage() {
           {/* TAB 2: SINGLE STUDENT RESULT VIEW */}
           {examViewMode === 'student_result' && (
             <div className="animate-slide-up">
-              {/* Search & Selection Card */}
-              <div className="card mb-20 no-print" style={{ padding: '16px 20px' }}>
-                <div className="flex gap-16" style={{ alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                  <div className="flex gap-12" style={{ alignItems: 'flex-end', flexWrap: 'wrap', flex: 1 }}>
-                    {/* Section Filter */}
-                    <div className="form-group" style={{ marginBottom: 0, minWidth: '150px' }}>
-                      <label className="form-label text-xs">সেকশন ফিল্টার</label>
-                      <select
-                        className="form-input form-select"
-                        value={singleStudentFilterSec}
-                        onChange={(e) => setSingleStudentFilterSec(e.target.value)}
-                      >
-                        <option value="all">সকল সেকশন</option>
-                        {SECTION_OPTIONS.map((sec, idx) => (
-                          <option key={idx} value={sec}>সেকশন {sec}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Student Select Dropdown */}
-                    <div className="form-group" style={{ marginBottom: 0, minWidth: '220px', flex: 1 }}>
-                      <label className="form-label text-xs">ছাত্র নির্বাচন করুন (তালিকা থেকে)</label>
-                      <select
-                        className="form-input form-select"
-                        value={selectedStudentResult?.student?._id || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val) {
-                            setStudentSearchId(val);
-                            fetchSingleStudentResult(val);
-                          }
-                        }}
-                      >
-                        <option value="">-- শিক্ষার্থী নির্বাচন করুন --</option>
-                        {classStudentsList
-                          .filter(st => {
-                            if (singleStudentFilterSec === 'all') return true;
-                            const secVal = typeof st.currentEnrollment?.section === 'object'
-                              ? (st.currentEnrollment?.section?.name || st.currentEnrollment?.section?._id)
-                              : (st.currentEnrollment?.section || st.section);
-                            return String(secVal || '') === String(singleStudentFilterSec);
-                          })
-                          .map(st => {
-                            const name = st.user?.fullName || `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim() || st.studentId || 'শিক্ষার্থী';
-                            const rollNum = st.currentEnrollment?.rollNumber || st.roll || '';
-                            const roll = rollNum ? `[রোল: ${rollNum}] ` : '';
-                            return (
-                              <option key={st._id} value={st._id}>
-                                {roll}{name} ({st.studentId || st._id.slice(0, 8)})
-                              </option>
-                            );
-                          })}
-                      </select>
-                    </div>
-
-                    {/* Direct Student ID Search */}
-                    <div className="form-group" style={{ marginBottom: 0, minWidth: '200px' }}>
-                      <label className="form-label text-xs">অথবা ছাত্র আইডি (Student ID)</label>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <input
-                          type="text"
-                          className="form-input"
-                          style={{ marginBottom: 0 }}
-                          placeholder="যেমন: 2026001 বা ANA-01"
-                          value={studentSearchId}
-                          onChange={(e) => setStudentSearchId(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') fetchSingleStudentResult();
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => fetchSingleStudentResult()}
-                          disabled={loadingSingleStudent || !studentSearchId.trim()}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              {/* Search & Selection Card (Hidden for Student and Guardian) */}
+              {!isStudentOrGuardian && (
+                <div className="card mb-20 no-print" style={{ padding: '16px 20px' }}>
+                  <div className="flex gap-16" style={{ alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                    <div className="flex gap-12" style={{ alignItems: 'flex-end', flexWrap: 'wrap', flex: 1 }}>
+                      {/* Section Filter */}
+                      <div className="form-group" style={{ marginBottom: 0, minWidth: '150px' }}>
+                        <label className="form-label text-xs">সেকশন ফিল্টার</label>
+                        <select
+                          className="form-input form-select"
+                          value={singleStudentFilterSec}
+                          onChange={(e) => setSingleStudentFilterSec(e.target.value)}
                         >
-                          <Search size={15} />
-                          <span>খুঁজুন</span>
-                        </button>
+                          <option value="all">সকল সেকশন</option>
+                          {SECTION_OPTIONS.map((sec, idx) => (
+                            <option key={idx} value={sec}>সেকশন {sec}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Student Select Dropdown */}
+                      <div className="form-group" style={{ marginBottom: 0, minWidth: '220px', flex: 1 }}>
+                        <label className="form-label text-xs">ছাত্র নির্বাচন করুন (তালিকা থেকে)</label>
+                        <select
+                          className="form-input form-select"
+                          value={selectedStudentResult?.student?._id || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val) {
+                              setStudentSearchId(val);
+                              fetchSingleStudentResult(val);
+                            }
+                          }}
+                        >
+                          <option value="">-- শিক্ষার্থী নির্বাচন করুন --</option>
+                          {classStudentsList
+                            .filter(st => {
+                              if (singleStudentFilterSec === 'all') return true;
+                              const secVal = typeof st.currentEnrollment?.section === 'object'
+                                ? (st.currentEnrollment?.section?.name || st.currentEnrollment?.section?._id)
+                                : (st.currentEnrollment?.section || st.section);
+                              return String(secVal || '') === String(singleStudentFilterSec);
+                            })
+                            .map(st => {
+                              const name = st.user?.fullName || `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim() || st.studentId || 'শিক্ষার্থী';
+                              const rollNum = st.currentEnrollment?.rollNumber || st.roll || '';
+                              const roll = rollNum ? `[রোল: ${rollNum}] ` : '';
+                              return (
+                                <option key={st._id} value={st._id}>
+                                  {roll}{name} ({st.studentId || st._id.slice(0, 8)})
+                                </option>
+                              );
+                            })}
+                        </select>
+                      </div>
+
+                      {/* Direct Student ID Search */}
+                      <div className="form-group" style={{ marginBottom: 0, minWidth: '200px' }}>
+                        <label className="form-label text-xs">অথবা ছাত্র আইডি (Student ID)</label>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <input
+                            type="text"
+                            className="form-input"
+                            style={{ marginBottom: 0 }}
+                            placeholder="যেমন: 2026001 বা ANA-01"
+                            value={studentSearchId}
+                            onChange={(e) => setStudentSearchId(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') fetchSingleStudentResult();
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => fetchSingleStudentResult()}
+                            disabled={loadingSingleStudent || !studentSearchId.trim()}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <Search size={15} />
+                            <span>খুঁজুন</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {selectedStudentResult && selectedStudentResult.results?.length > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={handlePrintSingleStudentMarksheet}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <Printer size={16} />
-                      <span>মার্কশিট প্রিন্ট করুন</span>
-                    </button>
-                  )}
+                    {selectedStudentResult && selectedStudentResult.results?.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handlePrintSingleStudentMarksheet}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Printer size={16} />
+                        <span>মার্কশিট প্রিন্ট করুন</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Result Body */}
               {loadingSingleStudent ? (
@@ -3480,15 +3548,17 @@ export default function ExamPage() {
                       <RefreshCw size={14} className={meritLoading ? 'animate-spin' : ''} /> রিফ্রেশ তালিকা
                     </button>
 
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => navigate('/students/promote')}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                      title="এই মেধা তালিকার ভিত্তিতে শিক্ষার্থীদের পরবর্তী ক্লাসে প্রমোশন ও নতুন রোল নম্বর নির্ধারণ করুন"
-                    >
-                      <GraduationCap size={16} style={{ color: 'var(--primary)' }} /> 🎓 মেধা অনুযায়ী নতুন ক্লাসে রোল দিন
-                    </button>
+                    {!isStudentOrGuardian && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => navigate('/students/promote')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        title="এই মেধা তালিকার ভিত্তিতে শিক্ষার্থীদের পরবর্তী ক্লাসে প্রমোশন ও নতুন রোল নম্বর নির্ধারণ করুন"
+                      >
+                        <GraduationCap size={16} style={{ color: 'var(--primary)' }} /> 🎓 মেধা অনুযায়ী নতুন ক্লাসে রোল দিন
+                      </button>
+                    )}
 
                     <button
                       type="button"

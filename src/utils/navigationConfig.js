@@ -56,6 +56,7 @@ export const RAW_MENU_GROUPS = [
       { path: '/assembly-attendance', label: 'সমাবেশ উপস্থিতি', icon: Users, color: '#059669' },
       { path: '/homework', label: 'হোমওয়ার্ক', icon: FileText, color: '#ca8a04' },
       { path: '/exams', label: 'পরীক্ষা ও ফলাফল', icon: FileText, color: '#ea580c' },
+      { path: '/exam-routine', label: 'পরীক্ষার রুটিন', icon: Calendar, color: '#2563eb' },
       { path: '/hifz', label: 'হিফজ অগ্রগতি', icon: BookOpenCheck, color: '#059669' },
     ],
   },
@@ -144,7 +145,7 @@ export function getVisibleNavigation(user, permissions = {}) {
         return permissions.can_add_syllabus || permissions.can_view_users;
       }
 
-      if (item.path === '/routine' || item.path === '/calendar') {
+      if (item.path === '/routine' || item.path === '/calendar' || item.path === '/exam-routine') {
         return true; // সবার জন্য উন্মুক্ত (সুপার এডমিন, এডমিন, শিক্ষক, অভিভাবক, শিক্ষার্থী সবাই সাইডবার ও ড্যাশবোর্ডে দেখতে পাবে)
       }
 

@@ -88,6 +88,7 @@ export default function App() {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/assembly-attendance" element={<RoleRoute><AssemblyAttendancePage /></RoleRoute>} />
           <Route path="/exams" element={<ExamPage />} />
+          <Route path="/exam-routine" element={<ExamPage initialViewMode="routine" />} />
           <Route path="/hifz" element={<HifzPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/my-payments" element={<MyPaymentsPage />} />
