@@ -447,11 +447,6 @@ export default function ExamPage() {
             return String(secVal || '') === String(section);
           });
         }
-        marks.sort((a, b) => {
-          const rollA = getNumericRoll(a.student?.currentEnrollment?.rollNumber || a.student?.roll);
-          const rollB = getNumericRoll(b.student?.currentEnrollment?.rollNumber || b.student?.roll);
-          return rollA - rollB;
-        });
         setSubjectViewMarks(marks);
         const allIds = new Set(marks.map(m => String(m.student?._id || m._id)));
         setSelectedStudentCheckboxes(allIds);
@@ -872,7 +867,6 @@ export default function ExamPage() {
       return pct >= 33;
     }).length;
     const passRate = appearedCount > 0 ? Math.round((passedCount / appearedCount) * 100) : 0;
-    listToPrint.sort((a, b) => getNumericRoll(a.student?.currentEnrollment?.rollNumber || a.student?.roll) - getNumericRoll(b.student?.currentEnrollment?.rollNumber || b.student?.roll));
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -1407,13 +1401,6 @@ export default function ExamPage() {
         return { ...item, rankNum, rankText };
       });
 
-      // Sort students in ascending order by roll number (১, ২, ৩...)
-      ranked.sort((a, b) => {
-        const rollA = getNumericRoll(a.student?.currentEnrollment?.rollNumber || a.roll);
-        const rollB = getNumericRoll(b.student?.currentEnrollment?.rollNumber || b.roll);
-        return rollA - rollB;
-      });
-
       setMeritList(ranked);
     } catch (err) {
       console.error('Error loading merit list:', err);
@@ -1434,11 +1421,7 @@ export default function ExamPage() {
       if (sec && sec !== 'all') params.section = sec;
       const res = await api.get('/exams/annual-rankings', { params });
       if (res.data.success) {
-        const data = res.data.data;
-        if (data && Array.isArray(data.rankings)) {
-          data.rankings.sort((a, b) => getNumericRoll(a.rollNumber) - getNumericRoll(b.rollNumber));
-        }
-        setAnnualData(data);
+        setAnnualData(res.data.data);
       }
     } catch (err) {
       console.error('Failed to load annual rankings', err);
@@ -1497,7 +1480,7 @@ export default function ExamPage() {
       <table class="compact-table">
         <thead>
           <tr>
-            <th style="width: 38px;">ক্রমিক</th>
+            <th style="width: 85px;">বার্ষিক মেধা স্থান</th>
             <th style="width: 45px;">রোল</th>
             <th>শিক্ষার্থীর নাম</th>
             <th style="width: 75px;">আইডি</th>
@@ -1507,13 +1490,12 @@ export default function ExamPage() {
             <th style="width: 95px;">সর্বমোট নম্বর</th>
             <th style="width: 55px;">শতকরা</th>
             <th style="width: 50px;">গ্রেড</th>
-            <th style="width: 85px;">বার্ষিক মেধা স্থান</th>
           </tr>
         </thead>
         <tbody>
           ${annualData.rankings.map((st, idx) => `
             <tr>
-              <td class="text-center font-bold">${toBnNumber(idx + 1)}</td>
+              <td class="text-center font-bold" style="color: ${idx === 0 ? '#b45309' : idx === 1 ? '#0369a1' : idx === 2 ? '#b45309' : '#0f172a'};">${st.rankText}</td>
               <td class="text-center font-bold">${st.rollNumber || '—'}</td>
               <td class="font-bold">${st.name}</td>
               <td class="text-center">${st.studentCode}</td>
@@ -1523,7 +1505,6 @@ export default function ExamPage() {
               <td class="text-center font-bold" style="color: #0f766e;">${st.grandTotalObtained} / ${st.grandTotalMaxMarks}</td>
               <td class="text-center font-bold">${st.overallPercentage}%</td>
               <td class="text-center font-bold">${st.overallGrade}</td>
-              <td class="text-center font-bold" style="color: ${st.rank === 1 ? '#b45309' : st.rank === 2 ? '#0369a1' : st.rank === 3 ? '#b45309' : '#0f172a'};">${st.rankText}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -3232,7 +3213,7 @@ export default function ExamPage() {
                     const roll = String(m.student?.currentEnrollment?.rollNumber || '').toLowerCase();
                     const sId = String(m.student?.studentId || '').toLowerCase();
                     return name.includes(subjectViewSearch.toLowerCase()) || roll.includes(q) || sId.includes(q);
-                  }).sort((a, b) => getNumericRoll(a.student?.currentEnrollment?.rollNumber || a.student?.roll) - getNumericRoll(b.student?.currentEnrollment?.rollNumber || b.student?.roll));
+                  });
 
                   // Stats calculation
                   const appearedCount = filtered.length;
@@ -3327,7 +3308,6 @@ export default function ExamPage() {
                                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                   />
                                 </th>
-                                <th style={{ width: '50px', textAlign: 'center' }}>ক্রম</th>
                                 <th style={{ width: '60px', textAlign: 'center' }}>রোল</th>
                                 <th>শিক্ষার্থীর নাম</th>
                                 <th style={{ width: '100px', textAlign: 'center' }}>শিক্ষার্থী আইডি</th>
@@ -3338,7 +3318,7 @@ export default function ExamPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {filtered.map((m, idx) => {
+                              {filtered.map(m => {
                                 const stId = String(m.student?._id || m._id);
                                 const isChecked = selectedStudentCheckboxes.has(stId);
                                 const marks = Number(m.marksObtained) || 0;
@@ -3359,7 +3339,6 @@ export default function ExamPage() {
                                         style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                       />
                                     </td>
-                                    <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>{toBnNumber(idx + 1)}</td>
                                     <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 600 }}>{roll}</td>
                                     <td>
                                       <div className="font-semibold">{stName}</div>
@@ -3762,7 +3741,7 @@ export default function ExamPage() {
                 <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                      <th style={{ padding: '12px 14px', width: '50px', textAlign: 'center' }}>ক্রম</th>
+                      <th style={{ padding: '12px 14px', width: '140px', textAlign: 'center' }}>বার্ষিক মেধা স্থান</th>
                       <th style={{ padding: '12px 14px', width: '60px', textAlign: 'center' }}>রোল</th>
                       <th style={{ padding: '12px 14px' }}>শিক্ষার্থীর নাম ও আইডি</th>
                       <th style={{ padding: '12px 14px', textAlign: 'center' }}>১ম সাময়িক</th>
@@ -3771,16 +3750,23 @@ export default function ExamPage() {
                       <th style={{ padding: '12px 14px', textAlign: 'center', background: 'rgba(245, 158, 11, 0.08)' }}>সর্বমোট নম্বর (Grand Total)</th>
                       <th style={{ padding: '12px 14px', textAlign: 'center' }}>শতকরা (%)</th>
                       <th style={{ padding: '12px 14px', textAlign: 'center' }}>গ্রেড</th>
-                      <th style={{ padding: '12px 14px', width: '140px', textAlign: 'center' }}>বার্ষিক মেধা স্থান</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...(annualData.rankings || [])]
-                      .sort((a, b) => getNumericRoll(a.rollNumber) - getNumericRoll(b.rollNumber))
-                      .map((st, idx) => (
+                    {annualData.rankings.map((st) => (
                       <tr key={st.studentId} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ textAlign: 'center', padding: '10px 14px', fontWeight: 700, color: 'var(--text-muted)' }}>
-                          {toBnNumber(idx + 1)}
+                        <td style={{ textAlign: 'center', padding: '10px 14px' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: '16px',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            background: st.rank === 1 ? '#fef3c7' : st.rank === 2 ? '#f1f5f9' : st.rank === 3 ? '#ffedd5' : 'transparent',
+                            color: st.rank === 1 ? '#b45309' : st.rank === 2 ? '#475569' : st.rank === 3 ? '#c2410c' : 'var(--text-secondary)'
+                          }}>
+                            {st.rankText}
+                          </span>
                         </td>
                         <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 600 }}>
                           {st.rollNumber || '—'}
@@ -3807,19 +3793,6 @@ export default function ExamPage() {
                         <td style={{ textAlign: 'center' }}>
                           <span className={`badge ${getGradeBadgeClass(st.overallGrade)}`} style={{ fontSize: '0.8rem' }}>
                             {st.overallGrade}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center', padding: '10px 14px' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: '16px',
-                            fontWeight: 700,
-                            fontSize: '0.82rem',
-                            background: st.rank === 1 ? '#fef3c7' : st.rank === 2 ? '#f1f5f9' : st.rank === 3 ? '#ffedd5' : 'transparent',
-                            color: st.rank === 1 ? '#b45309' : st.rank === 2 ? '#475569' : st.rank === 3 ? '#c2410c' : 'var(--text-secondary)'
-                          }}>
-                            {st.rankText}
                           </span>
                         </td>
                       </tr>
