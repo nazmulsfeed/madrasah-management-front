@@ -36,6 +36,22 @@ const MONTH_OPTIONS = [
   { value: 'december', label: 'ডিসেম্বর (১২তম মাস)' },
 ];
 
+function formatRank(rankNum, isTie = false) {
+  if (!rankNum) return '—';
+  const tieSuffix = isTie ? ' (যৌথ)' : '';
+  if (rankNum === 1) return `🥇 ১ম স্থান${tieSuffix}`;
+  if (rankNum === 2) return `🥈 ২য় স্থান${tieSuffix}`;
+  if (rankNum === 3) return `🥉 ৩য় স্থান${tieSuffix}`;
+  if (rankNum === 4) return `৪র্থ${tieSuffix}`;
+  if (rankNum === 5) return `৫ম${tieSuffix}`;
+  if (rankNum === 6) return `৬ষ্ঠ${tieSuffix}`;
+  if (rankNum === 7) return `৭ম${tieSuffix}`;
+  if (rankNum === 8) return `৮ম${tieSuffix}`;
+  if (rankNum === 9) return `৯ম${tieSuffix}`;
+  if (rankNum === 10) return `১০ম${tieSuffix}`;
+  return `${rankNum}তম${tieSuffix}`;
+}
+
 export default function ExamPage({ initialViewMode }) {
   const navigate = useNavigate();
   const location = useLocation();
