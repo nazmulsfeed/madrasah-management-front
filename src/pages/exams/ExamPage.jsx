@@ -2670,51 +2670,47 @@ export default function ExamPage() {
 
           {/* View Mode Toggle for Student/Guardian */}
           {isStudentOrGuardian && (
-            <div className="flex gap-10 mb-20 no-print" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap' }}>
+            <div className="exam-tabs-strip mb-20 no-print">
               <button
                 type="button"
-                className={`btn ${examViewMode !== 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode !== 'routine' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setExamViewMode('student_result')}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <User size={16} /> 📊 পরীক্ষার ফলাফল (My Results)
+                <User size={15} /> <span>পরীক্ষার ফলাফল</span>
               </button>
               <button
                 type="button"
-                className={`btn ${examViewMode === 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'routine' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => {
                   setExamViewMode('routine');
                   loadStudentRoutine();
                 }}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Calendar size={16} /> 📅 পরীক্ষার রুটিন (Exam Routine)
+                <Calendar size={15} /> <span>পরীক্ষার রুটিন</span>
               </button>
             </div>
           )}
 
-          {/* View Mode Toggle: নম্বর এন্ট্রি vs ছাত্রভিত্তিক ফলাফল vs বিষয়ভিত্তিক ফলাফল vs মেধা তালিকা ও র‍্যাঙ্কিং vs পরীক্ষার রুটিন */}
+          {/* View Mode Toggle: নম্বর এন্ট্রি vs ছাত্রভিত্তিক ফলাফল vs বিষয়ভিত্তিক ফলাফল vs মেধা তালিকা vs পরীক্ষার রুটিন */}
           {!isStudentOrGuardian && (
-            <div className="flex gap-10 mb-20 no-print" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap' }}>
+            <div className="exam-tabs-strip mb-20 no-print">
               <button
                 type="button"
-                className={`btn ${examViewMode === 'marks' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'marks' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setExamViewMode('marks')}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Edit size={16} /> নম্বর এন্ট্রি (Mark Entry)
+                <Edit size={15} /> <span>নম্বর এন্ট্রি</span>
               </button>
               <button
                 type="button"
-                className={`btn ${examViewMode === 'student_result' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'student_result' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setExamViewMode('student_result')}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <User size={16} /> 👤 ছাত্রভিত্তিক ফলাফল (Student Result)
+                <User size={15} /> <span>ছাত্রভিত্তিক ফলাফল</span>
               </button>
               <button
                 type="button"
-                className={`btn ${examViewMode === 'subject_result' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'subject_result' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => {
                   setExamViewMode('subject_result');
                   if (!subjectViewSubId && subjects.length > 0) {
@@ -2722,34 +2718,31 @@ export default function ExamPage() {
                     loadSubjectResultData(subjects[0]._id, subjectViewSection);
                   }
                 }}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <BookOpen size={16} /> 📚 বিষয়ভিত্তিক ফলাফল (Subject Result)
+                <BookOpen size={15} /> <span>বিষয়ভিত্তিক ফলাফল</span>
               </button>
               <button
                 type="button"
-                className={`btn ${examViewMode === 'merit' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'merit' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => {
                   setExamViewMode('merit');
                   if (meritList.length === 0) {
                     loadMeritListData(meritSection);
                   }
                 }}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Trophy size={16} /> 🏆 মেধা তালিকা ও র‍্যাঙ্কিং (Merit List)
+                <Trophy size={15} /> <span>মেধা তালিকা</span>
               </button>
               <button
                 type="button"
-                className={`btn ${examViewMode === 'routine' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn exam-tab-btn ${examViewMode === 'routine' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => {
                   setExamViewMode('routine');
                   setRoutineExamFilter(selectedExam?._id || 'all');
                   fetchRoutines('all', selectedExam?._id || 'all', 'all');
                 }}
-                style={{ borderRadius: '8px', padding: '8px 16px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Calendar size={16} /> 📅 পরীক্ষার রুটিন (Routine)
+                <Calendar size={15} /> <span>পরীক্ষার রুটিন</span>
               </button>
             </div>
           )}
@@ -4838,6 +4831,44 @@ export default function ExamPage() {
         @keyframes slideDown {
           from { transform: translateY(-20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+        .exam-tabs-strip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border-bottom: 1px solid var(--border-color, #e2e8f0);
+          padding-bottom: 10px;
+          flex-wrap: nowrap !important;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .exam-tabs-strip::-webkit-scrollbar {
+          display: none;
+        }
+        .exam-tab-btn {
+          border-radius: 8px;
+          padding: 7px 13px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap !important;
+          flex-shrink: 0;
+          transition: all 0.15s ease;
+        }
+        @media (max-width: 768px) {
+          .exam-tabs-strip {
+            gap: 6px;
+            padding-bottom: 8px;
+          }
+          .exam-tab-btn {
+            padding: 6px 10px;
+            font-size: 0.78rem;
+            gap: 4px;
+          }
         }
         @media print {
           @page {
