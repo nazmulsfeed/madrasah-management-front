@@ -132,7 +132,14 @@ export default function ExamPage() {
     schedule: []
   });
 
-  const isStudentOrGuardian = user?.userType === 'student' || user?.userType === 'guardian';
+  const isGuardian = user?.userType === 'guardian';
+  const isStudent = user?.userType === 'student';
+  const isStudentOrGuardian = isStudent || isGuardian;
+
+  // Guardian multi-child support & Student own class
+  const [guardianChildren, setGuardianChildren] = useState([]);
+  const [selectedGuardianChildId, setSelectedGuardianChildId] = useState('');
+  const [studentOwnClass, setStudentOwnClass] = useState(null);
 
   // Auto-hide toast
   useEffect(() => {
@@ -143,9 +150,15 @@ export default function ExamPage() {
   }, [toast]);
 
   // Fetch initial exams and classes
-  const fetchExams = async () => {
+  const fetchExams = async (childStudentId = null) => {
+    setLoading(true);
     try {
-      const res = await api.get('/exams');
+      const params = {};
+      const targetStudent = childStudentId || selectedGuardianChildId;
+      if (isGuardian && targetStudent) {
+        params.studentId = targetStudent;
+      }
+      const res = await api.get('/exams', { params });
       if (res.data.success) {
         setExams(res.data.data.exams || []);
       }
@@ -157,6 +170,20 @@ export default function ExamPage() {
     }
   };
 
+  const handleGuardianChildChange = (newStudentId) => {
+    setSelectedGuardianChildId(newStudentId);
+    const kid = guardianChildren.find(k => k._id === newStudentId);
+    if (kid?.currentEnrollment?.classLevel) {
+      const kidClass = kid.currentEnrollment.classLevel;
+      const classObj = typeof kidClass === 'object' ? kidClass : { _id: kidClass, name: kid.currentEnrollment?.className || 'শ্রেণি' };
+      setStudentOwnClass(classObj);
+      setAnnualSelectedClass(classObj._id);
+    }
+    fetchExams(newStudentId);
+    if (isStudentOrGuardian) {
+      loadStudentRoutine(false, newStudentId);
+    }
+  };
 
   const loadSubjectsForModal = async (classLevelId) => {
     if (!classLevelId) {
@@ -185,9 +212,52 @@ export default function ExamPage() {
   };
 
   useEffect(() => {
-    fetchExams();
-    fetchClasses();
-    fetchRoutines();
+    const initData = async () => {
+      if (isGuardian) {
+        try {
+          const res = await api.get('/students', { params: { limit: 100 } });
+          if (res.data.success && res.data.data?.length > 0) {
+            const kids = res.data.data;
+            setGuardianChildren(kids);
+            setSelectedGuardianChildId(kids[0]._id);
+            const kidClass = kids[0].currentEnrollment?.classLevel;
+            if (kidClass) {
+              const classObj = typeof kidClass === 'object' ? kidClass : { _id: kidClass, name: kids[0].currentEnrollment?.className || 'শ্রেণি' };
+              setStudentOwnClass(classObj);
+              setAnnualSelectedClass(classObj._id);
+            }
+            fetchExams(kids[0]._id);
+          } else {
+            fetchExams();
+          }
+        } catch (err) {
+          console.error('Error loading guardian children', err);
+          fetchExams();
+        }
+      } else if (isStudent) {
+        try {
+          const res = await api.get('/students', { params: { limit: 1 } });
+          if (res.data.success && res.data.data?.length > 0) {
+            const stu = res.data.data[0];
+            const stuClass = stu.currentEnrollment?.classLevel;
+            if (stuClass) {
+              const classObj = typeof stuClass === 'object' ? stuClass : { _id: stuClass, name: stu.currentEnrollment?.className || 'শ্রেণি' };
+              setStudentOwnClass(classObj);
+              setAnnualSelectedClass(classObj._id);
+            }
+          }
+        } catch (err) {
+          console.error('Error loading student profile for class', err);
+        }
+        fetchExams();
+      } else {
+        fetchExams();
+      }
+      fetchClasses();
+      fetchRoutines();
+    };
+
+    initData();
     if (isStudentOrGuardian) {
       loadStudentRoutine();
     }
@@ -308,16 +378,18 @@ export default function ExamPage() {
     if (isStudentOrGuardian) {
       setLoadingStudents(true);
       try {
-        const res = await api.get('/exams/student-results', {
-          params: { examId: exam._id }
-        });
+        const params = { examId: exam._id };
+        if (isGuardian && selectedGuardianChildId) {
+          params.studentId = selectedGuardianChildId;
+        }
+        const res = await api.get('/exams/student-results', { params });
         if (res.data?.success && res.data.data) {
           setSelectedStudentResult(res.data.data);
           const firstExam = res.data.data.results?.[0];
           setStudentResults(firstExam?.subjects || []);
         } else {
           const marksRes = await api.get('/exams/marks', {
-            params: { exam: exam._id }
+            params: { exam: exam._id, ...(isGuardian && selectedGuardianChildId ? { student: selectedGuardianChildId } : {}) }
           });
           setStudentResults(marksRes.data?.data?.marks || []);
         }
@@ -325,7 +397,7 @@ export default function ExamPage() {
         console.error('Failed to load student detailed results', error);
         try {
           const marksRes = await api.get('/exams/marks', {
-            params: { exam: exam._id }
+            params: { exam: exam._id, ...(isGuardian && selectedGuardianChildId ? { student: selectedGuardianChildId } : {}) }
           });
           setStudentResults(marksRes.data?.data?.marks || []);
         } catch (_) {}
@@ -1556,10 +1628,15 @@ export default function ExamPage() {
     }
   };
 
-  const loadStudentRoutine = async (isExplicit = false) => {
+  const loadStudentRoutine = async (isExplicit = false, childStudentId = null) => {
     setRoutinesLoading(true);
     try {
-      const res = await api.get('/exams/student-routine');
+      const params = {};
+      const target = childStudentId || selectedGuardianChildId;
+      if (isGuardian && target) {
+        params.studentId = target;
+      }
+      const res = await api.get('/exams/student-routine', { params });
       if (res.data.success) {
         setStudentRoutineData(res.data.data);
         setRoutines(res.data.data.routines || []);
@@ -3636,23 +3713,54 @@ export default function ExamPage() {
           {/* Filter Bar */}
           <div className="card mb-20 no-print" style={{ padding: '16px', background: 'var(--bg-card)' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
-                <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>শ্রেণি নির্বাচন:</label>
-                <select
-                  className="form-input form-select"
-                  style={{ marginBottom: 0 }}
-                  value={annualSelectedClass}
-                  onChange={e => {
-                    const cid = e.target.value;
-                    setAnnualSelectedClass(cid);
-                    loadAnnualCombinedRankings(cid, annualSelectedSection);
-                  }}
-                >
-                  {classes.map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              {isStudentOrGuardian ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px', flexWrap: 'wrap' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>শ্রেণি:</label>
+                  {isGuardian && guardianChildren.length > 1 ? (
+                    <select
+                      className="form-input form-select"
+                      style={{ marginBottom: 0, minWidth: '200px' }}
+                      value={annualSelectedClass}
+                      onChange={e => {
+                        const cid = e.target.value;
+                        setAnnualSelectedClass(cid);
+                        loadAnnualCombinedRankings(cid, annualSelectedSection);
+                      }}
+                    >
+                      {guardianChildren.map(kid => {
+                        const cId = kid.currentEnrollment?.classLevel?._id || kid.currentEnrollment?.classLevel;
+                        const cName = kid.currentEnrollment?.classLevel?.name || kid.currentEnrollment?.className || 'শ্রেণি';
+                        const kidName = kid.user?.fullName || kid.name;
+                        return (
+                          <option key={kid._id} value={cId}>{cName} ({kidName})</option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <span className="badge badge-info" style={{ fontSize: '0.9rem', padding: '6px 14px' }}>
+                      {classes.find(c => String(c._id) === String(annualSelectedClass))?.name || studentOwnClass?.name || 'আপনার শ্রেণি'}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>শ্রেণি নির্বাচন:</label>
+                  <select
+                    className="form-input form-select"
+                    style={{ marginBottom: 0 }}
+                    value={annualSelectedClass}
+                    onChange={e => {
+                      const cid = e.target.value;
+                      setAnnualSelectedClass(cid);
+                      loadAnnualCombinedRankings(cid, annualSelectedSection);
+                    }}
+                  >
+                    {classes.map(c => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '180px' }}>
                 <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>সেকশন:</label>
@@ -3804,7 +3912,13 @@ export default function ExamPage() {
           <div className="page-header">
             <div>
               <h1 className="page-title">পরীক্ষা ও ফলাফল</h1>
-              <p className="page-subtitle">শাখা: {branchName} • মাদ্রাসার সমস্ত পরীক্ষা এবং পরীক্ষার ফলাফল পরিচালনা</p>
+              <p className="page-subtitle">
+                {isStudent 
+                  ? 'আপনার শ্রেণির সমস্ত পরীক্ষা এবং ফলাফল বিবরণী' 
+                  : isGuardian 
+                    ? 'আপনার সন্তানের শ্রেণির সমস্ত পরীক্ষা এবং ফলাফল বিবরণী' 
+                    : `শাখা: ${branchName} • মাদ্রাসার সমস্ত পরীক্ষা এবং পরীক্ষার ফলাফল পরিচালনা`}
+              </p>
             </div>
             <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
               <button
@@ -3829,8 +3943,15 @@ export default function ExamPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#f59e0b', color: '#b45309', background: 'rgba(245, 158, 11, 0.08)' }}
                 onClick={() => {
                   setExamViewMode('annual_combined');
-                  if (classes.length > 0) {
-                    const cid = annualSelectedClass || classes[0]._id;
+                  let cid = annualSelectedClass;
+                  if (!cid) {
+                    if (isStudentOrGuardian && studentOwnClass?._id) {
+                      cid = studentOwnClass._id;
+                    } else if (classes.length > 0) {
+                      cid = classes[0]._id;
+                    }
+                  }
+                  if (cid) {
                     setAnnualSelectedClass(cid);
                     loadAnnualCombinedRankings(cid, annualSelectedSection);
                   }
@@ -3846,6 +3967,61 @@ export default function ExamPage() {
               )}
             </div>
           </div>
+
+          {/* Guardian Child Selector (Multiple Children) */}
+          {isGuardian && guardianChildren.length > 1 && (
+            <div className="card mb-20 no-print" style={{ padding: '12px 18px', background: 'var(--card-bg, #fff)', border: '1px solid #3b82f6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={18} style={{ color: '#2563eb' }} />
+                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                  সন্তান নির্বাচন করুন:
+                </span>
+              </div>
+              <select
+                className="form-input form-select"
+                style={{ minWidth: '220px', maxWidth: '340px', marginBottom: 0, fontWeight: 600 }}
+                value={selectedGuardianChildId}
+                onChange={(e) => handleGuardianChildChange(e.target.value)}
+              >
+                {guardianChildren.map(kid => {
+                  const kidName = kid.user?.fullName || `${kid.user?.firstName || ''} ${kid.user?.lastName || ''}`.trim() || kid.name || 'শিক্ষার্থী';
+                  const className = kid.currentEnrollment?.classLevel?.name || kid.currentEnrollment?.className || '';
+                  const roll = kid.currentEnrollment?.rollNumber ? ` (রোল: ${kid.currentEnrollment.rollNumber})` : '';
+                  return (
+                    <option key={kid._id} value={kid._id}>
+                      {kidName} — {className}{roll}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          {/* Guardian Single Child Indicator */}
+          {isGuardian && guardianChildren.length === 1 && (
+            <div className="card mb-16 no-print" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <User size={16} style={{ color: '#2563eb' }} />
+              <span>শিক্ষার্থী:</span>
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {guardianChildren[0].user?.fullName || `${guardianChildren[0].user?.firstName || ''} ${guardianChildren[0].user?.lastName || ''}`.trim()}
+              </strong>
+              <span className="badge badge-info" style={{ fontSize: '0.78rem', marginLeft: '4px' }}>
+                {guardianChildren[0].currentEnrollment?.classLevel?.name || 'শ্রেণি'}
+                {guardianChildren[0].currentEnrollment?.rollNumber ? ` • রোল: ${guardianChildren[0].currentEnrollment.rollNumber}` : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Student Own Class Indicator */}
+          {isStudent && studentOwnClass && (
+            <div className="card mb-16 no-print" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <User size={16} style={{ color: '#2563eb' }} />
+              <span>আপনার শ্রেণি:</span>
+              <span className="badge badge-info" style={{ fontSize: '0.82rem', marginLeft: '4px' }}>
+                {studentOwnClass.name || 'শ্রেণি'}
+              </span>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex-center" style={{ padding: '60px' }}>
