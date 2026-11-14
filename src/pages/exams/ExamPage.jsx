@@ -897,7 +897,7 @@ export default function ExamPage({ initialViewMode }) {
                   <td style={{ textAlign: 'center', fontFamily: 'Inter', fontSize: '0.85rem' }}>{sub.subjectCode || '—'}</td>
                   <td style={{ textAlign: 'center', fontFamily: 'Inter' }}>{sub.totalMarks}</td>
                   <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 700, color: 'var(--primary, #0f766e)', fontSize: '1rem' }}>
-                    {sub.marksObtained}
+                    {(sub.marksObtained !== null && typeof sub.marksObtained === 'object') ? sub.marksObtained.marksObtained : sub.marksObtained}
                   </td>
                   <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 600 }}>{sub.percentage}%</td>
                   <td style={{ textAlign: 'center' }}>
@@ -1320,9 +1320,12 @@ export default function ExamPage({ initialViewMode }) {
             const studentMarksObj = {};
             if (r.subjectMarks) {
               Object.keys(r.subjectMarks).forEach(subId => {
+                const subMark = r.subjectMarks[subId];
+                const scoreVal = (subMark !== null && typeof subMark === 'object') ? subMark.marksObtained : subMark;
+                const gradeVal = (subMark !== null && typeof subMark === 'object') ? (subMark.grade || calculateGrade(scoreVal)) : calculateGrade(scoreVal);
                 studentMarksObj[subId] = {
-                  marksObtained: r.subjectMarks[subId],
-                  grade: calculateGrade(r.subjectMarks[subId])
+                  marksObtained: (scoreVal !== null && scoreVal !== undefined && typeof scoreVal !== 'object') ? scoreVal : '',
+                  grade: gradeVal || ''
                 };
               });
             }
@@ -2089,7 +2092,8 @@ export default function ExamPage({ initialViewMode }) {
       const rankBadge = item.rankNum === 1 ? '🥇 ' : item.rankNum === 2 ? '🥈 ' : item.rankNum === 3 ? '🥉 ' : '';
 
       const subjectCellsHtml = meritSubjectsList.map(s => {
-        const score = item.studentMarksObj?.[String(s._id)]?.marksObtained;
+        const rawScore = item.studentMarksObj?.[String(s._id)]?.marksObtained;
+        const score = (rawScore !== null && typeof rawScore === 'object') ? (rawScore.marksObtained ?? '') : (rawScore ?? '');
         const hasScore = score !== null && score !== undefined && score !== '';
         const subFullMarks = Number(s.totalMarks) || 100;
         const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
@@ -2985,7 +2989,8 @@ export default function ExamPage({ initialViewMode }) {
                     </thead>
                     <tbody>
                       {studentResults.map(res => {
-                        const marks = res.marksObtained;
+                        const rawMarks = res.marksObtained;
+                        const marks = (rawMarks !== null && typeof rawMarks === 'object') ? (rawMarks.marksObtained ?? '') : (rawMarks ?? '');
                         const grade = calculateGrade(marks);
                         return (
                           <tr key={res._id}>
@@ -3052,7 +3057,7 @@ export default function ExamPage({ initialViewMode }) {
                                 <div className="flex gap-8" style={{ flexWrap: 'wrap', gap: '8px' }}>
                                   {studentMarksList.map((m, sIdx) => (
                                     <span key={sIdx} className="badge badge-info" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
-                                      {m.subjectName}: {m.marksObtained} ({m.grade})
+                                      {m.subjectName}: {typeof m.marksObtained === 'object' ? m.marksObtained?.marksObtained : m.marksObtained} ({m.grade})
                                     </span>
                                   ))}
                                 </div>
@@ -3687,7 +3692,8 @@ export default function ExamPage({ initialViewMode }) {
                             </td>
                             {meritSubjectsList.map(sub => {
                               const rec = item.studentMarksObj?.[sub._id];
-                              const score = rec?.marksObtained;
+                              const rawScore = rec?.marksObtained;
+                              const score = (rawScore !== null && typeof rawScore === 'object') ? (rawScore.marksObtained ?? '') : (rawScore ?? '');
                               const hasScore = score !== null && score !== undefined && score !== '';
                               const subFullMarks = Number(sub.totalMarks) || 100;
                               const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
