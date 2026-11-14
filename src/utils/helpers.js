@@ -113,3 +113,16 @@ export function toBnNumber(val) {
   return String(val).replace(/[0-9]/g, d => enToBnMap[d]);
 }
 
+/**
+ * রোল নম্বরকে তুলনার উপযোগী সংখ্যায় রূপান্তর করে (বাংলা/ইংরেজি যেকোনো ফরম্যাট সাপোর্ট করে)
+ * @param {string|number} roll - রোল নম্বর
+ * @returns {number} সংখ্যা মান (না থাকলে ৯৯৯৯৯৯)
+ */
+export function getNumericRoll(roll) {
+  if (roll === null || roll === undefined || roll === '') return 999999;
+  const clean = parseBnToEnNumber(String(roll)).replace(/\D/g, '');
+  const num = parseInt(clean, 10);
+  return isNaN(num) ? 999999 : num;
+}
+
+
