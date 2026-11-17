@@ -453,3 +453,39 @@ export function getMadrasahFooterSignaturesHtml(roles = DEFAULT_PRESET_SIGNATURE
   `;
 }
 
+/**
+ * Universal Auto-Fit & Responsive Scaling Script for Popup Print Windows
+ * গাণিতিকভাবে নিশ্চিত করে যে কোনো টেবিল বা কন্টেন্ট প্রিন্ট মার্জিনের বাইরে গিয়ে কেটে যাবে না।
+ */
+export function getMadrasahAutoFitScript({ tableSelector = 'table.compact-table', containerSelector = '.print-page' } = {}) {
+  return `
+    <script>
+      function autoFitPrintTables() {
+        try {
+          const pages = document.querySelectorAll('${containerSelector}');
+          pages.forEach(page => {
+            const table = page.querySelector('${tableSelector}');
+            const topWrap = page.querySelector('.page-top') || table;
+            if (table && topWrap) {
+              const actualWidth = table.scrollWidth || table.offsetWidth;
+              const usableWidth = page.clientWidth;
+              if (actualWidth > usableWidth + 1) {
+                const scale = (usableWidth / actualWidth);
+                topWrap.style.transform = 'scale(' + scale.toFixed(4) + ')';
+                topWrap.style.transformOrigin = 'top left';
+                topWrap.style.width = (100 / scale).toFixed(2) + '%';
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('AutoFit table error:', e);
+        }
+      }
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(autoFitPrintTables, 250);
+      });
+    </script>
+  `;
+}
+
+

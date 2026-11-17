@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Madrasah Student Admit Card Template — Live Preview & Print</title>
+  <!-- Google Fonts: Serif for School Header & Siliguri for Bengali -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-blue: #2a5298;
+      --card-border-outer: #1e293b;
+      --card-border-inner: #475569;
+      --text-dark: #0f172a;
+      --text-muted: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #0f172a;
+      min-height: 100vh;
+      padding: 24px 16px 60px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Control Bar */
+    .toolbar-container {
+      max-width: 960px;
+      margin: 0 auto 24px auto;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #f8fafc;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .toolbar-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .toolbar-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #38bdf8;
+    }
+
+    .toolbar-header h1 span {
+      font-size: 13px;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+
+    .btn-success {
+      background: #059669;
+      color: #ffffff;
+    }
+    .btn-success:hover {
+      background: #047857;
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #f1f5f9;
+      border: 1px solid #475569;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .btn-group {
+      display: inline-flex;
+      background: #0f172a;
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .btn-group .toggle-btn {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-group .toggle-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    /* Live Edit Controls Accordion */
+    .edit-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 6px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input, .form-group select {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    /* Printable Area Container */
+    .print-stage {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* 2 Cards on A4 Sheet Container */
+    .a4-sheet-preview {
+      background: #ffffff;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm 14mm;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      gap: 16mm;
+      box-sizing: border-box;
+    }
+
+    /* Single Card Standalone View */
+    .single-mode .a4-sheet-preview {
+      width: auto;
+      min-height: auto;
+      padding: 12px;
+      background: transparent;
+      box-shadow: none;
+      gap: 0;
+    }
+
+    /* ============================================================== */
+    /* EXACT ADMIT CARD COMPONENT STYLES (MATCHING USER SAMPLE IMAGE) */
+    /* ============================================================== */
+    .admit-card {
+      width: 182mm;
+      height: 118mm;
+      background: #ffffff;
+      margin: 0 auto;
+      position: relative;
+      box-sizing: border-box;
+      padding: 5mm;
+      color: #000000;
+      /* Distinct Double Border matching the sample */
+      border: 2px solid #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .admit-card-inner-frame {
+      border: 1px solid #000000;
+      height: 100%;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 5mm 6mm 4mm 6mm;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Subtle Security Watermark */
+    .card-watermark {
+      position: absolute;
+      top: 52%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 65mm;
+      height: 65mm;
+      object-fit: contain;
+      opacity: 0.065;
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    /* 1. Header Section */
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      margin-bottom: 2mm;
+    }
+
+    .card-logo {
+      position: absolute;
+      left: 1mm;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 19mm;
+      height: 19mm;
+      object-fit: contain;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+    }
+
+    .card-titles {
+      text-align: center;
+      padding-left: 20mm;
+      padding-right: 20mm;
+      width: 100%;
+    }
+
+    .inst-name {
+      font-family: 'Times New Roman', 'Playfair Display', Georgia, serif;
+      font-size: 21pt;
+      font-weight: 800;
+      color: #0b1526;
+      line-height: 1.1;
+      letter-spacing: 0.2px;
+      text-transform: capitalize;
+    }
+
+    .inst-name.bn-font {
+      font-family: 'Noto Serif Bengali', serif;
+      font-size: 20pt;
+      font-weight: 800;
+    }
+
+    .inst-sub {
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 9.5pt;
+      color: #1e293b;
+      margin-top: 1.2mm;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    .inst-sub.bn-font {
+      font-family: 'Hind Siliguri', sans-serif;
+      font-size: 10pt;
+    }
+
+    /* 2. Admit Card Blue Badge & Issue Date */
+    .badge-date-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      margin-top: 1.5mm;
+      margin-bottom: 3.5mm;
+    }
+
+    .admit-pill {
+      background: #2a5298;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: #ffffff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 11.5pt;
+      font-weight: 700;
+      padding: 1.5mm 9mm;
+      border-radius: 4px;
+      letter-spacing: 0.6px;
+      box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.18);
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      text-transform: capitalize;
+    }
+
+    .issue-date-label {
+      position: absolute;
+      right: 1mm;
+      font-size: 9pt;
+      font-weight: 600;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+
+    .issue-date-label span {
+      font-weight: 700;
+    }
+
+    /* 3. Student Details Section (2 Columns + Photo on Right) */
+    .student-details-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 3mm;
+      margin-top: 1mm;
+      margin-bottom: 2.5mm;
+      width: 100%;
+    }
+
+    .info-columns-container {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 3mm 4mm;
+      flex: 1;
+      padding-top: 1mm;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: baseline;
+      font-size: 9.8pt;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    .detail-label {
+      font-weight: 700;
+      color: #000000;
+      min-width: 25mm;
+      display: inline-block;
+    }
+
+    .detail-colon {
+      font-weight: 700;
+      padding-right: 2.2mm;
+      display: inline-block;
+    }
+
+    .detail-val {
+      font-weight: 700;
+      color: #000000;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .detail-val.uppercase {
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* Student Passport Photo Box */
+    .student-photo-box {
+      width: 26mm;
+      height: 31mm;
+      border: 1px solid #475569;
+      background: #f8fafc;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .student-photo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 4. Permission Statement */
+    .permission-statement {
+      text-align: left;
+      font-size: 10pt;
+      color: #000000;
+      margin: 2mm 0 3mm 0;
+      line-height: 1.3;
+      padding-top: 1mm;
+    }
+
+    .permission-statement .exam-name {
+      font-weight: 700;
+      font-style: italic;
+      color: #000000;
+    }
+
+    /* 5. Signatures Footer */
+    .signatures-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+      margin-top: auto;
+      padding-top: 2mm;
+    }
+
+    .signature-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-width: 40mm;
+    }
+
+    .signature-svg {
+      height: 11mm;
+      max-width: 38mm;
+      margin-bottom: 1mm;
+      object-fit: contain;
+    }
+
+    .sig-line {
+      width: 100%;
+      min-width: 38mm;
+      border-top: 1.2px solid #000000;
+      margin-bottom: 1.2mm;
+    }
+
+    .sig-title {
+      font-size: 8.8pt;
+      font-weight: 700;
+      color: #000000;
+      line-height: 1.2;
+    }
+
+    .sig-name {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #000000;
+      text-transform: uppercase;
+      line-height: 1.2;
+      margin-bottom: 0.5mm;
+    }
+
+    /* Cut / Separation Line between 2 cards on A4 */
+    .cut-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      color: #64748b;
+      font-size: 9pt;
+      font-weight: 600;
+      margin: 2mm 0;
+      user-select: none;
+    }
+
+    .cut-line::before, .cut-line::after {
+      content: "";
+      flex: 1;
+      border-bottom: 1px dashed #94a3b8;
+    }
+
+    /* Print CSS */
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .toolbar-container {
+        display: none !important;
+      }
+
+      .print-stage {
+        margin: 0 !important;
+        max-width: 100% !important;
+      }
+
+      .a4-sheet-preview {
+        width: 100% !important;
+        min-height: 100% !important;
+        box-shadow: none !important;
+        padding: 10mm 12mm !important;
+        margin: 0 !important;
+      }
+
+      .single-mode .admit-card {
+        box-shadow: none !important;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 8mm 8mm 8mm 8mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== CONTROL TOOLBAR ==================== -->
+  <div class="toolbar-container">
+    <div class="toolbar-header">
+      <h1>
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+        </svg>
+        মাদরাসা এডমিট কার্ড টেমপ্লেট <span>(Admit Card Live Preview)</span>
+      </h1>
+      
+      <div class="toolbar-actions">
+        <!-- Language Group -->
+        <div class="btn-group">
+          <button class="toggle-btn active" id="btn-lang-en" onclick="setLanguage('en')">English</button>
+          <button class="toggle-btn" id="btn-lang-bn" onclick="setLanguage('bn')">বাংলা</button>
+          <button class="toggle-btn" id="btn-lang-bi" onclick="setLanguage('bi')">উভয় (Bilingual)</button>
+        </div>
+
+        <!-- Mode Group -->
+        <div class="btn-group">
+          <button class="toggle-btn active" id="btn-view-two" onclick="setViewMode('two')">A4 পেজে ২টি কার্ড</button>
+          <button class="toggle-btn" id="btn-view-single" onclick="setViewMode('single')">একক কার্ড ভিউ</button>
+        </div>
+
+        <button class="btn btn-success" onclick="window.print()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          প্রিন্ট / Save PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Edit Controls -->
+    <div class="edit-controls">
+      <div class="form-group">
+        <label>শিক্ষার্থীর নাম (Student Name)</label>
+        <input type="text" id="input-name" value="MD. ABDUL MUIZ SIAM" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>স্টুডেন্ট আইডি (ID)</label>
+        <input type="text" id="input-id" value="2430504" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>রোল নং (Roll)</label>
+        <input type="text" id="input-roll" value="38" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>শ্রেণি (Class)</label>
+        <input type="text" id="input-class" value="Five" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>শাখা (Section)</label>
+        <input type="text" id="input-section" value="Bokul" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>ভার্সন / বিভাগ (Version)</label>
+        <input type="text" id="input-version" value="Bangla" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>গ্রুপ (Group)</label>
+        <input type="text" id="input-group" value="All" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>ক্যাম্পাস / শাখা (Campus)</label>
+        <input type="text" id="input-campus" value="Main Branch" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>পরীক্ষার নাম (Exam Name)</label>
+        <input type="text" id="input-exam" value="Annual Examination 2026" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>ইস্যু তারিখ (Issue Date)</label>
+        <input type="text" id="input-date" value="12/11/2026" oninput="syncData()" />
+      </div>
+      <div class="form-group">
+        <label>শিক্ষার্থীর ছবি পরিবর্তন</label>
+        <input type="file" id="input-photo" accept="image/*" onchange="changePhoto(event)" style="padding: 4px;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PRINT / PREVIEW STAGE ==================== -->
+  <div class="print-stage" id="print-stage">
+    <div class="a4-sheet-preview" id="sheet-preview">
+      
+      <!-- CARD #1 -->
+      <div class="admit-card" id="card-1">
+        <div class="admit-card-inner-frame">
+          
+          <!-- Watermark Logo -->
+          <img src="/images/madrasah_logo.png" onerror="this.src='./images/madrasah_logo.png'; this.onerror=null;" class="card-watermark" alt="Watermark" />
+
+          <div class="card-content">
+            <!-- 1. Header with Logo & Institution Name -->
+            <div class="card-header">
+              <img src="/images/madrasah_logo.png" onerror="this.src='./images/madrasah_logo.png'; this.onerror=null;" class="card-logo" alt="Logo" />
+              <div class="card-titles">
+                <div class="inst-name target-inst-name">AN-NUR ISLAMIC ACADEMY</div>
+                <div class="inst-sub target-inst-sub">Adjacent to Shahibag Jame Mosque, Sadar, Chapainawabganj</div>
+              </div>
+            </div>
+
+            <!-- 2. Admit Card Blue Pill & Issue Date -->
+            <div class="badge-date-row">
+              <div class="admit-pill target-admit-text">Admit Card</div>
+              <div class="issue-date-label">
+                <span class="target-issue-date-prefix">Issue Date:</span> <span class="target-issue-date">12/11/2026</span>
+              </div>
+            </div>
+
+            <!-- 3. Student Details + Passport Photo -->
+            <div class="student-details-wrapper">
+              <div class="info-columns-container">
+                
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-name">Name</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val uppercase target-name">MD. ABDUL MUIZ SIAM</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-group">Group</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-group">All</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-id">Student ID</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-id">2430504</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-campus">Campus</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-campus">Main Branch</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-roll">Roll</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-roll">38</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-shift">Shift</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-shift">Morning</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-version">Version</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-version">Bangla</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-session">Session</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-session">2026</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-class">Class</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-class">Five</span>
+                </div>
+
+                <!-- Right Column (Empty placeholder or extra field) -->
+                <div></div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-section">Section</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-section">Bokul</span>
+                </div>
+
+              </div>
+
+              <!-- Student Photo -->
+              <div class="student-photo-box">
+                <img class="target-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120' fill='%2394a3b8'><rect width='100' height='120' fill='%23f1f5f9'/><circle cx='50' cy='42' r='22' fill='%23cbd5e1'/><path d='M20 105 C20 75 35 68 50 68 C65 68 80 75 80 105 Z' fill='%2394a3b8'/><rect x='34' y='18' width='32' height='12' rx='6' fill='%23ffffff' stroke='%23cbd5e1'/></svg>" alt="Student Photo" />
+              </div>
+            </div>
+
+            <!-- 4. Permission Statement Line -->
+            <div class="permission-statement">
+              <span class="target-perm-prefix">has been permitted to sit for the</span>
+              <span class="exam-name target-exam">Annual Examination 2026</span>
+            </div>
+
+            <!-- 5. Signatures Footer -->
+            <div class="signatures-row">
+              <!-- Left: Class Teacher -->
+              <div class="signature-block">
+                <!-- Handwritten Class Teacher Signature SVG -->
+                <svg class="signature-svg" viewBox="0 0 160 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 42C25 15 32 8 38 10C44 12 40 38 48 42C56 46 72 20 85 22C98 24 105 40 120 38C132 36 142 22 152 28" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M28 28C45 26 80 20 110 32" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <div class="sig-line"></div>
+                <div class="sig-title target-sig-teacher">Class Teacher</div>
+              </div>
+
+              <!-- Right: Head Teacher / Principal -->
+              <div class="signature-block">
+                <!-- Handwritten Head Teacher Signature SVG -->
+                <svg class="signature-svg" viewBox="0 0 180 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 38C28 18 36 12 42 16C48 20 44 42 58 36C70 30 82 14 96 20C110 26 120 44 135 34C145 28 155 18 165 24" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M60 48C85 45 125 42 150 46" stroke="#111827" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <div class="sig-line"></div>
+                <div class="sig-name target-sig-principal-name">MD. RAFIQUL ISLAM</div>
+                <div class="sig-title target-sig-principal-title">Head Teacher (In-charge)</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- CUT LINE (Only shown when printing 2 cards on A4) -->
+      <div class="cut-line" id="cut-line-separator">
+        ✂ কাঁচি দিয়ে এখান থেকে কেটে আলাদা করুন (Cut Along This Line) ✂
+      </div>
+
+      <!-- CARD #2 (For 2 cards per sheet layout) -->
+      <div class="admit-card" id="card-2">
+        <div class="admit-card-inner-frame">
+          
+          <!-- Watermark Logo -->
+          <img src="/images/madrasah_logo.png" onerror="this.src='./images/madrasah_logo.png'; this.onerror=null;" class="card-watermark" alt="Watermark" />
+
+          <div class="card-content">
+            <!-- 1. Header with Logo & Institution Name -->
+            <div class="card-header">
+              <img src="/images/madrasah_logo.png" onerror="this.src='./images/madrasah_logo.png'; this.onerror=null;" class="card-logo" alt="Logo" />
+              <div class="card-titles">
+                <div class="inst-name target-inst-name">AN-NUR ISLAMIC ACADEMY</div>
+                <div class="inst-sub target-inst-sub">Adjacent to Shahibag Jame Mosque, Sadar, Chapainawabganj</div>
+              </div>
+            </div>
+
+            <!-- 2. Admit Card Blue Pill & Issue Date -->
+            <div class="badge-date-row">
+              <div class="admit-pill target-admit-text">Admit Card</div>
+              <div class="issue-date-label">
+                <span class="target-issue-date-prefix">Issue Date:</span> <span class="target-issue-date">12/11/2026</span>
+              </div>
+            </div>
+
+            <!-- 3. Student Details + Passport Photo -->
+            <div class="student-details-wrapper">
+              <div class="info-columns-container">
+                
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-name">Name</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val uppercase target-name">MD. ABDUL MUIZ SIAM</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-group">Group</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-group">All</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-id">Student ID</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-id">2430504</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-campus">Campus</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-campus">Main Branch</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-roll">Roll</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-roll">38</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-shift">Shift</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-shift">Morning</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-version">Version</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-version">Bangla</span>
+                </div>
+
+                <!-- Right Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-session">Session</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-session">2026</span>
+                </div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-class">Class</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-class">Five</span>
+                </div>
+
+                <!-- Right Column (Empty placeholder or extra field) -->
+                <div></div>
+
+                <!-- Left Column -->
+                <div class="detail-row">
+                  <span class="detail-label target-lbl-section">Section</span>
+                  <span class="detail-colon">:</span>
+                  <span class="detail-val target-section">Bokul</span>
+                </div>
+
+              </div>
+
+              <!-- Student Photo -->
+              <div class="student-photo-box">
+                <img class="target-photo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120' fill='%2394a3b8'><rect width='100' height='120' fill='%23f1f5f9'/><circle cx='50' cy='42' r='22' fill='%23cbd5e1'/><path d='M20 105 C20 75 35 68 50 68 C65 68 80 75 80 105 Z' fill='%2394a3b8'/><rect x='34' y='18' width='32' height='12' rx='6' fill='%23ffffff' stroke='%23cbd5e1'/></svg>" alt="Student Photo" />
+              </div>
+            </div>
+
+            <!-- 4. Permission Statement Line -->
+            <div class="permission-statement">
+              <span class="target-perm-prefix">has been permitted to sit for the</span>
+              <span class="exam-name target-exam">Annual Examination 2026</span>
+            </div>
+
+            <!-- 5. Signatures Footer -->
+            <div class="signatures-row">
+              <!-- Left: Class Teacher -->
+              <div class="signature-block">
+                <svg class="signature-svg" viewBox="0 0 160 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 42C25 15 32 8 38 10C44 12 40 38 48 42C56 46 72 20 85 22C98 24 105 40 120 38C132 36 142 22 152 28" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M28 28C45 26 80 20 110 32" stroke="#111827" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <div class="sig-line"></div>
+                <div class="sig-title target-sig-teacher">Class Teacher</div>
+              </div>
+
+              <!-- Right: Head Teacher / Principal -->
+              <div class="signature-block">
+                <svg class="signature-svg" viewBox="0 0 180 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 38C28 18 36 12 42 16C48 20 44 42 58 36C70 30 82 14 96 20C110 26 120 44 135 34C145 28 155 18 165 24" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M60 48C85 45 125 42 150 46" stroke="#111827" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <div class="sig-line"></div>
+                <div class="sig-name target-sig-principal-name">MD. RAFIQUL ISLAM</div>
+                <div class="sig-title target-sig-principal-title">Head Teacher (In-charge)</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JavaScript for Live Data Sync, Language Toggle & Photo Upload -->
+  <script>
+    let currentLang = 'en';
+    let currentPhotoData = null;
+
+    const langData = {
+      en: {
+        instName: 'AN-NUR ISLAMIC ACADEMY',
+        instSub: 'Adjacent to Shahibag Jame Mosque, Sadar, Chapainawabganj',
+        admitText: 'Admit Card',
+        issueDatePrefix: 'Issue Date:',
+        permPrefix: 'has been permitted to sit for the',
+        sigTeacher: 'Class Teacher',
+        sigPrincipalName: 'MD. RAFIQUL ISLAM',
+        sigPrincipalTitle: 'Head Teacher (In-charge)',
+        labels: {
+          name: 'Name',
+          id: 'Student ID',
+          roll: 'Roll',
+          class: 'Class',
+          section: 'Section',
+          version: 'Version',
+          group: 'Group',
+          campus: 'Campus',
+          shift: 'Shift',
+          session: 'Session'
+        }
+      },
+      bn: {
+        instName: 'আন্-নূর ইসলামিক একাডেমি',
+        instSub: 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ সদর, চাঁপাইনবাবগঞ্জ।',
+        admitText: 'প্রবেশপত্র (Admit Card)',
+        issueDatePrefix: 'ইস্যুর তারিখ:',
+        permPrefix: 'কে নিম্নোক্ত পরীক্ষায় অংশগ্রহণের অনুমতি প্রদান করা হলো:',
+        sigTeacher: 'শ্রেণি শিক্ষক',
+        sigPrincipalName: 'মাওলানা মোঃ রফিকুল ইসলাম',
+        sigPrincipalTitle: 'মুহতামিম / প্রতিষ্ঠান প্রধান',
+        labels: {
+          name: 'নাম',
+          id: 'ছাত্র আইডি',
+          roll: 'রোল নং',
+          class: 'শ্রেণি / জামাত',
+          section: 'শাখা',
+          version: 'বিভাগ',
+          group: 'গ্রুপ',
+          campus: 'ক্যাম্পাস',
+          shift: 'শিফট',
+          session: 'শিক্ষাবর্ষ'
+        }
+      },
+      bi: {
+        instName: 'আন্-নূর ইসলামিক একাডেমি / AN-NUR ISLAMIC ACADEMY',
+        instSub: 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ সদর | Adjacent to Shahibag Jame Mosque',
+        admitText: 'Admit Card (প্রবেশপত্র)',
+        issueDatePrefix: 'Issue Date / তারিখ:',
+        permPrefix: 'has been permitted to sit for the / পরীক্ষায় অংশগ্রহণের অনুমতি দেয়া হলো:',
+        sigTeacher: 'Class Teacher / শ্রেণি শিক্ষক',
+        sigPrincipalName: 'MD. RAFIQUL ISLAM',
+        sigPrincipalTitle: 'Head Teacher / মুহতামিম',
+        labels: {
+          name: 'Name / নাম',
+          id: 'Student ID / আইডি',
+          roll: 'Roll / রোল',
+          class: 'Class / শ্রেণি',
+          section: 'Section / শাখা',
+          version: 'Version / বিভাগ',
+          group: 'Group / গ্রুপ',
+          campus: 'Campus / শাখা',
+          shift: 'Shift / শিফট',
+          session: 'Session / শিক্ষাবর্ষ'
+        }
+      }
+    };
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.querySelectorAll('.btn-group .toggle-btn').forEach(btn => {
+        if (btn.id.startsWith('btn-lang-')) {
+          btn.classList.toggle('active', btn.id === 'btn-lang-' + lang);
+        }
+      });
+
+      const data = langData[lang];
+      document.querySelectorAll('.target-inst-name').forEach(el => {
+        el.textContent = data.instName;
+        el.classList.toggle('bn-font', lang === 'bn');
+      });
+      document.querySelectorAll('.target-inst-sub').forEach(el => {
+        el.textContent = data.instSub;
+        el.classList.toggle('bn-font', lang === 'bn');
+      });
+      document.querySelectorAll('.target-admit-text').forEach(el => el.textContent = data.admitText);
+      document.querySelectorAll('.target-issue-date-prefix').forEach(el => el.textContent = data.issueDatePrefix);
+      document.querySelectorAll('.target-perm-prefix').forEach(el => el.textContent = data.permPrefix);
+      document.querySelectorAll('.target-sig-teacher').forEach(el => el.textContent = data.sigTeacher);
+      document.querySelectorAll('.target-sig-principal-name').forEach(el => el.textContent = data.sigPrincipalName);
+      document.querySelectorAll('.target-sig-principal-title').forEach(el => el.textContent = data.sigPrincipalTitle);
+
+      // Labels
+      document.querySelectorAll('.target-lbl-name').forEach(el => el.textContent = data.labels.name);
+      document.querySelectorAll('.target-lbl-id').forEach(el => el.textContent = data.labels.id);
+      document.querySelectorAll('.target-lbl-roll').forEach(el => el.textContent = data.labels.roll);
+      document.querySelectorAll('.target-lbl-class').forEach(el => el.textContent = data.labels.class);
+      document.querySelectorAll('.target-lbl-section').forEach(el => el.textContent = data.labels.section);
+      document.querySelectorAll('.target-lbl-version').forEach(el => el.textContent = data.labels.version);
+      document.querySelectorAll('.target-lbl-group').forEach(el => el.textContent = data.labels.group);
+      document.querySelectorAll('.target-lbl-campus').forEach(el => el.textContent = data.labels.campus);
+      document.querySelectorAll('.target-lbl-shift').forEach(el => el.textContent = data.labels.shift);
+      document.querySelectorAll('.target-lbl-session').forEach(el => el.textContent = data.labels.session);
+    }
+
+    function syncData() {
+      const name = document.getElementById('input-name').value;
+      const id = document.getElementById('input-id').value;
+      const roll = document.getElementById('input-roll').value;
+      const cls = document.getElementById('input-class').value;
+      const section = document.getElementById('input-section').value;
+      const version = document.getElementById('input-version').value;
+      const group = document.getElementById('input-group').value;
+      const campus = document.getElementById('input-campus').value;
+      const exam = document.getElementById('input-exam').value;
+      const date = document.getElementById('input-date').value;
+
+      document.querySelectorAll('.target-name').forEach(el => el.textContent = name);
+      document.querySelectorAll('.target-id').forEach(el => el.textContent = id);
+      document.querySelectorAll('.target-roll').forEach(el => el.textContent = roll);
+      document.querySelectorAll('.target-class').forEach(el => el.textContent = cls);
+      document.querySelectorAll('.target-section').forEach(el => el.textContent = section);
+      document.querySelectorAll('.target-version').forEach(el => el.textContent = version);
+      document.querySelectorAll('.target-group').forEach(el => el.textContent = group);
+      document.querySelectorAll('.target-campus').forEach(el => el.textContent = campus);
+      document.querySelectorAll('.target-exam').forEach(el => el.textContent = exam);
+      document.querySelectorAll('.target-issue-date').forEach(el => el.textContent = date);
+    }
+
+    function setViewMode(mode) {
+      const stage = document.getElementById('print-stage');
+      const card2 = document.getElementById('card-2');
+      const cutLine = document.getElementById('cut-line-separator');
+      const btnTwo = document.getElementById('btn-view-two');
+      const btnSingle = document.getElementById('btn-view-single');
+
+      if (mode === 'single') {
+        stage.classList.add('single-mode');
+        card2.style.display = 'none';
+        cutLine.style.display = 'none';
+        btnSingle.classList.add('active');
+        btnTwo.classList.remove('active');
+      } else {
+        stage.classList.remove('single-mode');
+        card2.style.display = 'flex';
+        cutLine.style.display = 'flex';
+        btnTwo.classList.add('active');
+        btnSingle.classList.remove('active');
+      }
+    }
+
+    function changePhoto(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          currentPhotoData = e.target.result;
+          document.querySelectorAll('.target-photo').forEach(img => {
+            img.src = currentPhotoData;
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // Initialize default view
+    window.addEventListener('DOMContentLoaded', () => {
+      setLanguage('en');
+      syncData();
+    });
+  </script>
+</body>
+</html>

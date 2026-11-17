@@ -2111,7 +2111,6 @@ export default function ExamPage({ initialViewMode }) {
       const roll = student.currentEnrollment?.rollNumber || student.roll || '—';
       const name = student.user?.fullName || `${student.user?.firstName || ''} ${student.user?.lastName || ''}`.trim() || student.studentId || '—';
       const studentId = student.studentId || '—';
-      const sectionStr = typeof student.currentEnrollment?.section === 'object' ? (student.currentEnrollment?.section?.name || student.currentEnrollment?.section?._id) : (student.currentEnrollment?.section || student.section || '—');
 
       const rankBg = item.rankNum === 1 ? '#fef3c7' : item.rankNum === 2 ? '#f1f5f9' : item.rankNum === 3 ? '#ffedd5' : 'transparent';
       const rankBadge = item.rankNum === 1 ? '🥇 ' : item.rankNum === 2 ? '🥈 ' : item.rankNum === 3 ? '🥉 ' : '';
@@ -2130,7 +2129,7 @@ export default function ExamPage({ initialViewMode }) {
           <td class="col-serial" style="text-align: center; font-weight: bold;">${toBnNumber(index + 1)}</td>
           <td class="col-student">
             <div class="student-name-text">${name}</div>
-            <div class="student-meta-text">আইডি: ${studentId} • সেকশন: ${sectionStr}</div>
+            <div class="student-meta-text">আইডি: ${studentId}</div>
           </td>
           <td class="col-roll" style="text-align: center; font-weight: bold;">${roll}</td>
           ${subjectCellsHtml}
