@@ -106,6 +106,8 @@ export default function ExamPage({ initialViewMode }) {
   const [meritSection, setMeritSection] = useState('all');
   const [meritList, setMeritList] = useState([]);
   const [meritSubjectsList, setMeritSubjectsList] = useState([]);
+  const [isMeritPrintModalOpen, setIsMeritPrintModalOpen] = useState(false);
+  const [meritPrintOrientation, setMeritPrintOrientation] = useState('landscape'); // 'landscape' | 'portrait'
 
   // Single Student Result State (Tab 2)
   const [studentSearchId, setStudentSearchId] = useState('');
@@ -1330,6 +1332,9 @@ export default function ExamPage({ initialViewMode }) {
               });
             }
 
+            const isPassed = r.isPassed !== undefined ? r.isPassed : (r.grade !== 'F' && !r.isIncomplete);
+            const gpaVal = r.gpa || (isPassed && r.percentage >= 33 ? (r.percentage >= 80 ? '5.00' : r.percentage >= 70 ? '4.00' : r.percentage >= 60 ? '3.50' : r.percentage >= 50 ? '3.00' : r.percentage >= 40 ? '2.00' : '1.00') : '0.00');
+
             return {
               student: studentObj,
               studentMarksObj,
@@ -1337,7 +1342,8 @@ export default function ExamPage({ initialViewMode }) {
               totalFullMarks: r.totalMaxMarks,
               percentage: r.percentage,
               overallGrade: r.grade,
-              isPassed: r.grade !== 'F',
+              gpa: gpaVal,
+              isPassed,
               subjectsCountWithMarks: Object.keys(studentMarksObj).length,
               rankNum: r.rank || (index + 1),
               rankText: formatRank(r.rank || (index + 1)),
@@ -1474,6 +1480,24 @@ export default function ExamPage({ initialViewMode }) {
         const overallGrade = isPassed 
           ? calculateGrade(percentage) 
           : (failedCount > 0 ? 'F' : (isIncomplete ? calculateGrade(percentage) : (subjectsCountWithMarks > 0 ? 'F' : '—')));
+        let gpaVal = '—';
+        if (subjectsCountWithMarks > 0) {
+          if (!isPassed || percentage < 33) {
+            gpaVal = '0.00';
+          } else if (percentage >= 80) {
+            gpaVal = '5.00';
+          } else if (percentage >= 70) {
+            gpaVal = '4.00';
+          } else if (percentage >= 60) {
+            gpaVal = '3.50';
+          } else if (percentage >= 50) {
+            gpaVal = '3.00';
+          } else if (percentage >= 40) {
+            gpaVal = '2.00';
+          } else {
+            gpaVal = '1.00';
+          }
+        }
 
         return {
           student: st,
@@ -1486,6 +1510,7 @@ export default function ExamPage({ initialViewMode }) {
           percentage,
           isPassed,
           overallGrade,
+          gpa: gpaVal,
           roll: getNumericRoll(st.currentEnrollment?.rollNumber || st.roll)
         };
       });
@@ -2067,17 +2092,18 @@ export default function ExamPage({ initialViewMode }) {
   };
 
 
-  const handlePrintMeritList = () => {
+  const handlePrintMeritList = (targetOrientation = meritPrintOrientation, targetSignatureRoles = selectedSignatureRoles) => {
     const printWin = window.open('', '_blank');
     if (!printWin) {
       alert('পপআপ ব্লক করা আছে! প্রিন্ট উইন্ডো ওপেন করতে ব্রাউজার পারমিশন দিন।');
       return;
     }
 
-    const examTitle = selectedExam.name;
-    const classNameStr = selectedExam.classLevel?.name || 'সকল শ্রেণি';
+    const examTitle = selectedExam?.name || 'পরীক্ষা';
+    const classNameStr = selectedExam?.classLevel?.name || 'সকল শ্রেণি';
     const sectionNameStr = meritSection === 'all' ? 'সকল সেকশন' : `সেকশন ${meritSection}`;
     const reportDate = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
+    const isLandscape = targetOrientation === 'landscape';
 
     let rowsHtml = '';
     meritList.forEach((item, index) => {
@@ -2087,7 +2113,6 @@ export default function ExamPage({ initialViewMode }) {
       const studentId = student.studentId || '—';
       const sectionStr = typeof student.currentEnrollment?.section === 'object' ? (student.currentEnrollment?.section?.name || student.currentEnrollment?.section?._id) : (student.currentEnrollment?.section || student.section || '—');
 
-      const isTop3 = item.rankNum && item.rankNum <= 3;
       const rankBg = item.rankNum === 1 ? '#fef3c7' : item.rankNum === 2 ? '#f1f5f9' : item.rankNum === 3 ? '#ffedd5' : 'transparent';
       const rankBadge = item.rankNum === 1 ? '🥇 ' : item.rankNum === 2 ? '🥈 ' : item.rankNum === 3 ? '🥉 ' : '';
 
@@ -2097,27 +2122,30 @@ export default function ExamPage({ initialViewMode }) {
         const hasScore = score !== null && score !== undefined && score !== '';
         const subFullMarks = Number(s.totalMarks) || 100;
         const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
-        return `<td style="text-align: center; font-weight: 600; font-size: 10px; ${isSubFail ? 'color: #dc2626; background: rgba(239, 68, 68, 0.05);' : ''}">${hasScore ? score : '—'}</td>`;
+        return `<td style="text-align: center; font-weight: 600; font-size: 9.5px; ${isSubFail ? 'color: #dc2626; background: rgba(239, 68, 68, 0.05);' : ''}">${hasScore ? score : '—'}</td>`;
       }).join('');
 
       rowsHtml += `
         <tr style="background-color: ${rankBg};">
-          <td style="text-align: center; font-weight: bold; font-size: 10px;">${toBnNumber(index + 1)}</td>
+          <td style="text-align: center; font-weight: bold; font-size: 9.5px;">${toBnNumber(index + 1)}</td>
           <td>
-            <div style="font-weight: 700; font-size: 10.5px;">${name}</div>
-            <div style="font-size: 8.5px; color: #475569;">আইডি: ${studentId} • সেকশন: ${sectionStr}</div>
+            <div style="font-weight: 700; font-size: 10px;">${name}</div>
+            <div style="font-size: 8px; color: #475569;">আইডি: ${studentId} • সেকশন: ${sectionStr}</div>
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 10.5px;">${roll}</td>
+          <td style="text-align: center; font-weight: bold; font-size: 10px;">${roll}</td>
           ${subjectCellsHtml}
-          <td style="text-align: center; font-weight: bold; font-size: 10px; color: #0f766e;">
+          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: #0f766e;">
             ${item.subjectsCountWithMarks === 0 ? '—' : `${item.totalObtained} / ${item.totalFullMarks || 100}`}
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 10px;">${rankBadge}${item.rankText || '—'}</td>
-          <td style="text-align: center; font-weight: bold; font-size: 10px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
+          <td style="text-align: center; font-weight: bold; font-size: 9.5px;">${rankBadge}${item.rankText || '—'}</td>
+          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
             ${item.overallGrade}
           </td>
-          <td style="text-align: center; font-size: 10px; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
-          <td style="text-align: center; font-size: 9.5px; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
+          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#0f766e'};">
+            ${item.subjectsCountWithMarks === 0 ? '—' : (item.gpa || '0.00')}
+          </td>
+          <td style="text-align: center; font-size: 9.5px; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
+          <td style="text-align: center; font-size: 9px; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
             ${item.subjectsCountWithMarks === 0 ? 'অনুপস্থিত' : (item.isIncomplete ? 'অসম্পূর্ণ' : (item.isPassed ? 'উত্তীর্ণ' : 'অনুত্তীর্ণ'))}
           </td>
         </tr>
@@ -2125,9 +2153,9 @@ export default function ExamPage({ initialViewMode }) {
     });
 
     const subjectHeadersHtml = meritSubjectsList.map(s => `
-      <th style="text-align: center; font-size: 9.5px; min-width: 50px; white-space: nowrap;">
+      <th style="text-align: center; font-size: 9px; min-width: 45px; white-space: nowrap;">
         <div>${s.name}</div>
-        <div style="font-size: 8.5px; font-weight: normal; opacity: 0.9;">(${s.totalMarks || 100})</div>
+        <div style="font-size: 8px; font-weight: normal; opacity: 0.9;">(${s.totalMarks || 100})</div>
       </th>
     `).join('');
 
@@ -2136,39 +2164,124 @@ export default function ExamPage({ initialViewMode }) {
     <head>
       <meta charset="UTF-8">
       <title>${examTitle} - মেধা তালিকা ও ফলাফল</title>
-      ${getMadrasahPrintStyles('landscape')}
+      ${getMadrasahPrintStyles(targetOrientation)}
       <style>
-        @page { size: A4 landscape; margin: 6mm 8mm !important; }
-        table.compact-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10px; }
-        table.compact-table th, table.compact-table td { border: 1px solid #cbd5e1; padding: 3px 4px; text-align: left; }
-        table.compact-table th { background: #0f766e; color: #fff; font-size: 10px; font-weight: 700; text-align: center; }
-        .print-footer-signatures { padding-top: 10px !important; margin-top: auto !important; }
-        .sig-line { font-size: 10.5px !important; padding-top: 3px !important; }
-        .sig-sub { font-size: 9px !important; }
+        @page { 
+          size: A4 ${targetOrientation}; 
+          margin: ${isLandscape ? '6mm 8mm' : '8mm 10mm'} !important; 
+        }
+        @media print {
+          .no-print { display: none !important; }
+          html, body { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: #fff !important; 
+          }
+        }
+        body {
+          font-family: 'Noto Sans Bengali', sans-serif;
+          color: #0f172a;
+          background: #f8fafc;
+        }
+        #raw-content {
+          position: absolute;
+          visibility: hidden;
+          left: -9999px;
+          top: -9999px;
+          width: ${isLandscape ? '281mm' : '194mm'};
+        }
+        .print-page {
+          position: relative;
+          width: 100%;
+          height: calc(${isLandscape ? '210mm' : '297mm'} - ${isLandscape ? '12mm' : '16mm'});
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          page-break-after: always;
+          break-after: page;
+          overflow: hidden;
+          background: #ffffff;
+        }
+        .print-page.last-page,
+        .print-page:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        .page-top {
+          width: 100%;
+          position: relative;
+          z-index: 10;
+        }
+        .page-bottom {
+          width: 100%;
+          margin-top: auto;
+          padding-top: 14px;
+          position: relative;
+          z-index: 10;
+        }
+        table.compact-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          margin-top: 4px; 
+          font-size: ${isLandscape ? '9.5px' : '9px'}; 
+        }
+        table.compact-table th, table.compact-table td { 
+          border: 1px solid #cbd5e1; 
+          padding: ${isLandscape ? '3px 4px' : '2.5px 3px'}; 
+          text-align: left; 
+        }
+        table.compact-table th { 
+          background: #0f766e; 
+          color: #fff; 
+          font-size: ${isLandscape ? '9.5px' : '9px'}; 
+          font-weight: 700; 
+          text-align: center; 
+        }
       </style>
     </head>
     <body>
-      <div class="print-sheet-container">
-        <div class="print-content-layer">
+      <!-- Sticky No-Print Control Bar -->
+      <div class="no-print" style="position: sticky; top: 0; z-index: 9999; background: #0f172a; color: #fff; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
+        <div style="font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 8px;">
+          <span>🏆 মেধা তালিকা প্রিন্ট প্রিভিউ</span>
+          <span style="font-size: 11px; opacity: 0.75;">(পৃষ্ঠা বিন্যাস পরিবর্তন করতে নিচের বাটনে চাপুন)</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-land" onclick="setOrientation('landscape')" style="padding: 5px 12px; border-radius: 6px; border: none; background: ${targetOrientation === 'landscape' ? '#0f766e' : '#334155'}; color: #fff; cursor: pointer; font-weight: 700; font-size: 11.5px;">📑 ল্যান্ডস্কেপ</button>
+          <button id="btn-port" onclick="setOrientation('portrait')" style="padding: 5px 12px; border-radius: 6px; border: none; background: ${targetOrientation === 'portrait' ? '#0f766e' : '#334155'}; color: #fff; cursor: pointer; font-weight: 700; font-size: 11.5px;">📄 পোর্ট্রেট</button>
+          <button onclick="window.print()" style="padding: 5px 16px; border-radius: 6px; border: none; background: #10b981; color: #fff; cursor: pointer; font-weight: 700; font-size: 12px;">🖨️ প্রিন্ট / PDF ডাউনলোড</button>
+          <button onclick="window.close()" style="padding: 5px 12px; border-radius: 6px; border: none; background: #64748b; color: #fff; cursor: pointer; font-size: 11.5px;">✕ বন্ধ</button>
+        </div>
+      </div>
+
+      <!-- Container where partitioned pages will be placed -->
+      <div id="pages-container"></div>
+
+      <!-- Hidden source content used for accurate DOM measurement -->
+      <div id="raw-content">
+        <div class="header-wrap">
           ${getMadrasahHeaderHtml({
             title: `🏆 পরীক্ষার মেধা তালিকা ও বিষয়ভিত্তিক ফলাফল (Merit List) — ${examTitle}`,
-            orientation: 'landscape',
+            orientation: targetOrientation,
             metaLeft: `<strong>শ্রেণি:</strong> ${classNameStr} | <strong>সেকশন:</strong> ${sectionNameStr}`,
             metaRight: `<strong>মোট পরীক্ষার্থী:</strong> ${meritList.length} জন | <strong>তারিখ:</strong> ${reportDate}`
           })}
+        </div>
 
         <table class="compact-table">
           <thead>
             <tr>
-              <th style="width: 35px; text-align: center;">ক্রম</th>
-              <th style="min-width: 150px; text-align: left;">শিক্ষার্থীর নাম ও আইডি</th>
-              <th style="width: 45px; text-align: center;">রোল</th>
+              <th style="width: 32px; text-align: center;">ক্রম</th>
+              <th style="min-width: 140px; text-align: left;">শিক্ষার্থীর নাম ও আইডি</th>
+              <th style="width: 40px; text-align: center;">রোল</th>
               ${subjectHeadersHtml}
-              <th style="width: 80px; text-align: center;">সর্বমোট মার্ক</th>
-              <th style="width: 80px; text-align: center;">স্থান</th>
-              <th style="width: 45px; text-align: center;">গ্রেড</th>
-              <th style="width: 60px; text-align: center;">শতকরা হার</th>
-              <th style="width: 65px; text-align: center;">স্ট্যাটাস</th>
+              <th style="width: 75px; text-align: center;">সর্বমোট মার্ক</th>
+              <th style="width: 75px; text-align: center;">স্থান</th>
+              <th style="width: 40px; text-align: center;">গ্রেড</th>
+              <th style="width: 45px; text-align: center;">জিপিএ</th>
+              <th style="width: 55px; text-align: center;">শতকরা</th>
+              <th style="width: 60px; text-align: center;">স্ট্যাটাস</th>
             </tr>
           </thead>
           <tbody>
@@ -2176,13 +2289,139 @@ export default function ExamPage({ initialViewMode }) {
           </tbody>
         </table>
 
-        ${getMadrasahFooterSignaturesHtml(selectedSignatureRoles)}
+        <!-- Footer Signatures -->
+        <div class="footer-wrap" style="width: 100%; padding-top: 14px; page-break-inside: avoid; break-inside: avoid;">
+          ${getMadrasahFooterSignaturesHtml(targetSignatureRoles)}
         </div>
       </div>
 
       <script>
+        let currentOrientation = '${targetOrientation}';
+
+        function setOrientation(orient) {
+          if (currentOrientation === orient) return;
+          currentOrientation = orient;
+          document.getElementById('btn-land').style.background = (orient === 'landscape') ? '#0f766e' : '#334155';
+          document.getElementById('btn-port').style.background = (orient === 'portrait') ? '#0f766e' : '#334155';
+          paginateAndRender(orient);
+        }
+
+        function paginateAndRender(targetOrient) {
+          try {
+            const rawWrap = document.getElementById('raw-content');
+            const rawHeader = rawWrap.querySelector('.header-wrap');
+            const rawTable = rawWrap.querySelector('table');
+            const rawThead = rawTable.querySelector('thead');
+            const rawRows = Array.from(rawTable.querySelectorAll('tbody tr'));
+            const rawFooter = rawWrap.querySelector('.footer-wrap');
+            const container = document.getElementById('pages-container');
+
+            if (!rawRows.length || !container) {
+              rawWrap.style.position = 'static';
+              rawWrap.style.visibility = 'visible';
+              return;
+            }
+
+            container.innerHTML = '';
+
+            const isLand = (targetOrient === 'landscape');
+            rawWrap.style.width = isLand ? '281mm' : '194mm';
+
+            // Measure px per mm
+            const probe = document.createElement('div');
+            probe.style.width = '100mm';
+            probe.style.height = '100mm';
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            document.body.appendChild(probe);
+            const pxPerMm = probe.getBoundingClientRect().height / 100;
+            document.body.removeChild(probe);
+
+            const pageTotalMm = isLand ? 210 : 297;
+            const marginTotalMm = isLand ? 12 : 16;
+            const pageUsablePx = (pageTotalMm - marginTotalMm) * pxPerMm;
+
+            const headerHeight = rawHeader ? rawHeader.getBoundingClientRect().height : 0;
+            const theadHeight = rawThead ? rawThead.getBoundingClientRect().height : 32;
+            const footerHeight = rawFooter ? rawFooter.getBoundingClientRect().height : 60;
+
+            const rowHeights = rawRows.map(r => r.getBoundingClientRect().height || 28);
+
+            // Partition rows into pages
+            const pageRowIndices = [];
+            let currentPageIndices = [];
+            let currentHeight = headerHeight + theadHeight;
+
+            for (let i = 0; i < rawRows.length; i++) {
+              const h = rowHeights[i];
+              const isLast = (i === rawRows.length - 1);
+              const neededFooter = (isLast && rawFooter) ? (footerHeight + 20) : 0;
+
+              if ((currentHeight + h + neededFooter) > (pageUsablePx - 15) && currentPageIndices.length > 0) {
+                pageRowIndices.push(currentPageIndices);
+                currentPageIndices = [i];
+                currentHeight = theadHeight + h;
+              } else {
+                currentPageIndices.push(i);
+                currentHeight += h;
+              }
+            }
+            if (currentPageIndices.length > 0) {
+              pageRowIndices.push(currentPageIndices);
+            }
+
+            // Build pages
+            pageRowIndices.forEach((rowIndices, pIdx) => {
+              const isFirstPage = (pIdx === 0);
+              const isLastPage = (pIdx === pageRowIndices.length - 1);
+
+              const pageEl = document.createElement('div');
+              pageEl.className = 'print-page' + (isLastPage ? ' last-page' : '');
+              pageEl.style.height = 'calc(' + (isLand ? '210mm' : '297mm') + ' - ' + (isLand ? '12mm' : '16mm') + ')';
+
+              const topWrap = document.createElement('div');
+              topWrap.className = 'page-top';
+
+              if (isFirstPage && rawHeader) {
+                topWrap.appendChild(rawHeader.cloneNode(true));
+              }
+
+              const tbl = document.createElement('table');
+              tbl.className = 'compact-table';
+              tbl.appendChild(rawThead.cloneNode(true));
+
+              const tbody = document.createElement('tbody');
+              rowIndices.forEach(idx => {
+                tbody.appendChild(rawRows[idx].cloneNode(true));
+              });
+              tbl.appendChild(tbody);
+              topWrap.appendChild(tbl);
+              pageEl.appendChild(topWrap);
+
+              if (isLastPage && rawFooter) {
+                const bottomWrap = document.createElement('div');
+                bottomWrap.className = 'page-bottom';
+                bottomWrap.appendChild(rawFooter.cloneNode(true));
+                pageEl.appendChild(bottomWrap);
+              }
+
+              container.appendChild(pageEl);
+            });
+          } catch (err) {
+            console.error('Pagination error:', err);
+            const rawWrap = document.getElementById('raw-content');
+            if (rawWrap) {
+              rawWrap.style.position = 'static';
+              rawWrap.style.visibility = 'visible';
+            }
+          }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
-          setTimeout(() => { window.print(); }, 400);
+          setTimeout(() => {
+            paginateAndRender('${targetOrientation}');
+            setTimeout(() => { window.print(); }, 400);
+          }, 200);
         });
       </script>
     </body>
@@ -2213,6 +2452,19 @@ export default function ExamPage({ initialViewMode }) {
     if (pct >= 40) return 'C';
     if (pct >= 33) return 'D';
     return 'F';
+  };
+
+  const calculateGPA = (percentage, isPassed) => {
+    if (!isPassed || percentage === null || percentage === undefined || percentage === '' || Number(percentage) < 33) return '0.00';
+    const num = Number(percentage);
+    if (isNaN(num)) return '0.00';
+    if (num >= 80) return '5.00';
+    if (num >= 70) return '4.00';
+    if (num >= 60) return '3.50';
+    if (num >= 50) return '3.00';
+    if (num >= 40) return '2.00';
+    if (num >= 33) return '1.00';
+    return '0.00';
   };
 
   const getGradeBadgeClass = (grade) => {
@@ -2786,7 +3038,7 @@ export default function ExamPage({ initialViewMode }) {
                 } else if (examViewMode === 'subject_result') {
                   handlePrintSubjectResult();
                 } else if (examViewMode === 'merit' || examViewMode === 'merit_list') {
-                  handlePrintMeritList();
+                  setIsMeritPrintModalOpen(true);
                 } else if (examViewMode === 'marks') {
                   handlePrintMarkEntrySheet();
                 } else {
@@ -3584,7 +3836,7 @@ export default function ExamPage({ initialViewMode }) {
                     <button
                       type="button"
                       className="btn btn-primary"
-                      onClick={handlePrintMeritList}
+                      onClick={() => setIsMeritPrintModalOpen(true)}
                       disabled={meritLoading || meritList.length === 0}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                     >
@@ -3656,6 +3908,7 @@ export default function ExamPage({ initialViewMode }) {
                         <th style={{ textAlign: 'center', minWidth: '120px' }}>সর্বমোট মার্ক</th>
                         <th style={{ minWidth: '130px', textAlign: 'center' }}>স্থান</th>
                         <th style={{ textAlign: 'center', width: '75px' }}>গ্রেড</th>
+                        <th style={{ textAlign: 'center', width: '80px' }}>জিপিএ</th>
                         <th style={{ textAlign: 'center', width: '85px' }}>শতকরা হার</th>
                         <th style={{ textAlign: 'center', minWidth: '110px' }}>স্ট্যাটাস</th>
                       </tr>
@@ -3739,6 +3992,9 @@ export default function ExamPage({ initialViewMode }) {
                               <span className={`badge ${getGradeBadgeClass(item.overallGrade)}`} style={{ fontSize: '0.85rem', width: '45px', justifyContent: 'center' }}>
                                 {item.overallGrade}
                               </span>
+                            </td>
+                            <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 800, fontSize: '0.92rem', color: item.overallGrade === 'F' ? '#dc2626' : (item.gpa === '5.00' ? '#0f766e' : '#1e293b') }}>
+                              {item.subjectsCountWithMarks === 0 ? '—' : (item.gpa || '0.00')}
                             </td>
                             <td style={{ textAlign: 'center', fontFamily: 'Inter', fontWeight: 700 }}>
                               {item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}
@@ -5091,6 +5347,140 @@ export default function ExamPage({ initialViewMode }) {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Merit List Print Orientation & Options Modal */}
+      {isMeritPrintModalOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050,
+            backdropFilter: 'blur(4px)'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setIsMeritPrintModalOpen(false); }}
+        >
+          <div className="card animate-scale-up" style={{ width: '100%', maxWidth: '480px', margin: '20px' }}>
+            <div className="flex-between mb-20" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontWeight: 700 }}>
+                <Printer size={20} style={{ color: 'var(--primary)' }} /> মেধা তালিকা প্রিন্ট ও পৃষ্ঠা বিন্যাস
+              </h2>
+              <button className="btn-icon" onClick={() => setIsMeritPrintModalOpen(false)} type="button">
+                <Plus size={20} style={{ transform: 'rotate(45deg)' }} />
+              </button>
+            </div>
+
+            {/* Orientation selection */}
+            <div className="form-group mb-20" style={{ marginBottom: '20px' }}>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: '8px', display: 'block', fontSize: '0.9rem' }}>
+                পৃষ্ঠা বিন্যাস (Page Orientation) নির্বাচন করুন:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setMeritPrintOrientation('landscape')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: meritPrintOrientation === 'landscape' ? 700 : 500,
+                    background: meritPrintOrientation === 'landscape' ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-tertiary, #f8fafc)',
+                    border: meritPrintOrientation === 'landscape' ? '2px solid #0f766e' : '1px solid var(--border-color, #e2e8f0)',
+                    color: meritPrintOrientation === 'landscape' ? '#0f766e' : 'var(--text-primary)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <span style={{ fontSize: '1.6rem' }}>📑</span>
+                  <span style={{ fontSize: '0.95rem' }}>ল্যান্ডস্কেপ (Landscape)</span>
+                  <span style={{ fontSize: '0.74rem', opacity: 0.85, color: meritPrintOrientation === 'landscape' ? '#0f766e' : '#64748b' }}>(সুপারিশকৃত - বহু বিষয়ের জন্য)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMeritPrintOrientation('portrait')}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: meritPrintOrientation === 'portrait' ? 700 : 500,
+                    background: meritPrintOrientation === 'portrait' ? 'rgba(15, 118, 110, 0.1)' : 'var(--bg-tertiary, #f8fafc)',
+                    border: meritPrintOrientation === 'portrait' ? '2px solid #0f766e' : '1px solid var(--border-color, #e2e8f0)',
+                    color: meritPrintOrientation === 'portrait' ? '#0f766e' : 'var(--text-primary)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <span style={{ fontSize: '1.6rem' }}>📄</span>
+                  <span style={{ fontSize: '0.95rem' }}>পোর্ট্রেট (Portrait)</span>
+                  <span style={{ fontSize: '0.74rem', opacity: 0.85, color: meritPrintOrientation === 'portrait' ? '#0f766e' : '#64748b' }}>(উল্লম্ব সাধারণ প্রিন্ট)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Signature Roles Selection */}
+            <div className="form-group mb-24" style={{ marginBottom: '24px' }}>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: '8px', display: 'block', fontSize: '0.9rem' }}>
+                প্রিন্ট কপিতে স্বাক্ষরকারী পদবিসমূহ:
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['শ্রেণী শিক্ষক', 'প্রতিষ্ঠান প্রধান', 'পরিচালক', 'প্রধান শিক্ষক, নূরানী বিভাগ', 'প্রধান শিক্ষিকা, বালিকা শাখা'].map(role => {
+                  const isSelected = selectedSignatureRoles.includes(role);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => {
+                        let next;
+                        if (isSelected) {
+                          if (selectedSignatureRoles.length <= 1) return;
+                          next = selectedSignatureRoles.filter(r => r !== role);
+                        } else {
+                          next = [...selectedSignatureRoles, role];
+                        }
+                        setSelectedSignatureRoles(next);
+                        try {
+                          localStorage.setItem('annur_footer_roles__exams', JSON.stringify(next));
+                        } catch (_) {}
+                      }}
+                      className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ fontSize: '0.82rem', padding: '4px 10px' }}
+                    >
+                      {isSelected ? '✓ ' : '+ '} {role}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsMeritPrintModalOpen(false)}
+                style={{ flex: 1 }}
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setIsMeritPrintModalOpen(false);
+                  handlePrintMeritList(meritPrintOrientation, selectedSignatureRoles);
+                }}
+                style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Printer size={16} /> প্রিন্ট প্রিভিউ শুরু করুন
+              </button>
+            </div>
           </div>
         </div>
       )}

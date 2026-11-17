@@ -18,64 +18,41 @@ export function getMadrasahHeaderCss() {
       box-sizing: border-box;
     }
 
-    /* Top Row: Arabic Calligraphy (Center) & 2-Line Highlighted Slogan (Upper-Right) in Same Line */
-    .madrasah-top-row {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 12px;
-    }
-    .madrasah-top-left {
-      /* Empty balanced space so center remains perfectly centered over logo */
-    }
-    .madrasah-top-center {
-      text-align: center;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0 8px;
-    }
-    .madrasah-top-right {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-    }
-    .madrasah-arabic-img {
-      height: 68px;
-      max-width: 440px;
-      width: auto;
-      object-fit: contain;
-      display: block;
-    }
-    .madrasah-slogan-box {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-end;
-      text-align: right;
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%);
-      border: 1px solid #86efac;
-      border-right: 3.5px solid #059669;
-      border-radius: 6px;
-      padding: 2.5px 9px;
-      box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.05);
-      line-height: 1.3;
-    }
-    .madrasah-slogan-line {
-      font-family: 'Noto Serif Bengali', 'SolaimanLipi', serif;
-      font-size: 10px;
-      font-weight: 700;
-      color: #065f46;
-      white-space: nowrap;
-    }
-
-    /* Main Grid: Left Bengali, Center Full-Height Logo, Right English */
+    /* Main Grid: Left Bengali, Center (Arabic + Logo + Slogan), Right English — All starting from Row 1 */
     .madrasah-main-grid {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: start;
-      gap: 14px;
+      gap: 12px;
       width: 100%;
+    }
+    .madrasah-arabic-img {
+      height: 44px;
+      max-width: 320px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 2px auto;
+    }
+    .madrasah-slogan-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%);
+      border: 1px solid #86efac;
+      border-bottom: 2.5px solid #059669;
+      border-radius: 5px;
+      padding: 1.5px 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+    .madrasah-slogan-line {
+      font-family: 'Noto Serif Bengali', 'SolaimanLipi', serif;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #065f46;
+      white-space: nowrap;
     }
     .madrasah-col-left {
       text-align: left;
@@ -94,13 +71,12 @@ export function getMadrasahHeaderCss() {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       padding: 0 4px;
-      height: 100%;
     }
     .madrasah-title-bn {
       font-family: 'Noto Serif Bengali', 'SolaimanLipi', serif;
-      font-size: 17.5px;
+      font-size: 17px;
       font-weight: 800;
       color: #020617;
       margin: 0;
@@ -112,7 +88,7 @@ export function getMadrasahHeaderCss() {
     }
     .madrasah-title-en {
       font-family: 'Times New Roman', Times, serif;
-      font-size: 16.5px;
+      font-size: 16px;
       font-weight: 800;
       color: #020617;
       margin: 0;
@@ -147,8 +123,8 @@ export function getMadrasahHeaderCss() {
       white-space: nowrap;
     }
     .madrasah-logo-img {
-      width: 118px;
-      height: 118px;
+      width: 78px;
+      height: 78px;
       object-fit: contain;
       border: none !important;
       outline: none !important;
@@ -156,7 +132,7 @@ export function getMadrasahHeaderCss() {
       filter: none !important;
       -webkit-filter: none !important;
       background: transparent !important;
-      margin: 0 auto;
+      margin: 0 auto 4px auto;
       display: block;
     }
     .madrasah-phone-single {
@@ -216,22 +192,7 @@ export function getMadrasahHeaderHtml({
 } = {}) {
   return `
     <header class="madrasah-letterhead-container" id="madrasah-letterhead">
-      <!-- Top Row: Left Slogan, Center Arabic, Right Slogan -->
-      <!-- Top Row: Balanced Empty Left, Center Arabic Image (68px), Right Slogan -->
-      <div class="madrasah-top-row">
-        <div class="madrasah-top-left"></div>
-        <div class="madrasah-top-center">
-          <img src="/images/arabic_title.png" alt="النُّورُ إِسْلَامِكْ أَكَادِيمِي" class="madrasah-arabic-img" onerror="this.src='/arabic_title.png'" />
-        </div>
-        <div class="madrasah-top-right">
-          <div class="madrasah-slogan-box">
-            <div class="madrasah-slogan-line">❝ ইলম শিখো, আমল করো,</div>
-            <div class="madrasah-slogan-line">মানুষের সেবায় নিজেকে গড়ো। ❞</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Columns: Left Bengali, Center Full-Height Logo, Right English -->
+      <!-- Unified 3 Columns: Left Bengali, Center (Arabic + Logo + Slogan), Right English — All starting from Row 1 -->
       <div class="madrasah-main-grid">
         <!-- Left Column: Bengali Info + Director Mobile at bottom -->
         <div class="madrasah-col-left">
@@ -247,9 +208,13 @@ export function getMadrasahHeaderHtml({
           </div>
         </div>
 
-        <!-- Center Column: Full-Height Centered Logo (~118px) -->
+        <!-- Center Column: Arabic Calligraphy at top, Logo immediately below, Slogan quote below Logo -->
         <div class="madrasah-col-center">
+          <img src="/images/arabic_title.png" alt="النُّورُ إِسْلَامِكْ أَكَادِيمِي" class="madrasah-arabic-img" onerror="this.src='/arabic_title.png'" />
           <img src="/images/madrasah_logo.png" alt="লোগো" class="madrasah-logo-img" onerror="this.src='/madrasah_logo.png'" />
+          <div class="madrasah-slogan-box">
+            <span class="madrasah-slogan-line">❝ ইলম শিখো, আমল করো, মানুষের সেবায় নিজেকে গড়ো। ❞</span>
+          </div>
         </div>
 
         <!-- Right Column: English Info + Head Teacher Mobile at bottom -->
