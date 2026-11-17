@@ -867,13 +867,13 @@ Error generating stack: `+i.message+`
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: start;
-      gap: 12px;
+      gap: ${t==="landscape"?"12px":"8px"};
       width: 100%;
     }
 
     .header-arabic-img {
-      height: ${t==="landscape"?"36px":"44px"};
-      max-width: ${t==="landscape"?"260px":"320px"};
+      height: ${t==="landscape"?"36px":"32px"};
+      max-width: ${t==="landscape"?"260px":"210px"};
       width: auto;
       object-fit: contain;
       display: block;
@@ -887,14 +887,14 @@ Error generating stack: `+i.message+`
       border: 1px solid #86efac;
       border-bottom: 2.5px solid #059669;
       border-radius: 5px;
-      padding: 1.5px 8px;
+      padding: 1.5px ${t==="landscape"?"8px":"6px"};
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       line-height: 1.25;
       white-space: nowrap;
     }
     .slogan-text-line {
       font-family: 'Noto Serif Bengali', serif;
-      font-size: ${t==="landscape"?"8.5px":"9.5px"};
+      font-size: ${t==="landscape"?"8.5px":"8px"};
       font-weight: 700;
       color: #065f46;
       white-space: nowrap;
@@ -909,25 +909,25 @@ Error generating stack: `+i.message+`
     }
     .col-left .inst-title {
       font-family: 'Noto Serif Bengali', serif;
-      font-size: ${t==="landscape"?"15px":"17px"};
+      font-size: ${t==="landscape"?"15px":"14px"};
       font-weight: 800;
       color: #020617;
       margin: 0;
       padding: 0;
-      height: 24px;
-      line-height: 24px;
+      height: ${t==="landscape"?"24px":"21px"};
+      line-height: ${t==="landscape"?"24px":"21px"};
       white-space: nowrap;
       letter-spacing: -0.2px;
     }
     .col-left .inst-sub,
     .col-left .inst-city {
-      font-size: ${t==="landscape"?"10px":"11px"};
+      font-size: ${t==="landscape"?"10px":"9px"};
       color: #1e293b;
       font-weight: 600;
       margin: 0;
       padding: 0;
-      height: 17px;
-      line-height: 17px;
+      height: ${t==="landscape"?"17px":"15px"};
+      line-height: ${t==="landscape"?"17px":"15px"};
       white-space: nowrap;
     }
 
@@ -938,13 +938,13 @@ Error generating stack: `+i.message+`
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding: 0 4px;
+      padding: 0 2px;
     }
     .col-center .header-logo-center {
-      width: ${t==="landscape"?"68px":"78px"};
-      height: ${t==="landscape"?"68px":"78px"};
+      width: ${t==="landscape"?"65px":"50px"};
+      height: ${t==="landscape"?"65px":"50px"};
       object-fit: contain;
-      margin: 0 auto 4px auto;
+      margin: 0 auto 3px auto;
       display: block;
       border: none !important;
       outline: none !important;
@@ -956,13 +956,13 @@ Error generating stack: `+i.message+`
       background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 45%, #e2e8f0 100%);
       border: 1.5px solid #475569;
       box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-      border-radius: 8px;
-      padding: 2px 9px;
+      border-radius: ${t==="landscape"?"8px":"6px"};
+      padding: ${t==="landscape"?"2px 9px":"1.5px 6px"};
       display: inline-flex;
       align-items: center;
       justify-content: center;
       white-space: nowrap;
-      font-size: ${t==="landscape"?"9px":"10px"};
+      font-size: ${t==="landscape"?"9px":"8px"};
       font-weight: 700;
       color: #0f172a;
       line-height: 1.35;
@@ -978,41 +978,41 @@ Error generating stack: `+i.message+`
     }
     .col-right .inst-title-en {
       font-family: 'Times New Roman', serif;
-      font-size: ${t==="landscape"?"14px":"16px"};
+      font-size: ${t==="landscape"?"14px":"13px"};
       font-weight: 800;
       color: #020617;
       margin: 0;
       padding: 0;
-      height: 24px;
-      line-height: 24px;
+      height: ${t==="landscape"?"24px":"21px"};
+      line-height: ${t==="landscape"?"24px":"21px"};
       white-space: nowrap;
       letter-spacing: 0.2px;
     }
     .col-right .inst-sub-en,
     .col-right .inst-city-en {
-      font-size: ${t==="landscape"?"10px":"11px"};
+      font-size: ${t==="landscape"?"10px":"9px"};
       color: #1e293b;
       font-weight: 600;
       margin: 0;
       padding: 0;
-      height: 17px;
-      line-height: 17px;
+      height: ${t==="landscape"?"17px":"15px"};
+      line-height: ${t==="landscape"?"17px":"15px"};
       white-space: nowrap;
     }
 
     /* Shared Gap & Board Lines for Identical Baseline Alignment */
     .inst-line-spacer {
-      height: 5px;
+      height: ${t==="landscape"?"5px":"3px"};
       width: 100%;
     }
     .inst-board-line {
-      font-size: ${t==="landscape"?"9px":"10px"};
+      font-size: ${t==="landscape"?"9px":"8.5px"};
       color: #334155;
       font-weight: 500;
       margin: 0;
       padding: 0;
-      height: 16px;
-      line-height: 16px;
+      height: ${t==="landscape"?"16px":"14px"};
+      line-height: ${t==="landscape"?"16px":"14px"};
       white-space: nowrap;
     }
 
@@ -2622,34 +2622,34 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
   <\/script>
 </body>
 </html>
-    `;Te.document.open(),Te.document.write(rt),Te.document.close()},on=(J=me,Te=f)=>{var Mt;const Me=window.open("","_blank");if(!Me){alert("পপআপ ব্লক করা আছে! প্রিন্ট উইন্ডো ওপেন করতে ব্রাউজার পারমিশন দিন।");return}const We=(B==null?void 0:B.name)||"পরীক্ষা",rt=((Mt=B==null?void 0:B.classLevel)==null?void 0:Mt.name)||"সকল শ্রেণি",ct=H==="all"?"সকল সেকশন":`সেকশন ${H}`,yt=new Date().toLocaleDateString("bn-BD",{day:"numeric",month:"long",year:"numeric"}),st=J==="landscape";let sr="";S.forEach((Ot,nr)=>{var Xn,Zs,ir,$t,Qr,Lr,mn,yr,Un,Jn;const ar=Ot.student,Fr=((Xn=ar.currentEnrollment)==null?void 0:Xn.rollNumber)||ar.roll||"—",nn=((Zs=ar.user)==null?void 0:Zs.fullName)||`${((ir=ar.user)==null?void 0:ir.firstName)||""} ${(($t=ar.user)==null?void 0:$t.lastName)||""}`.trim()||ar.studentId||"—",En=ar.studentId||"—",Rn=typeof((Qr=ar.currentEnrollment)==null?void 0:Qr.section)=="object"?((mn=(Lr=ar.currentEnrollment)==null?void 0:Lr.section)==null?void 0:mn.name)||((Un=(yr=ar.currentEnrollment)==null?void 0:yr.section)==null?void 0:Un._id):((Jn=ar.currentEnrollment)==null?void 0:Jn.section)||ar.section||"—",bs=Ot.rankNum===1?"#fef3c7":Ot.rankNum===2?"#f1f5f9":Ot.rankNum===3?"#ffedd5":"transparent",ks=Ot.rankNum===1?"🥇 ":Ot.rankNum===2?"🥈 ":Ot.rankNum===3?"🥉 ":"",Fn=F.map(hs=>{var Va,kd;const Dn=(kd=(Va=Ot.studentMarksObj)==null?void 0:Va[String(hs._id)])==null?void 0:kd.marksObtained,Qs=Dn!==null&&typeof Dn=="object"?Dn.marksObtained??"":Dn??"",Aa=Qs!=null&&Qs!=="",cs=Number(hs.totalMarks)||100;return`<td style="text-align: center; font-weight: 600; font-size: 9.5px; ${Aa&&Number(Qs)<cs*.33?"color: #dc2626; background: rgba(239, 68, 68, 0.05);":""}">${Aa?Qs:"—"}</td>`}).join("");sr+=`
+    `;Te.document.open(),Te.document.write(rt),Te.document.close()},on=(J=me,Te=f)=>{var Mt;const Me=window.open("","_blank");if(!Me){alert("পপআপ ব্লক করা আছে! প্রিন্ট উইন্ডো ওপেন করতে ব্রাউজার পারমিশন দিন।");return}const We=(B==null?void 0:B.name)||"পরীক্ষা",rt=((Mt=B==null?void 0:B.classLevel)==null?void 0:Mt.name)||"সকল শ্রেণি",ct=H==="all"?"সকল সেকশন":`সেকশন ${H}`,yt=new Date().toLocaleDateString("bn-BD",{day:"numeric",month:"long",year:"numeric"}),st=J==="landscape";let sr="";S.forEach((Ot,nr)=>{var Xn,Zs,ir,$t,Qr,Lr,mn,yr,Un,Jn;const ar=Ot.student,Fr=((Xn=ar.currentEnrollment)==null?void 0:Xn.rollNumber)||ar.roll||"—",nn=((Zs=ar.user)==null?void 0:Zs.fullName)||`${((ir=ar.user)==null?void 0:ir.firstName)||""} ${(($t=ar.user)==null?void 0:$t.lastName)||""}`.trim()||ar.studentId||"—",En=ar.studentId||"—",Rn=typeof((Qr=ar.currentEnrollment)==null?void 0:Qr.section)=="object"?((mn=(Lr=ar.currentEnrollment)==null?void 0:Lr.section)==null?void 0:mn.name)||((Un=(yr=ar.currentEnrollment)==null?void 0:yr.section)==null?void 0:Un._id):((Jn=ar.currentEnrollment)==null?void 0:Jn.section)||ar.section||"—",bs=Ot.rankNum===1?"#fef3c7":Ot.rankNum===2?"#f1f5f9":Ot.rankNum===3?"#ffedd5":"transparent",ks=Ot.rankNum===1?"🥇 ":Ot.rankNum===2?"🥈 ":Ot.rankNum===3?"🥉 ":"",Fn=F.map(hs=>{var Va,kd;const Dn=(kd=(Va=Ot.studentMarksObj)==null?void 0:Va[String(hs._id)])==null?void 0:kd.marksObtained,Qs=Dn!==null&&typeof Dn=="object"?Dn.marksObtained??"":Dn??"",Aa=Qs!=null&&Qs!=="",cs=Number(hs.totalMarks)||100;return`<td class="col-subject" style="text-align: center; font-weight: 600; ${Aa&&Number(Qs)<cs*.33?"color: #dc2626; background: rgba(239, 68, 68, 0.05);":""}">${Aa?Qs:"—"}</td>`}).join("");sr+=`
         <tr style="background-color: ${bs};">
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px;">${Ga(nr+1)}</td>
-          <td>
-            <div style="font-weight: 700; font-size: 10px;">${nn}</div>
-            <div style="font-size: 8px; color: #475569;">আইডি: ${En} • সেকশন: ${Rn}</div>
+          <td class="col-serial" style="text-align: center; font-weight: bold;">${Ga(nr+1)}</td>
+          <td class="col-student">
+            <div class="student-name-text">${nn}</div>
+            <div class="student-meta-text">আইডি: ${En} • সেকশন: ${Rn}</div>
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 10px;">${Fr}</td>
+          <td class="col-roll" style="text-align: center; font-weight: bold;">${Fr}</td>
           ${Fn}
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: #0f766e;">
+          <td class="col-total" style="text-align: center; font-weight: bold; color: #0f766e;">
             ${Ot.subjectsCountWithMarks===0?"—":`${Ot.totalObtained} / ${Ot.totalFullMarks||100}`}
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px;">${ks}${Ot.rankText||"—"}</td>
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: ${Ot.overallGrade==="F"?"#dc2626":"#059669"};">
+          <td class="col-rank" style="text-align: center; font-weight: bold;">${ks}${Ot.rankText||"—"}</td>
+          <td class="col-grade" style="text-align: center; font-weight: bold; color: ${Ot.overallGrade==="F"?"#dc2626":"#059669"};">
             ${Ot.overallGrade}
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: ${Ot.overallGrade==="F"?"#dc2626":"#0f766e"};">
+          <td class="col-gpa" style="text-align: center; font-weight: bold; color: ${Ot.overallGrade==="F"?"#dc2626":"#0f766e"};">
             ${Ot.subjectsCountWithMarks===0?"—":Ot.gpa||"0.00"}
           </td>
-          <td style="text-align: center; font-size: 9.5px; font-weight: 600;">${Ot.subjectsCountWithMarks===0?"—":`${Ot.percentage}%`}</td>
-          <td style="text-align: center; font-size: 9px; font-weight: 600; color: ${Ot.subjectsCountWithMarks===0?"#64748b":Ot.isIncomplete?"#b45309":Ot.isPassed?"#059669":"#dc2626"};">
+          <td class="col-percent" style="text-align: center; font-weight: 600;">${Ot.subjectsCountWithMarks===0?"—":`${Ot.percentage}%`}</td>
+          <td class="col-status" style="text-align: center; font-weight: 600; color: ${Ot.subjectsCountWithMarks===0?"#64748b":Ot.isIncomplete?"#b45309":Ot.isPassed?"#059669":"#dc2626"};">
             ${Ot.subjectsCountWithMarks===0?"অনুপস্থিত":Ot.isIncomplete?"অসম্পূর্ণ":Ot.isPassed?"উত্তীর্ণ":"অনুত্তীর্ণ"}
           </td>
         </tr>
       `});const Rt=F.map(Ot=>`
-      <th style="text-align: center; font-size: 9px; min-width: 45px; white-space: nowrap;">
-        <div>${Ot.name}</div>
-        <div style="font-size: 8px; font-weight: normal; opacity: 0.9;">(${Ot.totalMarks||100})</div>
+      <th class="col-subject" style="text-align: center; line-height: 1.15;">
+        <div class="sub-name-box">${Ot.name}</div>
+        <div class="sub-mark-box">(${Ot.totalMarks||100})</div>
       </th>
     `).join(""),rr=`<!DOCTYPE html>
     <html lang="bn">
@@ -2657,11 +2657,13 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
       <meta charset="UTF-8">
       <title>${We} - মেধা তালিকা ও ফলাফল</title>
       ${ts(J)}
-      <style>
+      <style id="dynamic-page-style">
         @page { 
           size: A4 ${J}; 
           margin: ${st?"6mm 8mm":"8mm 10mm"} !important; 
         }
+      </style>
+      <style>
         @media print {
           .no-print { display: none !important; }
           html, body { 
@@ -2684,7 +2686,8 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
         }
         .print-page {
           position: relative;
-          width: 100%;
+          width: ${st?"281mm":"194mm"};
+          max-width: 100%;
           height: calc(${st?"210mm":"297mm"} - ${st?"12mm":"16mm"});
           box-sizing: border-box;
           display: flex;
@@ -2704,6 +2707,7 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
           width: 100%;
           position: relative;
           z-index: 10;
+          box-sizing: border-box;
         }
         .page-bottom {
           width: 100%;
@@ -2716,23 +2720,66 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
           width: 100%; 
           border-collapse: collapse; 
           margin-top: 4px; 
-          font-size: ${st?"9.5px":"9px"}; 
+          box-sizing: border-box;
+          table-layout: auto;
         }
         table.compact-table th, table.compact-table td { 
           border: 1px solid #cbd5e1; 
-          padding: ${st?"3px 4px":"2.5px 3px"}; 
-          text-align: left; 
+          box-sizing: border-box;
         }
         table.compact-table th { 
           background: #0f766e; 
           color: #fff; 
-          font-size: ${st?"9.5px":"9px"}; 
           font-weight: 700; 
           text-align: center; 
         }
+
+        /* Portrait Mode Rules (Auto-Fit & Zero Overflow) */
+        body.mode-portrait table.compact-table { font-size: 8px; }
+        body.mode-portrait table.compact-table th, 
+        body.mode-portrait table.compact-table td { padding: 2px 1.5px; }
+        body.mode-portrait .col-serial { width: 22px; text-align: center; font-size: 8px; }
+        body.mode-portrait .col-student { width: 92px; max-width: 95px; word-break: break-word; text-align: left; padding: 2px 3px; }
+        body.mode-portrait .student-name-text { font-weight: 700; font-size: 8.5px; line-height: 1.15; word-break: break-word; }
+        body.mode-portrait .student-meta-text { font-size: 7px; color: #475569; line-height: 1.1; word-break: break-all; }
+        body.mode-portrait .col-roll { width: 25px; text-align: center; font-size: 8.5px; }
+        body.mode-portrait .col-subject { font-size: 8px; padding: 2px 1px; }
+        body.mode-portrait .sub-name-box { max-width: 42px; margin: 0 auto; word-break: break-word; line-height: 1.1; font-size: 7.5px; }
+        body.mode-portrait .sub-mark-box { font-size: 7px; font-weight: normal; opacity: 0.9; }
+        body.mode-portrait .col-total { width: 48px; text-align: center; font-size: 8px; white-space: nowrap; }
+        body.mode-portrait .col-rank { width: 44px; text-align: center; font-size: 8px; white-space: nowrap; }
+        body.mode-portrait .col-grade { width: 25px; text-align: center; font-size: 8.5px; }
+        body.mode-portrait .col-gpa { width: 27px; text-align: center; font-size: 8.5px; }
+        body.mode-portrait .col-percent { width: 33px; text-align: center; font-size: 7.5px; white-space: nowrap; }
+        body.mode-portrait .col-status { width: 36px; text-align: center; font-size: 7.5px; white-space: nowrap; }
+        body.mode-portrait .header-arabic-img { height: 32px; max-width: 210px; }
+        body.mode-portrait .col-center .header-logo-center { width: 50px; height: 50px; }
+        body.mode-portrait .phone-badge-single { font-size: 8px; padding: 1.5px 6px; }
+
+        /* Landscape Mode Rules (Spacious layout) */
+        body.mode-landscape table.compact-table { font-size: 9.5px; }
+        body.mode-landscape table.compact-table th, 
+        body.mode-landscape table.compact-table td { padding: 3px 4px; }
+        body.mode-landscape .col-serial { width: 32px; text-align: center; font-size: 9px; }
+        body.mode-landscape .col-student { width: 140px; max-width: 160px; word-break: break-word; text-align: left; padding: 3px 6px; }
+        body.mode-landscape .student-name-text { font-weight: 700; font-size: 10px; line-height: 1.2; word-break: break-word; }
+        body.mode-landscape .student-meta-text { font-size: 8px; color: #475569; line-height: 1.15; }
+        body.mode-landscape .col-roll { width: 38px; text-align: center; font-size: 9.5px; }
+        body.mode-landscape .col-subject { font-size: 9px; padding: 3px 3px; }
+        body.mode-landscape .sub-name-box { max-width: 65px; margin: 0 auto; word-break: break-word; line-height: 1.15; font-size: 9px; }
+        body.mode-landscape .sub-mark-box { font-size: 8px; font-weight: normal; opacity: 0.9; }
+        body.mode-landscape .col-total { width: 70px; text-align: center; font-size: 9.5px; white-space: nowrap; }
+        body.mode-landscape .col-rank { width: 65px; text-align: center; font-size: 9.5px; white-space: nowrap; }
+        body.mode-landscape .col-grade { width: 36px; text-align: center; font-size: 9.5px; }
+        body.mode-landscape .col-gpa { width: 40px; text-align: center; font-size: 9.5px; }
+        body.mode-landscape .col-percent { width: 48px; text-align: center; font-size: 9px; white-space: nowrap; }
+        body.mode-landscape .col-status { width: 52px; text-align: center; font-size: 8.5px; white-space: nowrap; }
+        body.mode-landscape .header-arabic-img { height: 36px; max-width: 260px; }
+        body.mode-landscape .col-center .header-logo-center { width: 65px; height: 65px; }
+        body.mode-landscape .phone-badge-single { font-size: 9px; padding: 2px 9px; }
       </style>
     </head>
-    <body>
+    <body class="mode-${J}">
       <!-- Sticky No-Print Control Bar -->
       <div class="no-print" style="position: sticky; top: 0; z-index: 9999; background: #0f172a; color: #fff; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
         <div style="font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 8px;">
@@ -2759,16 +2806,16 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
         <table class="compact-table">
           <thead>
             <tr>
-              <th style="width: 32px; text-align: center;">ক্রম</th>
-              <th style="min-width: 140px; text-align: left;">শিক্ষার্থীর নাম ও আইডি</th>
-              <th style="width: 40px; text-align: center;">রোল</th>
+              <th class="col-serial">ক্রম</th>
+              <th class="col-student">শিক্ষার্থীর নাম ও আইডি</th>
+              <th class="col-roll">রোল</th>
               ${Rt}
-              <th style="width: 75px; text-align: center;">সর্বমোট মার্ক</th>
-              <th style="width: 75px; text-align: center;">স্থান</th>
-              <th style="width: 40px; text-align: center;">গ্রেড</th>
-              <th style="width: 45px; text-align: center;">জিপিএ</th>
-              <th style="width: 55px; text-align: center;">শতকরা</th>
-              <th style="width: 60px; text-align: center;">স্ট্যাটাস</th>
+              <th class="col-total">সর্বমোট মার্ক</th>
+              <th class="col-rank">স্থান</th>
+              <th class="col-grade">গ্রেড</th>
+              <th class="col-gpa">জিপিএ</th>
+              <th class="col-percent">শতকরা</th>
+              <th class="col-status">স্ট্যাটাস</th>
             </tr>
           </thead>
           <tbody>
@@ -2790,6 +2837,17 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
           currentOrientation = orient;
           document.getElementById('btn-land').style.background = (orient === 'landscape') ? '#0f766e' : '#334155';
           document.getElementById('btn-port').style.background = (orient === 'portrait') ? '#0f766e' : '#334155';
+          
+          let pageStyleTag = document.getElementById('dynamic-page-style');
+          if (!pageStyleTag) {
+            pageStyleTag = document.createElement('style');
+            pageStyleTag.id = 'dynamic-page-style';
+            document.head.appendChild(pageStyleTag);
+          }
+          const isLand = (orient === 'landscape');
+          pageStyleTag.textContent = '@page { size: A4 ' + orient + '; margin: ' + (isLand ? '6mm 8mm' : '8mm 10mm') + ' !important; }';
+          document.body.className = 'mode-' + orient;
+          
           paginateAndRender(orient);
         }
 
@@ -2827,6 +2885,7 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
             const pageTotalMm = isLand ? 210 : 297;
             const marginTotalMm = isLand ? 12 : 16;
             const pageUsablePx = (pageTotalMm - marginTotalMm) * pxPerMm;
+            const pagePrintableWidthPx = (isLand ? 281 : 194) * pxPerMm;
 
             const headerHeight = rawHeader ? rawHeader.getBoundingClientRect().height : 0;
             const theadHeight = rawThead ? rawThead.getBoundingClientRect().height : 32;
@@ -2864,6 +2923,7 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
 
               const pageEl = document.createElement('div');
               pageEl.className = 'print-page' + (isLastPage ? ' last-page' : '');
+              pageEl.style.width = isLand ? '281mm' : '194mm';
               pageEl.style.height = 'calc(' + (isLand ? '210mm' : '297mm') + ' - ' + (isLand ? '12mm' : '16mm') + ')';
 
               const topWrap = document.createElement('div');
@@ -2893,6 +2953,16 @@ ${(wn=pe[tt])==null?void 0:wn.punchTimes.map((ha,Ua)=>`${Ua+1}. ${ha}`).join(`
               }
 
               container.appendChild(pageEl);
+
+              // Mathematical auto-scale safeguard against any overflow
+              const actualTableWidth = tbl.scrollWidth || tbl.offsetWidth;
+              const usableWidth = pageEl.clientWidth || pagePrintableWidthPx;
+              if (actualTableWidth > usableWidth + 1) {
+                const scale = (usableWidth / actualTableWidth);
+                topWrap.style.transform = 'scale(' + scale.toFixed(4) + ')';
+                topWrap.style.transformOrigin = 'top left';
+                topWrap.style.width = (100 / scale).toFixed(2) + '%';
+              }
             });
           } catch (err) {
             console.error('Pagination error:', err);

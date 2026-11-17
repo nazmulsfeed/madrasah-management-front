@@ -2122,30 +2122,30 @@ export default function ExamPage({ initialViewMode }) {
         const hasScore = score !== null && score !== undefined && score !== '';
         const subFullMarks = Number(s.totalMarks) || 100;
         const isSubFail = hasScore && Number(score) < subFullMarks * 0.33;
-        return `<td style="text-align: center; font-weight: 600; font-size: 9.5px; ${isSubFail ? 'color: #dc2626; background: rgba(239, 68, 68, 0.05);' : ''}">${hasScore ? score : '—'}</td>`;
+        return `<td class="col-subject" style="text-align: center; font-weight: 600; ${isSubFail ? 'color: #dc2626; background: rgba(239, 68, 68, 0.05);' : ''}">${hasScore ? score : '—'}</td>`;
       }).join('');
 
       rowsHtml += `
         <tr style="background-color: ${rankBg};">
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px;">${toBnNumber(index + 1)}</td>
-          <td>
-            <div style="font-weight: 700; font-size: 10px;">${name}</div>
-            <div style="font-size: 8px; color: #475569;">আইডি: ${studentId} • সেকশন: ${sectionStr}</div>
+          <td class="col-serial" style="text-align: center; font-weight: bold;">${toBnNumber(index + 1)}</td>
+          <td class="col-student">
+            <div class="student-name-text">${name}</div>
+            <div class="student-meta-text">আইডি: ${studentId} • সেকশন: ${sectionStr}</div>
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 10px;">${roll}</td>
+          <td class="col-roll" style="text-align: center; font-weight: bold;">${roll}</td>
           ${subjectCellsHtml}
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: #0f766e;">
+          <td class="col-total" style="text-align: center; font-weight: bold; color: #0f766e;">
             ${item.subjectsCountWithMarks === 0 ? '—' : `${item.totalObtained} / ${item.totalFullMarks || 100}`}
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px;">${rankBadge}${item.rankText || '—'}</td>
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
+          <td class="col-rank" style="text-align: center; font-weight: bold;">${rankBadge}${item.rankText || '—'}</td>
+          <td class="col-grade" style="text-align: center; font-weight: bold; color: ${item.overallGrade === 'F' ? '#dc2626' : '#059669'};">
             ${item.overallGrade}
           </td>
-          <td style="text-align: center; font-weight: bold; font-size: 9.5px; color: ${item.overallGrade === 'F' ? '#dc2626' : '#0f766e'};">
+          <td class="col-gpa" style="text-align: center; font-weight: bold; color: ${item.overallGrade === 'F' ? '#dc2626' : '#0f766e'};">
             ${item.subjectsCountWithMarks === 0 ? '—' : (item.gpa || '0.00')}
           </td>
-          <td style="text-align: center; font-size: 9.5px; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
-          <td style="text-align: center; font-size: 9px; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
+          <td class="col-percent" style="text-align: center; font-weight: 600;">${item.subjectsCountWithMarks === 0 ? '—' : `${item.percentage}%`}</td>
+          <td class="col-status" style="text-align: center; font-weight: 600; color: ${item.subjectsCountWithMarks === 0 ? '#64748b' : (item.isIncomplete ? '#b45309' : (item.isPassed ? '#059669' : '#dc2626'))};">
             ${item.subjectsCountWithMarks === 0 ? 'অনুপস্থিত' : (item.isIncomplete ? 'অসম্পূর্ণ' : (item.isPassed ? 'উত্তীর্ণ' : 'অনুত্তীর্ণ'))}
           </td>
         </tr>
@@ -2153,9 +2153,9 @@ export default function ExamPage({ initialViewMode }) {
     });
 
     const subjectHeadersHtml = meritSubjectsList.map(s => `
-      <th style="text-align: center; font-size: 9px; min-width: 45px; white-space: nowrap;">
-        <div>${s.name}</div>
-        <div style="font-size: 8px; font-weight: normal; opacity: 0.9;">(${s.totalMarks || 100})</div>
+      <th class="col-subject" style="text-align: center; line-height: 1.15;">
+        <div class="sub-name-box">${s.name}</div>
+        <div class="sub-mark-box">(${s.totalMarks || 100})</div>
       </th>
     `).join('');
 
@@ -2165,11 +2165,13 @@ export default function ExamPage({ initialViewMode }) {
       <meta charset="UTF-8">
       <title>${examTitle} - মেধা তালিকা ও ফলাফল</title>
       ${getMadrasahPrintStyles(targetOrientation)}
-      <style>
+      <style id="dynamic-page-style">
         @page { 
           size: A4 ${targetOrientation}; 
           margin: ${isLandscape ? '6mm 8mm' : '8mm 10mm'} !important; 
         }
+      </style>
+      <style>
         @media print {
           .no-print { display: none !important; }
           html, body { 
@@ -2192,7 +2194,8 @@ export default function ExamPage({ initialViewMode }) {
         }
         .print-page {
           position: relative;
-          width: 100%;
+          width: ${isLandscape ? '281mm' : '194mm'};
+          max-width: 100%;
           height: calc(${isLandscape ? '210mm' : '297mm'} - ${isLandscape ? '12mm' : '16mm'});
           box-sizing: border-box;
           display: flex;
@@ -2212,6 +2215,7 @@ export default function ExamPage({ initialViewMode }) {
           width: 100%;
           position: relative;
           z-index: 10;
+          box-sizing: border-box;
         }
         .page-bottom {
           width: 100%;
@@ -2224,23 +2228,66 @@ export default function ExamPage({ initialViewMode }) {
           width: 100%; 
           border-collapse: collapse; 
           margin-top: 4px; 
-          font-size: ${isLandscape ? '9.5px' : '9px'}; 
+          box-sizing: border-box;
+          table-layout: auto;
         }
         table.compact-table th, table.compact-table td { 
           border: 1px solid #cbd5e1; 
-          padding: ${isLandscape ? '3px 4px' : '2.5px 3px'}; 
-          text-align: left; 
+          box-sizing: border-box;
         }
         table.compact-table th { 
           background: #0f766e; 
           color: #fff; 
-          font-size: ${isLandscape ? '9.5px' : '9px'}; 
           font-weight: 700; 
           text-align: center; 
         }
+
+        /* Portrait Mode Rules (Auto-Fit & Zero Overflow) */
+        body.mode-portrait table.compact-table { font-size: 8px; }
+        body.mode-portrait table.compact-table th, 
+        body.mode-portrait table.compact-table td { padding: 2px 1.5px; }
+        body.mode-portrait .col-serial { width: 22px; text-align: center; font-size: 8px; }
+        body.mode-portrait .col-student { width: 92px; max-width: 95px; word-break: break-word; text-align: left; padding: 2px 3px; }
+        body.mode-portrait .student-name-text { font-weight: 700; font-size: 8.5px; line-height: 1.15; word-break: break-word; }
+        body.mode-portrait .student-meta-text { font-size: 7px; color: #475569; line-height: 1.1; word-break: break-all; }
+        body.mode-portrait .col-roll { width: 25px; text-align: center; font-size: 8.5px; }
+        body.mode-portrait .col-subject { font-size: 8px; padding: 2px 1px; }
+        body.mode-portrait .sub-name-box { max-width: 42px; margin: 0 auto; word-break: break-word; line-height: 1.1; font-size: 7.5px; }
+        body.mode-portrait .sub-mark-box { font-size: 7px; font-weight: normal; opacity: 0.9; }
+        body.mode-portrait .col-total { width: 48px; text-align: center; font-size: 8px; white-space: nowrap; }
+        body.mode-portrait .col-rank { width: 44px; text-align: center; font-size: 8px; white-space: nowrap; }
+        body.mode-portrait .col-grade { width: 25px; text-align: center; font-size: 8.5px; }
+        body.mode-portrait .col-gpa { width: 27px; text-align: center; font-size: 8.5px; }
+        body.mode-portrait .col-percent { width: 33px; text-align: center; font-size: 7.5px; white-space: nowrap; }
+        body.mode-portrait .col-status { width: 36px; text-align: center; font-size: 7.5px; white-space: nowrap; }
+        body.mode-portrait .header-arabic-img { height: 32px; max-width: 210px; }
+        body.mode-portrait .col-center .header-logo-center { width: 50px; height: 50px; }
+        body.mode-portrait .phone-badge-single { font-size: 8px; padding: 1.5px 6px; }
+
+        /* Landscape Mode Rules (Spacious layout) */
+        body.mode-landscape table.compact-table { font-size: 9.5px; }
+        body.mode-landscape table.compact-table th, 
+        body.mode-landscape table.compact-table td { padding: 3px 4px; }
+        body.mode-landscape .col-serial { width: 32px; text-align: center; font-size: 9px; }
+        body.mode-landscape .col-student { width: 140px; max-width: 160px; word-break: break-word; text-align: left; padding: 3px 6px; }
+        body.mode-landscape .student-name-text { font-weight: 700; font-size: 10px; line-height: 1.2; word-break: break-word; }
+        body.mode-landscape .student-meta-text { font-size: 8px; color: #475569; line-height: 1.15; }
+        body.mode-landscape .col-roll { width: 38px; text-align: center; font-size: 9.5px; }
+        body.mode-landscape .col-subject { font-size: 9px; padding: 3px 3px; }
+        body.mode-landscape .sub-name-box { max-width: 65px; margin: 0 auto; word-break: break-word; line-height: 1.15; font-size: 9px; }
+        body.mode-landscape .sub-mark-box { font-size: 8px; font-weight: normal; opacity: 0.9; }
+        body.mode-landscape .col-total { width: 70px; text-align: center; font-size: 9.5px; white-space: nowrap; }
+        body.mode-landscape .col-rank { width: 65px; text-align: center; font-size: 9.5px; white-space: nowrap; }
+        body.mode-landscape .col-grade { width: 36px; text-align: center; font-size: 9.5px; }
+        body.mode-landscape .col-gpa { width: 40px; text-align: center; font-size: 9.5px; }
+        body.mode-landscape .col-percent { width: 48px; text-align: center; font-size: 9px; white-space: nowrap; }
+        body.mode-landscape .col-status { width: 52px; text-align: center; font-size: 8.5px; white-space: nowrap; }
+        body.mode-landscape .header-arabic-img { height: 36px; max-width: 260px; }
+        body.mode-landscape .col-center .header-logo-center { width: 65px; height: 65px; }
+        body.mode-landscape .phone-badge-single { font-size: 9px; padding: 2px 9px; }
       </style>
     </head>
-    <body>
+    <body class="mode-${targetOrientation}">
       <!-- Sticky No-Print Control Bar -->
       <div class="no-print" style="position: sticky; top: 0; z-index: 9999; background: #0f172a; color: #fff; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
         <div style="font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 8px;">
@@ -2272,16 +2319,16 @@ export default function ExamPage({ initialViewMode }) {
         <table class="compact-table">
           <thead>
             <tr>
-              <th style="width: 32px; text-align: center;">ক্রম</th>
-              <th style="min-width: 140px; text-align: left;">শিক্ষার্থীর নাম ও আইডি</th>
-              <th style="width: 40px; text-align: center;">রোল</th>
+              <th class="col-serial">ক্রম</th>
+              <th class="col-student">শিক্ষার্থীর নাম ও আইডি</th>
+              <th class="col-roll">রোল</th>
               ${subjectHeadersHtml}
-              <th style="width: 75px; text-align: center;">সর্বমোট মার্ক</th>
-              <th style="width: 75px; text-align: center;">স্থান</th>
-              <th style="width: 40px; text-align: center;">গ্রেড</th>
-              <th style="width: 45px; text-align: center;">জিপিএ</th>
-              <th style="width: 55px; text-align: center;">শতকরা</th>
-              <th style="width: 60px; text-align: center;">স্ট্যাটাস</th>
+              <th class="col-total">সর্বমোট মার্ক</th>
+              <th class="col-rank">স্থান</th>
+              <th class="col-grade">গ্রেড</th>
+              <th class="col-gpa">জিপিএ</th>
+              <th class="col-percent">শতকরা</th>
+              <th class="col-status">স্ট্যাটাস</th>
             </tr>
           </thead>
           <tbody>
@@ -2303,6 +2350,17 @@ export default function ExamPage({ initialViewMode }) {
           currentOrientation = orient;
           document.getElementById('btn-land').style.background = (orient === 'landscape') ? '#0f766e' : '#334155';
           document.getElementById('btn-port').style.background = (orient === 'portrait') ? '#0f766e' : '#334155';
+          
+          let pageStyleTag = document.getElementById('dynamic-page-style');
+          if (!pageStyleTag) {
+            pageStyleTag = document.createElement('style');
+            pageStyleTag.id = 'dynamic-page-style';
+            document.head.appendChild(pageStyleTag);
+          }
+          const isLand = (orient === 'landscape');
+          pageStyleTag.textContent = '@page { size: A4 ' + orient + '; margin: ' + (isLand ? '6mm 8mm' : '8mm 10mm') + ' !important; }';
+          document.body.className = 'mode-' + orient;
+          
           paginateAndRender(orient);
         }
 
@@ -2340,6 +2398,7 @@ export default function ExamPage({ initialViewMode }) {
             const pageTotalMm = isLand ? 210 : 297;
             const marginTotalMm = isLand ? 12 : 16;
             const pageUsablePx = (pageTotalMm - marginTotalMm) * pxPerMm;
+            const pagePrintableWidthPx = (isLand ? 281 : 194) * pxPerMm;
 
             const headerHeight = rawHeader ? rawHeader.getBoundingClientRect().height : 0;
             const theadHeight = rawThead ? rawThead.getBoundingClientRect().height : 32;
@@ -2377,6 +2436,7 @@ export default function ExamPage({ initialViewMode }) {
 
               const pageEl = document.createElement('div');
               pageEl.className = 'print-page' + (isLastPage ? ' last-page' : '');
+              pageEl.style.width = isLand ? '281mm' : '194mm';
               pageEl.style.height = 'calc(' + (isLand ? '210mm' : '297mm') + ' - ' + (isLand ? '12mm' : '16mm') + ')';
 
               const topWrap = document.createElement('div');
@@ -2406,6 +2466,16 @@ export default function ExamPage({ initialViewMode }) {
               }
 
               container.appendChild(pageEl);
+
+              // Mathematical auto-scale safeguard against any overflow
+              const actualTableWidth = tbl.scrollWidth || tbl.offsetWidth;
+              const usableWidth = pageEl.clientWidth || pagePrintableWidthPx;
+              if (actualTableWidth > usableWidth + 1) {
+                const scale = (usableWidth / actualTableWidth);
+                topWrap.style.transform = 'scale(' + scale.toFixed(4) + ')';
+                topWrap.style.transformOrigin = 'top left';
+                topWrap.style.width = (100 / scale).toFixed(2) + '%';
+              }
             });
           } catch (err) {
             console.error('Pagination error:', err);

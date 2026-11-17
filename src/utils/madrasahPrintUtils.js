@@ -140,13 +140,13 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: start;
-      gap: 12px;
+      gap: ${orientation === 'landscape' ? '12px' : '8px'};
       width: 100%;
     }
 
     .header-arabic-img {
-      height: ${orientation === 'landscape' ? '36px' : '44px'};
-      max-width: ${orientation === 'landscape' ? '260px' : '320px'};
+      height: ${orientation === 'landscape' ? '36px' : '32px'};
+      max-width: ${orientation === 'landscape' ? '260px' : '210px'};
       width: auto;
       object-fit: contain;
       display: block;
@@ -160,14 +160,14 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
       border: 1px solid #86efac;
       border-bottom: 2.5px solid #059669;
       border-radius: 5px;
-      padding: 1.5px 8px;
+      padding: 1.5px ${orientation === 'landscape' ? '8px' : '6px'};
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       line-height: 1.25;
       white-space: nowrap;
     }
     .slogan-text-line {
       font-family: 'Noto Serif Bengali', serif;
-      font-size: ${orientation === 'landscape' ? '8.5px' : '9.5px'};
+      font-size: ${orientation === 'landscape' ? '8.5px' : '8px'};
       font-weight: 700;
       color: #065f46;
       white-space: nowrap;
@@ -182,25 +182,25 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
     }
     .col-left .inst-title {
       font-family: 'Noto Serif Bengali', serif;
-      font-size: ${orientation === 'landscape' ? '15px' : '17px'};
+      font-size: ${orientation === 'landscape' ? '15px' : '14px'};
       font-weight: 800;
       color: #020617;
       margin: 0;
       padding: 0;
-      height: 24px;
-      line-height: 24px;
+      height: ${orientation === 'landscape' ? '24px' : '21px'};
+      line-height: ${orientation === 'landscape' ? '24px' : '21px'};
       white-space: nowrap;
       letter-spacing: -0.2px;
     }
     .col-left .inst-sub,
     .col-left .inst-city {
-      font-size: ${orientation === 'landscape' ? '10px' : '11px'};
+      font-size: ${orientation === 'landscape' ? '10px' : '9px'};
       color: #1e293b;
       font-weight: 600;
       margin: 0;
       padding: 0;
-      height: 17px;
-      line-height: 17px;
+      height: ${orientation === 'landscape' ? '17px' : '15px'};
+      line-height: ${orientation === 'landscape' ? '17px' : '15px'};
       white-space: nowrap;
     }
 
@@ -211,13 +211,13 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding: 0 4px;
+      padding: 0 2px;
     }
     .col-center .header-logo-center {
-      width: ${orientation === 'landscape' ? '68px' : '78px'};
-      height: ${orientation === 'landscape' ? '68px' : '78px'};
+      width: ${orientation === 'landscape' ? '65px' : '50px'};
+      height: ${orientation === 'landscape' ? '65px' : '50px'};
       object-fit: contain;
-      margin: 0 auto 4px auto;
+      margin: 0 auto 3px auto;
       display: block;
       border: none !important;
       outline: none !important;
@@ -229,13 +229,13 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
       background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 45%, #e2e8f0 100%);
       border: 1.5px solid #475569;
       box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-      border-radius: 8px;
-      padding: 2px 9px;
+      border-radius: ${orientation === 'landscape' ? '8px' : '6px'};
+      padding: ${orientation === 'landscape' ? '2px 9px' : '1.5px 6px'};
       display: inline-flex;
       align-items: center;
       justify-content: center;
       white-space: nowrap;
-      font-size: ${orientation === 'landscape' ? '9px' : '10px'};
+      font-size: ${orientation === 'landscape' ? '9px' : '8px'};
       font-weight: 700;
       color: #0f172a;
       line-height: 1.35;
@@ -251,41 +251,41 @@ export function getMadrasahPrintStyles(orientation = 'portrait', { wrap = true }
     }
     .col-right .inst-title-en {
       font-family: 'Times New Roman', serif;
-      font-size: ${orientation === 'landscape' ? '14px' : '16px'};
+      font-size: ${orientation === 'landscape' ? '14px' : '13px'};
       font-weight: 800;
       color: #020617;
       margin: 0;
       padding: 0;
-      height: 24px;
-      line-height: 24px;
+      height: ${orientation === 'landscape' ? '24px' : '21px'};
+      line-height: ${orientation === 'landscape' ? '24px' : '21px'};
       white-space: nowrap;
       letter-spacing: 0.2px;
     }
     .col-right .inst-sub-en,
     .col-right .inst-city-en {
-      font-size: ${orientation === 'landscape' ? '10px' : '11px'};
+      font-size: ${orientation === 'landscape' ? '10px' : '9px'};
       color: #1e293b;
       font-weight: 600;
       margin: 0;
       padding: 0;
-      height: 17px;
-      line-height: 17px;
+      height: ${orientation === 'landscape' ? '17px' : '15px'};
+      line-height: ${orientation === 'landscape' ? '17px' : '15px'};
       white-space: nowrap;
     }
 
     /* Shared Gap & Board Lines for Identical Baseline Alignment */
     .inst-line-spacer {
-      height: 5px;
+      height: ${orientation === 'landscape' ? '5px' : '3px'};
       width: 100%;
     }
     .inst-board-line {
-      font-size: ${orientation === 'landscape' ? '9px' : '10px'};
+      font-size: ${orientation === 'landscape' ? '9px' : '8.5px'};
       color: #334155;
       font-weight: 500;
       margin: 0;
       padding: 0;
-      height: 16px;
-      line-height: 16px;
+      height: ${orientation === 'landscape' ? '16px' : '14px'};
+      line-height: ${orientation === 'landscape' ? '16px' : '14px'};
       white-space: nowrap;
     }
 
