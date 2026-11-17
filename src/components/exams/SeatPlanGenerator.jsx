@@ -32,6 +32,12 @@ const logoFallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2
 export default function SeatPlanGenerator({ selectedExam = null, classes = [], user = null }) {
   const madrasahInfo = useMemo(() => getMadrasahInfo(user), [user]);
 
+  const safeClasses = useMemo(() => {
+    if (Array.isArray(classes)) return classes;
+    if (classes && Array.isArray(classes.classes)) return classes.classes;
+    return [];
+  }, [classes]);
+
   // Exams and classes states
   const [examsList, setExamsList] = useState([]);
   const [activeExamId, setActiveExamId] = useState(selectedExam?._id || '');
@@ -79,21 +85,21 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
     const fetchExams = async () => {
       try {
         const res = await api.get('/exams', { params: { limit: 100 } });
-        if (res.data?.success) {
-          const list = res.data.data?.exams || [];
-          setExamsList(list);
-          if (!activeExamId && list.length > 0) {
-            setActiveExamId(list[0]._id);
-            setCustomExamTitle(list[0].name);
-            if (list[0].academicYear) setAcademicYear(list[0].academicYear);
-            if (list[0].classLevel) {
-              const cid = list[0].classLevel?._id || list[0].classLevel;
-              setSelectedClassId(cid);
-            }
+        const raw = res.data?.data?.exams || res.data?.exams || res.data?.data || [];
+        const list = Array.isArray(raw) ? raw : [];
+        setExamsList(list);
+        if (!activeExamId && list.length > 0) {
+          setActiveExamId(list[0]._id);
+          setCustomExamTitle(list[0].name);
+          if (list[0].academicYear) setAcademicYear(list[0].academicYear);
+          if (list[0].classLevel) {
+            const cid = list[0].classLevel?._id || list[0].classLevel;
+            setSelectedClassId(cid);
           }
         }
       } catch (err) {
         console.error('Failed to fetch exams for seat plan:', err);
+        setExamsList([]);
       }
     };
     fetchExams();
@@ -101,7 +107,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
 
   // Update exam details when activeExamId changes
   useEffect(() => {
-    if (activeExamId && examsList.length > 0) {
+    if (activeExamId && Array.isArray(examsList) && examsList.length > 0) {
       const found = examsList.find(e => e._id === activeExamId);
       if (found) {
         setCustomExamTitle(found.name || 'বার্ষিক পরীক্ষা - ২০২৬');
@@ -123,11 +129,11 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
     const fetchSections = async () => {
       try {
         const res = await api.get(`/students/sections?classLevel=${selectedClassId}`);
-        if (res.data?.success) {
-          setSectionsList(res.data.data || []);
-        }
+        const raw = res.data?.data?.sections || res.data?.sections || res.data?.data || [];
+        setSectionsList(Array.isArray(raw) ? raw : []);
       } catch (e) {
         console.warn('Failed to load sections:', e);
+        setSectionsList([]);
       }
     };
     fetchSections();
@@ -142,40 +148,40 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
       if (selectedSection && selectedSection !== 'all') params.section = selectedSection;
 
       const res = await api.get('/students', { params });
-      if (res.data?.success) {
-        const raw = res.data.data;
-        let list = Array.isArray(raw) ? raw : (raw?.students || []);
-        
-        // Filter by department if chosen
-        if (selectedDepartment && selectedDepartment !== 'all') {
-          list = list.filter(st => {
-            const dept = st.department || st.currentEnrollment?.department || '';
-            return dept.toLowerCase().includes(selectedDepartment.toLowerCase());
-          });
-        }
-
-        // Sort by Roll
-        list.sort((a, b) => {
-          const rA = getNumericRoll(a.currentEnrollment?.rollNumber || a.rollNumber || a.roll);
-          const rB = getNumericRoll(b.currentEnrollment?.rollNumber || b.rollNumber || b.roll);
-          return rA - rB;
+      const raw = res.data?.data?.students || res.data?.students || res.data?.data || [];
+      let list = Array.isArray(raw) ? raw : [];
+      
+      // Filter by department if chosen
+      if (selectedDepartment && selectedDepartment !== 'all') {
+        list = list.filter(st => {
+          const dept = st.department || st.currentEnrollment?.department || '';
+          return dept.toLowerCase().includes(selectedDepartment.toLowerCase());
         });
-
-        setAllStudents(list);
-
-        // Pre-select all students
-        const allIds = new Set(list.map(s => s._id));
-        setSelectedStudentIds(allIds);
-
-        // Initialize default rooms
-        const initRooms = {};
-        list.forEach((st) => {
-          initRooms[st._id] = commonRoomInput || '১০১';
-        });
-        setStudentRooms(initRooms);
       }
+
+      // Sort by Roll
+      list.sort((a, b) => {
+        const rA = getNumericRoll(a.currentEnrollment?.rollNumber || a.rollNumber || a.roll);
+        const rB = getNumericRoll(b.currentEnrollment?.rollNumber || b.rollNumber || b.roll);
+        return rA - rB;
+      });
+
+      setAllStudents(list);
+
+      // Pre-select all students
+      const allIds = new Set(list.map(s => s._id));
+      setSelectedStudentIds(allIds);
+
+      // Initialize default rooms
+      const initRooms = {};
+      list.forEach((st) => {
+        initRooms[st._id] = commonRoomInput || '১০১';
+      });
+      setStudentRooms(initRooms);
     } catch (err) {
       console.error('Failed to load students for seat plan:', err);
+      setAllStudents([]);
+      setSelectedStudentIds(new Set());
     } finally {
       setLoadingStudents(false);
     }
@@ -380,7 +386,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
               onChange={(e) => setActiveExamId(e.target.value)}
             >
               <option value="">-- পরীক্ষা নির্বাচন করুন --</option>
-              {examsList.map(ex => (
+              {(Array.isArray(examsList) ? examsList : []).map(ex => (
                 <option key={ex._id} value={ex._id}>
                   {ex.name} ({ex.academicYear || '২০২৬'})
                 </option>
@@ -396,7 +402,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
               onChange={(e) => setSelectedClassId(e.target.value)}
             >
               <option value="">-- সকল শ্রেণি --</option>
-              {classes.map(cl => (
+              {(Array.isArray(safeClasses) ? safeClasses : []).map(cl => (
                 <option key={cl._id} value={cl._id}>{cl.name}</option>
               ))}
             </select>
@@ -410,7 +416,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
               onChange={(e) => setSelectedSection(e.target.value)}
             >
               <option value="all">সকল শাখা</option>
-              {sectionsList.map(sec => (
+              {(Array.isArray(sectionsList) ? sectionsList : []).map(sec => (
                 <option key={sec._id || sec.name} value={sec._id || sec.name}>
                   {sec.name}
                 </option>
@@ -696,7 +702,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
         </div>
       ) : (
         <div className={`seat-plan-print-container ${selectedTheme}`}>
-          {printPages.map((pageStudents, pageIndex) => (
+          {(Array.isArray(printPages) ? printPages : []).map((pageStudents, pageIndex) => (
             <div 
               key={`page-${pageIndex}`} 
               className={`seat-plan-a4-sheet ${showCutLines ? 'has-cutlines' : ''}`}
@@ -708,7 +714,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
                 height: '284mm'
               }}
             >
-              {pageStudents.map((st) => {
+              {(Array.isArray(pageStudents) ? pageStudents : []).map((st) => {
                 const stName = st.fullName || st.user?.fullName || `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim() || st.name || '—';
                 const roll = st.currentEnrollment?.rollNumber || st.rollNumber || st.roll || '—';
                 const id = st.studentId || st.admissionNumber || st._id?.substring(0, 6) || '—';

@@ -60,6 +60,18 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     }
   }, [exams, selectedExamId]);
 
+  const safeClasses = useMemo(() => {
+    if (Array.isArray(classes)) return classes;
+    if (classes && Array.isArray(classes.classes)) return classes.classes;
+    return [];
+  }, [classes]);
+
+  const safeExams = useMemo(() => {
+    if (Array.isArray(exams)) return exams;
+    if (exams && Array.isArray(exams.exams)) return exams.exams;
+    return [];
+  }, [exams]);
+
   // Load sections when class changes
   useEffect(() => {
     if (!selectedClassId) {
@@ -70,7 +82,8 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     const fetchSections = async () => {
       try {
         const res = await api.get(`/students/sections?classLevel=${selectedClassId}`);
-        const data = res.data?.sections || res.data || [];
+        const raw = res.data?.data?.sections || res.data?.sections || res.data?.data || [];
+        const data = Array.isArray(raw) ? raw : [];
         setSections(data);
         if (data.length > 0) {
           setSelectedSection(data[0].name || data[0] || '');
@@ -783,7 +796,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               onChange={(e) => setSelectedExamId(e.target.value)}
               className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 p-2"
             >
-              {exams.map(e => (
+              {(Array.isArray(safeExams) ? safeExams : []).map(e => (
                 <option key={e._id || e.id} value={e._id || e.id}>
                   {e.name || e.title}
                 </option>
@@ -801,7 +814,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 p-2"
             >
               <option value="">শ্রেণি নির্বাচন করুন</option>
-              {classes.map(c => (
+              {(Array.isArray(safeClasses) ? safeClasses : []).map(c => (
                 <option key={c._id || c.id} value={c._id || c.id}>
                   {c.name || c.banglaName || c.code}
                 </option>
@@ -819,7 +832,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 p-2"
             >
               <option value="all">সকল শাখা</option>
-              {sections.map(s => (
+              {(Array.isArray(sections) ? sections : []).map(s => (
                 <option key={s.name || s} value={s.name || s}>
                   {s.name || s}
                 </option>
@@ -1015,7 +1028,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {filteredStudents.map((s) => {
+                {(Array.isArray(filteredStudents) ? filteredStudents : []).map((s) => {
                   const sid = s._id || s.id;
                   const isChecked = selectedStudentIds.has(sid);
                   const roll = s.currentEnrollment?.rollNumber || s.rollNumber || s.roll || '—';
