@@ -32,6 +32,18 @@ import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, formatDateDDMMYYYY } fr
  */
 const boyAvatarSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120"><rect width="100" height="120" fill="%23f1f5f9"/><circle cx="50" cy="50" r="24" fill="%23fed7aa"/><path d="M26,50 C26,28 74,28 74,50 Z" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="2"/><ellipse cx="50" cy="30" rx="20" ry="7" fill="%23ffffff" stroke="%23cbd5e1" stroke-width="1.5"/><circle cx="42" cy="52" r="2.5" fill="%23334155"/><circle cx="58" cy="52" r="2.5" fill="%23334155"/><path d="M47,60 Q50,64 53,60" fill="none" stroke="%23e11d48" stroke-width="1.5" stroke-linecap="round"/><path d="M15,115 C15,85 85,85 85,115 Z" fill="%23059669"/></svg>`;
 
+/**
+ * Safe String Extraction Helper: Guarantees that no object is ever rendered as a React child
+ */
+const getSafeStr = (val, fallback = '—') => {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'object') {
+    return val.name || val.title || val.banglaName || val.code || val._id || fallback;
+  }
+  const str = String(val).trim();
+  return str || fallback;
+};
+
 export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const { user } = useAuthStore();
   const madrasah = useMemo(() => getMadrasahInfo(user), [user]);
@@ -72,7 +84,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const [activeTab, setActiveTab] = useState('preview');
 
   // Preview Zoom & Theme
-  const [previewZoom, setPreviewZoom] = useState(100); // 75, 85, 100, 115
+  const [previewZoom, setPreviewZoom] = useState(100);
   const [langMode, setLangMode] = useState('en'); // 'en' | 'bn' | 'bi'
   const [cardsPerPage, setCardsPerPage] = useState(2); // 1, 2, 4, 6
   const [customCardsInput, setCustomCardsInput] = useState('');
@@ -208,9 +220,9 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     if (!searchQuery.trim()) return students;
     const q = searchQuery.toLowerCase();
     return students.filter(s => {
-      const name = (s.user?.name || s.name || '').toLowerCase();
-      const roll = (s.currentEnrollment?.rollNumber || s.rollNumber || s.roll || '').toString();
-      const sid = (s.studentId || '').toLowerCase();
+      const name = getSafeStr(s.user?.name || s.name, '').toLowerCase();
+      const roll = getSafeStr(s.currentEnrollment?.rollNumber || s.rollNumber || s.roll, '').toLowerCase();
+      const sid = getSafeStr(s.studentId || s.admissionNumber, '').toLowerCase();
       return name.includes(q) || roll.includes(q) || sid.includes(q);
     });
   }, [students, searchQuery]);
@@ -277,7 +289,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1 flex items-center gap-2">
-                <span>{madrasah.madrasahName}</span>
+                <span>{getSafeStr(madrasah.madrasahName, 'আন্-নূর ইসলামিক একাডেমি')}</span>
                 <span>•</span>
                 <span>স্বয়ংক্রিয় এ৪ ব্যাচ প্রিন্ট ও লেআউট স্কেলিং</span>
               </p>
@@ -366,11 +378,15 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               onChange={(e) => setSelectedExamId(e.target.value)}
               className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-750 text-slate-800 dark:text-slate-100 p-2.5 focus:ring-2 focus:ring-sky-500 transition-all"
             >
-              {safeExams.map(e => (
-                <option key={e._id || e.id} value={e._id || e.id}>
-                  {e.name || e.title}
-                </option>
-              ))}
+              {safeExams.map(e => {
+                const eid = e._id || e.id || '';
+                const ename = getSafeStr(e.name || e.title, 'Exam');
+                return (
+                  <option key={eid} value={eid}>
+                    {ename}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -385,11 +401,15 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-750 text-slate-800 dark:text-slate-100 p-2.5 focus:ring-2 focus:ring-emerald-500 transition-all"
             >
               <option value="">-- শ্রেণি নির্বাচন করুন --</option>
-              {safeClasses.map(c => (
-                <option key={c._id || c.id} value={c._id || c.id}>
-                  {c.name || c.banglaName || c.code}
-                </option>
-              ))}
+              {safeClasses.map(c => {
+                const cid = c._id || c.id || '';
+                const cname = getSafeStr(c.name || c.banglaName || c.code, 'Class');
+                return (
+                  <option key={cid} value={cid}>
+                    {cname}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -404,11 +424,14 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-750 text-slate-800 dark:text-slate-100 p-2.5 focus:ring-2 focus:ring-indigo-500 transition-all"
             >
               <option value="all">সকল শাখা (All Sections)</option>
-              {sections.map(s => (
-                <option key={s.name || s} value={s.name || s}>
-                  {s.name || s}
-                </option>
-              ))}
+              {sections.map((s, idx) => {
+                const val = getSafeStr(s, '');
+                return (
+                  <option key={idx} value={val}>
+                    {val}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -633,15 +656,15 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                     <div className={`a4-page-sheet a4-sheet-layout-${cardsPerPage}`}>
                       {pageStudents.map((student) => {
                         const sid = student._id || student.id;
-                        const sName = student.user?.name || student.name || 'MD. STUDENT';
-                        const sRoll = student.currentEnrollment?.rollNumber || student.rollNumber || student.roll || '—';
-                        const sId = student.studentId || student.admissionNumber || '—';
-                        const sSection = student.currentEnrollment?.section || student.section || (selectedSection !== 'all' ? selectedSection : '—');
-                        const sGroup = student.department || student.stream || 'All';
-                        const sRoom = studentRooms[sid] || commonRoomNo || '১০২';
+                        const sName = getSafeStr(student.user?.name || student.name, 'MD. STUDENT');
+                        const sRoll = getSafeStr(student.currentEnrollment?.rollNumber || student.rollNumber || student.roll, '—');
+                        const sId = getSafeStr(student.studentId || student.admissionNumber, '—');
+                        const sSection = getSafeStr(student.currentEnrollment?.section || student.section || (selectedSection !== 'all' ? selectedSection : '—'), '—');
+                        const sGroup = getSafeStr(student.department || student.stream, 'All');
+                        const sRoom = getSafeStr(studentRooms[sid] || commonRoomNo, '১০২');
                         const sPhoto = student.photo || boyAvatarSvg;
-                        const examTitle = currentExam ? (currentExam.name || currentExam.title) : 'Annual Examination 2026';
-                        const className = currentClass ? (currentClass.name || currentClass.banglaName || currentClass.code) : '';
+                        const examTitle = getSafeStr(currentExam?.name || currentExam?.title, 'Annual Examination 2026');
+                        const className = getSafeStr(currentClass?.name || currentClass?.banglaName || currentClass?.code, '');
 
                         return (
                           <div key={sid} className="admit-card">
@@ -657,10 +680,10 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                                   <img src="/images/madrasah_logo.png" onerror="this.src='./images/madrasah_logo.png'" className="card-logo" alt="Logo" />
                                   <div className="card-titles">
                                     <div className="inst-name">
-                                      {langMode === 'bn' ? madrasah.madrasahName : 'AN-NUR ISLAMIC ACADEMY'}
+                                      {langMode === 'bn' ? getSafeStr(madrasah.madrasahName, 'আন্-নূর ইসলামিক একাডেমি') : 'AN-NUR ISLAMIC ACADEMY'}
                                     </div>
                                     <div className="inst-sub">
-                                      {langMode === 'bn' ? (madrasah.address || 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ সদর') : 'Adjacent to Shahibag Jame Mosque, Sadar, Chapainawabganj'}
+                                      {langMode === 'bn' ? getSafeStr(madrasah.address, 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ সদর') : 'Adjacent to Shahibag Jame Mosque, Sadar, Chapainawabganj'}
                                     </div>
                                   </div>
                                 </div>
@@ -887,12 +910,12 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                   {filteredStudents.map((s) => {
                     const sid = s._id || s.id;
                     const isChecked = selectedStudentIds.has(sid);
-                    const roll = s.currentEnrollment?.rollNumber || s.rollNumber || s.roll || '—';
-                    const name = s.user?.name || s.name || '—';
-                    const stId = s.studentId || s.admissionNumber || '—';
-                    const section = s.currentEnrollment?.section || s.section || (selectedSection !== 'all' ? selectedSection : '—');
-                    const stream = s.department || s.stream || 'সাধারণ';
-                    const room = studentRooms[sid] || commonRoomNo;
+                    const roll = getSafeStr(s.currentEnrollment?.rollNumber || s.rollNumber || s.roll, '—');
+                    const name = getSafeStr(s.user?.name || s.name, '—');
+                    const stId = getSafeStr(s.studentId || s.admissionNumber, '—');
+                    const section = getSafeStr(s.currentEnrollment?.section || s.section || (selectedSection !== 'all' ? selectedSection : '—'), '—');
+                    const stream = getSafeStr(s.department || s.stream, 'সাধারণ');
+                    const room = getSafeStr(studentRooms[sid] || commonRoomNo, '১০২');
                     const photo = s.photo || boyAvatarSvg;
 
                     return (
