@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, ChevronDown, Check, Edit, Trash2, Printer, Trophy, Award, RefreshCw, GraduationCap, User, BookOpen, CheckSquare, Square, X, Calendar, Clock, MapPin } from 'lucide-react';
+import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, ChevronDown, Check, Edit, Trash2, Printer, Trophy, Award, RefreshCw, GraduationCap, User, BookOpen, CheckSquare, Square, X, Calendar, Clock, MapPin, LayoutGrid } from 'lucide-react';
+import SeatPlanGenerator from '../../components/exams/SeatPlanGenerator';
+import AdmitCardGenerator from '../../components/exams/AdmitCardGenerator';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
@@ -101,7 +103,8 @@ export default function ExamPage({ initialViewMode }) {
 
   // Merit List & Ranking State
   const isRoutineInitial = initialViewMode === 'routine' || location?.pathname === '/exam-routine';
-  const [examViewMode, setExamViewMode] = useState(isRoutineInitial ? 'routine' : 'marks'); // 'marks' | 'student_result' | 'subject_result' | 'merit'
+  const isAdmitCardInitial = initialViewMode === 'admit_card' || location?.pathname === '/admit-card';
+  const [examViewMode, setExamViewMode] = useState(isRoutineInitial ? 'routine' : isAdmitCardInitial ? 'admit_card' : 'marks'); // 'marks' | 'student_result' | 'subject_result' | 'merit' | 'admit_card'
   const [meritLoading, setMeritLoading] = useState(false);
   const [meritSection, setMeritSection] = useState('all');
   const [meritList, setMeritList] = useState([]);
@@ -3228,6 +3231,20 @@ export default function ExamPage({ initialViewMode }) {
               >
                 <Calendar size={15} /> <span>পরীক্ষার রুটিন</span>
               </button>
+              <button
+                type="button"
+                className={`btn exam-tab-btn ${examViewMode === 'seat_plan' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setExamViewMode('seat_plan')}
+              >
+                <LayoutGrid size={15} /> <span>সিট প্ল্যান</span>
+              </button>
+              <button
+                type="button"
+                className={`btn exam-tab-btn ${examViewMode === 'admit_card' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setExamViewMode('admit_card')}
+              >
+                <FileText size={15} /> <span>প্রবেশপত্র (Admit Card)</span>
+              </button>
             </div>
           )}
 
@@ -4092,6 +4109,16 @@ export default function ExamPage({ initialViewMode }) {
           {/* Routine View inside Selected Exam */}
           {examViewMode === 'routine' && renderExamRoutineWorkspace(true)}
 
+          {/* Seat Plan View inside Selected Exam */}
+          {examViewMode === 'seat_plan' && (
+            <SeatPlanGenerator selectedExam={selectedExam} classes={classes} user={user} />
+          )}
+
+          {/* Admit Card View inside Selected Exam */}
+          {examViewMode === 'admit_card' && (
+            <AdmitCardGenerator exams={exams} classes={classes} />
+          )}
+
           {/* Official Footer Signatures for Exam Results Print */}
           <div className="print-only">
             <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '40px' }} />
@@ -4321,6 +4348,42 @@ export default function ExamPage({ initialViewMode }) {
             )}
           </div>
         </div>
+      ) : examViewMode === 'seat_plan' ? (
+        <div className="animate-fade-in">
+          <div className="page-header no-print">
+            <div className="flex gap-16" style={{ alignItems: 'center' }}>
+              <button className="btn btn-secondary btn-icon" onClick={() => setExamViewMode('marks')}>
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LayoutGrid size={22} style={{ color: '#059669' }} />
+                  <span>পরীক্ষার সিট প্ল্যান কার্ড (Exam Seat Plan)</span>
+                </h1>
+                <p className="page-subtitle">ডাটাবেজ থেকে শিক্ষার্থী নির্বাচন করে একসাথে ব্যাচ সিট প্ল্যান তৈরি ও প্রিন্ট করুন</p>
+              </div>
+            </div>
+          </div>
+          <SeatPlanGenerator selectedExam={null} classes={classes} user={user} />
+        </div>
+      ) : examViewMode === 'admit_card' ? (
+        <div className="animate-fade-in">
+          <div className="page-header no-print">
+            <div className="flex gap-16" style={{ alignItems: 'center' }}>
+              <button className="btn btn-secondary btn-icon" onClick={() => setExamViewMode('marks')}>
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileText size={22} style={{ color: '#0284c7' }} />
+                  <span>প্রবেশপত্র জেনারেটর (Batch Admit Card)</span>
+                </h1>
+                <p className="page-subtitle">ডাটাবেজ থেকে শ্রেণি ও শিক্ষার্থী নির্বাচন করে ব্যাচ প্রবেশপত্র তৈরি ও প্রিন্ট করুন</p>
+              </div>
+            </div>
+          </div>
+          <AdmitCardGenerator exams={exams} classes={classes} />
+        </div>
       ) : examViewMode === 'routine' ? (
         renderExamRoutineWorkspace(false)
       ) : (
@@ -4354,6 +4417,17 @@ export default function ExamPage({ initialViewMode }) {
                 <Calendar size={16} style={{ color: '#2563eb' }} />
                 <span>📅 পরীক্ষার রুটিন</span>
               </button>
+              {!isStudentOrGuardian && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#059669', color: '#047857', background: 'rgba(5, 150, 105, 0.08)' }}
+                  onClick={() => setExamViewMode('seat_plan')}
+                >
+                  <LayoutGrid size={16} style={{ color: '#059669' }} />
+                  <span>🪑 সিট প্ল্যান</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-secondary"
