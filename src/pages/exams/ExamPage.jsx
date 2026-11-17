@@ -4428,6 +4428,17 @@ export default function ExamPage({ initialViewMode }) {
                   <span>🪑 সিট প্ল্যান</span>
                 </button>
               )}
+              {!isStudentOrGuardian && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#0284c7', color: '#0369a1', background: 'rgba(2, 132, 199, 0.08)' }}
+                  onClick={() => setExamViewMode('admit_card')}
+                >
+                  <FileText size={16} style={{ color: '#0284c7' }} />
+                  <span>🎫 প্রবেশপত্র (Admit Card)</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-secondary"
