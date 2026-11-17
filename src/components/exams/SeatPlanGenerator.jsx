@@ -858,7 +858,12 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
                         <span className="font-semibold">{customExamTitle}</span>
                       )}
                       {showSession && (
-                        <span>{isEnglish ? 'Session:' : 'সেশন:'} {academicYear}</span>
+                        <span>
+                          {isEnglish ? 'Session:' : 'সেশন:'}{' '}
+                          {academicYear && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(academicYear))
+                            ? new Date().getFullYear()
+                            : (academicYear || new Date().getFullYear())}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -883,12 +888,14 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
 
         .seat-plan-a4-sheet {
           width: 210mm;
-          min-height: 297mm;
+          height: 284mm;
+          max-height: 284mm;
           background: #ffffff;
           padding: 6mm;
           box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
           box-sizing: border-box;
           position: relative;
+          overflow: hidden;
           page-break-after: always;
         }
 
@@ -903,6 +910,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           justify-content: space-between;
           overflow: hidden;
           box-sizing: border-box;
+          min-height: 0;
         }
 
         .has-cutlines .seat-plan-card {
@@ -1148,6 +1156,17 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           align-items: center;
           font-size: 7.5px;
           color: #64748b;
+          overflow: hidden;
+          white-space: nowrap;
+          max-height: 16px;
+          flex-shrink: 0;
+        }
+
+        .sp-card-footer span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 50%;
         }
 
         .print-only {

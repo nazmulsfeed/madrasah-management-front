@@ -1078,9 +1078,174 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
       )}
 
       {/* ==============================================================
+          PRINT-ONLY CONTAINER: Always rendered but hidden on screen.
+          This is what actually prints — the preview area above has
+          class "no-print" so it is hidden during print. This div
+          does NOT have no-print, so it shows only when printing.
+          ============================================================== */}
+      <div className="admit-print-only-container">
+        {selectedStudentsList.length > 0 && studentPages.map((pageStudents, pageIdx) => (
+          <div key={`print-page-${pageIdx}`} className={`a4-page-sheet a4-sheet-layout-${cardsPerPage}`}>
+            {pageStudents.map((student) => {
+              const sid = student._id || student.id;
+              const sName = getSafeStr(student.user?.name || student.name, 'MD. STUDENT');
+              const sRoll = getSafeStr(student.currentEnrollment?.rollNumber || student.rollNumber || student.roll, '—');
+              const sId = getSafeStr(student.studentId || student.admissionNumber, '—');
+              const sSection = getSafeStr(student.currentEnrollment?.section || student.section || (selectedSection !== 'all' ? selectedSection : '—'), '—');
+              const sGroup = getSafeStr(student.department || student.currentEnrollment?.department || student.stream, 'All');
+              const sRoom = getSafeStr(studentRooms[sid] || commonRoomNo, '১০২');
+              const sPhoto = student.photo || boyAvatarSvg;
+              const examTitle = getSafeStr(currentExam?.name || currentExam?.title, 'Annual Examination 2026');
+              const className = getSafeStr(currentClass?.name || currentClass?.banglaName || currentClass?.code, '');
+
+              return (
+                <div key={`print-${sid}`} className="admit-card">
+                  <div className="admit-card-inner-frame">
+                    {fieldToggles.watermark && (
+                      <img src="/images/madrasah_logo.png" onError={(e)=>{e.target.src='./images/madrasah_logo.png';}} className="card-watermark" alt="Watermark" />
+                    )}
+                    <div className="card-content">
+                      <div className="card-header">
+                        <img src="/images/madrasah_logo.png" onError={(e)=>{e.target.src='./images/madrasah_logo.png';}} className="card-logo" alt="Logo" />
+                        <div className="card-titles">
+                          <div className="inst-name">
+                            {langMode === 'bn' ? getSafeStr(madrasah.madrasahName, 'আন্-নূর ইসলামিক একাডেমি') : 'AN-NUR ISLAMIC ACADEMY'}
+                          </div>
+                          <div className="inst-sub">
+                            {langMode === 'bn' ? getSafeStr(madrasah.address, 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ সদর') : 'Adjacent to Shahibag Jame Mosque, Sadar, Chapainawabganj'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="badge-date-row">
+                        <div className="admit-pill">
+                          {langMode === 'bn' ? 'প্রবেশপত্র (Admit Card)' : 'Admit Card'}
+                        </div>
+                        {fieldToggles.issueDate && (
+                          <div className="issue-date-label">
+                            <span>{langMode === 'bn' ? 'ইস্যুর তারিখ:' : 'Issue Date:'}</span> <span>{formatDateDDMMYYYY(issueDate)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="student-details-wrapper">
+                        <div className="info-columns-container">
+                          <div className="detail-row">
+                            <span className="detail-label">{langMode === 'bn' ? 'নাম' : 'Name'}</span>
+                            <span className="detail-colon">:</span>
+                            <span className="detail-val uppercase">{sName}</span>
+                          </div>
+                          {fieldToggles.group && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'গ্রুপ/বিভাগ' : 'Group'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val">{sGroup}</span>
+                            </div>
+                          )}
+                          {fieldToggles.studentId && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'ছাত্র আইডি' : 'Student ID'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val">{sId}</span>
+                            </div>
+                          )}
+                          {fieldToggles.room && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'কক্ষ নম্বর' : 'Room No'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val room-badge">{sRoom}</span>
+                            </div>
+                          )}
+                          <div className="detail-row">
+                            <span className="detail-label">{langMode === 'bn' ? 'রোল নং' : 'Roll'}</span>
+                            <span className="detail-colon">:</span>
+                            <span className="detail-val">{sRoll}</span>
+                          </div>
+                          {fieldToggles.shift && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'শিফট' : 'Shift'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val">Morning</span>
+                            </div>
+                          )}
+                          {fieldToggles.version && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'ভার্সন' : 'Version'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val">Bangla</span>
+                            </div>
+                          )}
+                          {fieldToggles.session && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'সেশন' : 'Session'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val">{new Date().getFullYear()}</span>
+                            </div>
+                          )}
+                          <div className="detail-row">
+                            <span className="detail-label">{langMode === 'bn' ? 'শ্রেণি' : 'Class'}</span>
+                            <span className="detail-colon">:</span>
+                            <span className="detail-val">{className}</span>
+                          </div>
+                          {fieldToggles.section && (
+                            <div className="detail-row">
+                              <span className="detail-label">{langMode === 'bn' ? 'শাখা' : 'Section'}</span>
+                              <span className="detail-colon">:</span>
+                              <span className="detail-val">{sSection}</span>
+                            </div>
+                          )}
+                        </div>
+                        {fieldToggles.photo && (
+                          <div className="student-photo-box">
+                            <img src={sPhoto} alt="Photo" />
+                          </div>
+                        )}
+                      </div>
+                      {fieldToggles.exam && (
+                        <div className="permission-statement">
+                          <span>{langMode === 'bn' ? 'কে নিম্নোক্ত পরীক্ষায় অংশগ্রহণের অনুমতি প্রদান করা হলো:' : 'has been permitted to sit for the'}</span>
+                          <span className="exam-name">{examTitle}</span>
+                        </div>
+                      )}
+                      <div className="signatures-row">
+                        {fieldToggles.teacherSig ? (
+                          <div className="signature-block">
+                            <svg className="signature-svg" viewBox="0 0 160 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M15 42C25 15 32 8 38 10C44 12 40 38 48 42C56 46 72 20 85 22C98 24 105 40 120 38C132 36 142 22 152 28" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M28 28C45 26 80 20 110 32" stroke="#111827" strokeWidth="1.8" strokeLinecap="round"/>
+                            </svg>
+                            <div className="sig-line"></div>
+                            <div className="sig-title">{langMode === 'bn' ? 'শ্রেণি শিক্ষক' : 'Class Teacher'}</div>
+                          </div>
+                        ) : <div></div>}
+                        {fieldToggles.principalSig ? (
+                          <div className="signature-block">
+                            <svg className="signature-svg" viewBox="0 0 180 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 38C28 18 36 12 42 16C48 20 44 42 58 36C70 30 82 14 96 20C110 26 120 44 135 34C145 28 155 18 165 24" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M60 48C85 45 125 42 150 46" stroke="#111827" strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                            <div className="sig-line"></div>
+                            <div className="sig-name">MD. RAFIQUL ISLAM</div>
+                            <div className="sig-title">{langMode === 'bn' ? 'মুহতামিম / প্রতিষ্ঠান প্রধান' : 'Head Teacher (In-charge)'}</div>
+                          </div>
+                        ) : <div></div>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* ==============================================================
           4. SCOPED PURE CSS STYLES FOR SCREEN & PRINT (ZERO TAILWIND DEPENDENCY)
           ============================================================== */}
       <style>{`
+        /* --- Print-Only Container: hidden on screen, visible on print --- */
+        .admit-print-only-container {
+          display: none;
+        }
+
         /* --- Container Workspace --- */
         .admit-generator-wrapper {
           display: flex;
@@ -2269,35 +2434,17 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             margin: 0 !important;
           }
 
-          .admit-preview-area,
-          .admit-preview-viewport,
-          .admit-preview-scaler {
-            background: transparent !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            max-height: none !important;
-            overflow: visible !important;
-            transform: none !important;
+          /* Show the print-only container on print */
+          .admit-print-only-container {
             display: block !important;
-          }
-
-          .admit-page-wrapper {
-            margin: 0 !important;
             padding: 0 !important;
-            page-break-after: always !important;
-            break-after: page !important;
-          }
-
-          .admit-page-tag {
-            display: none !important;
+            margin: 0 !important;
           }
 
           .a4-page-sheet {
             width: 100% !important;
-            min-height: 100vh !important;
             height: 288mm !important;
+            min-height: unset !important;
             box-shadow: none !important;
             border: none !important;
             margin: 0 !important;
