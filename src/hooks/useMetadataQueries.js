@@ -25,7 +25,7 @@ export const useTenantContext = () => {
 
 /**
  * Filter sections by classLevelId in-memory.
- * Preserves exact 1:1 backward-compatibility with metadataStore.getSectionsByClass():
+ * Pure in-memory filtering:
  * - Supports object classLevel ({ _id, id, name, code }) and string classLevel.
  * - Handles null, undefined, '', and 'all'.
  * - Performs pure in-memory transformation without network overhead.

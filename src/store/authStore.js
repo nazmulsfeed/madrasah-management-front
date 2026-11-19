@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import api from '../api/axios';
-import useMetadataStore from './metadataStore';
 import { cancelAndClearQueries } from '../lib/queryClient';
 
 const getSafeInitialUser = () => {
@@ -92,7 +91,6 @@ const useAuthStore = create((set, get) => ({
         error: null
       });
       cancelAndClearQueries();
-      useMetadataStore.getState().clearMetadata();
       return true;
     } catch (err) {
       const message = err.response?.data?.message || 'লগ ইন ব্যর্থ হয়েছে';
@@ -107,7 +105,6 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem('user');
     localStorage.removeItem('userPermissions');
     inFlightPermissionsPromise = null;
-    useMetadataStore.getState().clearMetadata();
     set({
       user: null,
       token: null,
