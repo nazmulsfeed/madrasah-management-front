@@ -1,0 +1,417 @@
+const s=["পরিচালক","প্রতিষ্ঠান প্রধান"];function r(i="portrait",{wrap:e=!0}={}){var a;const t=`
+    @font-face {
+      font-family: 'DecoTypeThuluthII';
+      src: url('${typeof window<"u"&&((a=window.location)!=null&&a.origin)?window.location.origin:""}/fonts/DecoTypeThuluthII.ttf') format('truetype'),
+           url('/fonts/DecoTypeThuluthII.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    @page {
+      size: A4 ${i};
+      margin: 6mm 10mm !important;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Inter', -apple-system, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      height: 100%;
+      min-height: 100%;
+    }
+    .print-sheet-container {
+      position: relative;
+      width: 100%;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 0;
+      overflow: hidden;
+    }
+    @media screen {
+      .print-sheet-container {
+        min-width: ${i==="landscape"?"860px":"640px"};
+      }
+    }
+    @media print {
+      html, body {
+        height: 100% !important;
+        min-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+      }
+      .print-sheet-container {
+        position: relative !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        min-height: 100% !important;
+        height: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        background: #ffffff !important;
+      }
+      .print-content-layer {
+        position: relative !important;
+        z-index: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 auto !important;
+        height: auto !important;
+        min-height: 100% !important;
+        width: 100% !important;
+        justify-content: space-between !important;
+      }
+      .print-footer-signatures {
+        position: relative !important;
+        z-index: 2 !important;
+        margin-top: auto !important;
+        padding-top: 16px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      thead {
+        display: table-header-group !important;
+      }
+      tfoot {
+        display: table-footer-group !important;
+      }
+      tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+    .print-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: ${i==="landscape"?"360px":"420px"};
+      height: ${i==="landscape"?"360px":"420px"};
+      max-width: 80%;
+      max-height: 80%;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      opacity: 0.085;
+      object-fit: contain;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .print-content-layer {
+      position: relative;
+      z-index: 10;
+    }
+    .official-header {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    /* Unified Main Grid: Left Bengali, Center (Arabic + Logo + Slogan), Right English */
+    .header-columns {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: start;
+      gap: ${i==="landscape"?"12px":"8px"};
+      width: 100%;
+    }
+
+    .header-arabic-img {
+      height: ${i==="landscape"?"36px":"32px"};
+      max-width: ${i==="landscape"?"260px":"210px"};
+      width: auto;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 2px auto;
+    }
+    .slogan-highlight-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%);
+      border: 1px solid #86efac;
+      border-bottom: 2.5px solid #059669;
+      border-radius: 5px;
+      padding: 1.5px ${i==="landscape"?"8px":"6px"};
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+    .slogan-text-line {
+      font-family: 'Noto Serif Bengali', serif;
+      font-size: ${i==="landscape"?"8.5px":"8px"};
+      font-weight: 700;
+      color: #065f46;
+      white-space: nowrap;
+    }
+
+    /* Left Column: Bengali Info + Director Mobile at bottom */
+    .col-left {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .col-left .inst-title {
+      font-family: 'Noto Serif Bengali', serif;
+      font-size: ${i==="landscape"?"15px":"14px"};
+      font-weight: 800;
+      color: #020617;
+      margin: 0;
+      padding: 0;
+      height: ${i==="landscape"?"24px":"21px"};
+      line-height: ${i==="landscape"?"24px":"21px"};
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+    .col-left .inst-sub,
+    .col-left .inst-city {
+      font-size: ${i==="landscape"?"10px":"9px"};
+      color: #1e293b;
+      font-weight: 600;
+      margin: 0;
+      padding: 0;
+      height: ${i==="landscape"?"17px":"15px"};
+      line-height: ${i==="landscape"?"17px":"15px"};
+      white-space: nowrap;
+    }
+
+    /* Center Column: Arabic Calligraphy, Logo, Slogan Quote */
+    .col-center {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 2px;
+    }
+    .col-center .header-logo-center {
+      width: ${i==="landscape"?"65px":"50px"};
+      height: ${i==="landscape"?"65px":"50px"};
+      object-fit: contain;
+      margin: 0 auto 3px auto;
+      display: block;
+      border: none !important;
+      outline: none !important;
+      background: transparent !important;
+    }
+
+    /* Single Phone Badges */
+    .phone-badge-single {
+      background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 45%, #e2e8f0 100%);
+      border: 1.5px solid #475569;
+      box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      border-radius: ${i==="landscape"?"8px":"6px"};
+      padding: ${i==="landscape"?"2px 9px":"1.5px 6px"};
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      font-size: ${i==="landscape"?"9px":"8px"};
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+
+    /* Right Column: English Info (Line-for-line synchronized with Left Column) */
+    .col-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .col-right .inst-title-en {
+      font-family: 'Times New Roman', serif;
+      font-size: ${i==="landscape"?"14px":"13px"};
+      font-weight: 800;
+      color: #020617;
+      margin: 0;
+      padding: 0;
+      height: ${i==="landscape"?"24px":"21px"};
+      line-height: ${i==="landscape"?"24px":"21px"};
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+    }
+    .col-right .inst-sub-en,
+    .col-right .inst-city-en {
+      font-size: ${i==="landscape"?"10px":"9px"};
+      color: #1e293b;
+      font-weight: 600;
+      margin: 0;
+      padding: 0;
+      height: ${i==="landscape"?"17px":"15px"};
+      line-height: ${i==="landscape"?"17px":"15px"};
+      white-space: nowrap;
+    }
+
+    /* Shared Gap & Board Lines for Identical Baseline Alignment */
+    .inst-line-spacer {
+      height: ${i==="landscape"?"5px":"3px"};
+      width: 100%;
+    }
+    .inst-board-line {
+      font-size: ${i==="landscape"?"9px":"8.5px"};
+      color: #334155;
+      font-weight: 500;
+      margin: 0;
+      padding: 0;
+      height: ${i==="landscape"?"16px":"14px"};
+      line-height: ${i==="landscape"?"16px":"14px"};
+      white-space: nowrap;
+    }
+
+    .header-double-divider {
+      border-bottom: 2px solid #0f172a;
+      margin-top: 4px;
+      margin-bottom: 10px;
+    }
+    .doc-badge-wrap {
+      text-align: center;
+      margin: 8px 0 6px 0;
+    }
+    .doc-badge {
+      display: inline-block;
+      padding: 3px 16px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    /* Footer Signatures */
+    .print-footer-signatures {
+      margin-top: auto;
+      padding-top: 36px;
+      width: 100%;
+      page-break-inside: avoid;
+    }
+    .sig-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      width: 100%;
+    }
+    .sig-col {
+      flex: 1;
+      text-align: center;
+      min-width: 0;
+    }
+    .sig-line {
+      border-top: 1.5px solid #334155;
+      padding-top: 4px;
+      font-weight: 700;
+      font-size: 11.5px;
+      color: #0f172a;
+      max-width: 220px;
+      margin: 0 auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* Requirement 3: Same font size as the role, preserved color */
+    .sig-sub {
+      font-size: 11.5px;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  `;return e?`<style id="madrasah-print-styles">
+${t}
+</style>`:t}function p({title:i="",subtitle:e="",orientation:n="portrait",metaLeft:t="",metaRight:a="",showWatermark:o=!0}={}){return`
+    ${o?`
+      <img src="/images/madrasah_logo.png" class="print-watermark" alt="Watermark" onerror="this.src='/madrasah_logo.png'" />
+    `:""}
+    <header class="official-header">
+      <!-- Unified 3 Columns: Left Bengali, Center (Arabic + Logo + Slogan), Right English — All starting from Row 1 -->
+      <div class="header-columns">
+        
+        <!-- Left: Bengali Info + Director Mobile at bottom -->
+        <div class="col-left">
+          <div class="inst-title">আন্-নূর ইসলামিক একাডেমি</div>
+          <div class="inst-sub">শাহীবাগ জামে মসজিদ সংলগ্ন,</div>
+          <div class="inst-city">চাঁপাইনবাবগঞ্জ।</div>
+          <div class="inst-line-spacer"></div>
+          <div class="inst-board-line">হুফফাজুল কুরআন ফাউন্ডেশন</div>
+          <div class="inst-board-line">বাংলাদেশ হিফজ শিক্ষা বোর্ড (নিবন্ধন: ৫০০৮২৫)</div>
+          <div class="inst-line-spacer"></div>
+          <div class="phone-badge-single">
+            ০১৭৬৭৬১৫৭৪৬ (পরিচালক)
+          </div>
+        </div>
+
+        <!-- Center: Arabic Calligraphy at top, Logo immediately below, Slogan quote below Logo -->
+        <div class="col-center">
+          <img src="/images/arabic_title.png" alt="النُّورُ إِسْلَامِكْ أَكَادِيمِي" class="header-arabic-img" onerror="this.src='/arabic_title.png'" />
+          <img src="/images/madrasah_logo.png" alt="লোগো" class="header-logo-center" onerror="this.src='/madrasah_logo.png'" />
+          <div class="slogan-highlight-box">
+            <span class="slogan-text-line">❝ ইলম শিখো, আমল করো, মানুষের সেবায় নিজেকে গড়ো। ❞</span>
+          </div>
+        </div>
+
+        <!-- Right: English Info + Head Teacher Mobile at bottom -->
+        <div class="col-right">
+          <div class="inst-title-en">AN-NUR ISLAMIC ACADEMY</div>
+          <div class="inst-sub-en">Adjacent to Shahibag Jame Mosque</div>
+          <div class="inst-city-en">Chapainawabganj.</div>
+          <div class="inst-line-spacer"></div>
+          <div class="inst-board-line">তানযীম বোর্ড-নিবন্ধন নং: ৪২০৭</div>
+          <div class="inst-board-line">নূরানী ইকরা বোর্ড- নিবন্ধন নং: ৬০২৫৪২</div>
+          <div class="inst-line-spacer"></div>
+          <div class="phone-badge-single">
+            ০১৭২২০৯৫০২৬ (প্রধান শিক্ষক-নূরানী বিভাগ)
+          </div>
+        </div>
+
+      </div>
+
+      ${i?`
+        <div class="doc-badge-wrap">
+          <span class="doc-badge">${i}</span>
+        </div>
+      `:""}
+
+      ${t||a?`
+        <div style="display:flex; justify-content:space-between; font-size:10pt; color:#1e293b; margin-top:6px; padding:2px 0; border-bottom:1px solid #e2e8f0;">
+          <div>${t}</div>
+          <div>${a}</div>
+        </div>
+      `:""}
+
+      <!-- Bottom Double Line Divider -->
+      <div class="header-double-divider"></div>
+    </header>
+  `}function l(i=s){if(!i||i.length===0)return"";const e=i.length===1;return`
+    <div class="print-footer-signatures">
+      <div class="sig-grid" style="${e?"display:flex; justify-content:flex-end; width:100%;":""}">
+        ${i.map(n=>`
+          <div class="sig-col" style="${e?"flex:0 0 200px; max-width:220px; margin-left:auto;":""}">
+            <div class="sig-line">${n}</div>
+            <div class="sig-sub">আন্-নূর ইসলামিক একাডেমি</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `}export{p as a,l as b,r as g};

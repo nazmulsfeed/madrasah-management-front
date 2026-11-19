@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import RouteLoadingFallback from '../components/common/RouteLoadingFallback';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import {
@@ -341,7 +342,9 @@ export default function DashboardLayout() {
 
       {/* মেইন কন্টেন্ট */}
       <main className="main-content">
-        <Outlet />
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       {/* মোবাইল ও ওয়েব পুশ নোটিফিকেশন প্রম্পট */}
