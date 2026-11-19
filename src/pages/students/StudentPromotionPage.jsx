@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, GraduationCap, RefreshCw, CheckCircle, AlertCircle, 
   Search, Award, ShieldAlert, Star, TrendingUp, CheckSquare, Square 
 } from 'lucide-react';
 import api from '../../api/axios';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSections, useBranches, useAcademicYears, filterSectionsByClass } from '../../hooks/useMetadataQueries';
 import { SECTION_OPTIONS } from '../../utils/constants';
 
 export default function StudentPromotionPage() {
@@ -13,11 +13,11 @@ export default function StudentPromotionPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Lists
-  const [academicYears, setAcademicYears] = useState([]);
-  const [classLevels, setClassLevels] = useState([]);
-  const [sections, setSections] = useState([]);
-  const [branches, setBranches] = useState([]);
+  // Lists via TanStack Query hooks
+  const { data: academicYears = [] } = useAcademicYears();
+  const { data: classLevels = [] } = useClasses();
+  const { data: sections = [] } = useSections();
+  const { data: branches = [] } = useBranches();
   const [termExams, setTermExams] = useState([]);
 
   // Source selection states
@@ -51,29 +51,23 @@ export default function StudentPromotionPage() {
   const [search, setSearch] = useState('');
   const [performanceFilter, setPerformanceFilter] = useState('all'); // 'all', 'passed', 'failed', 'no_marks'
 
-  // Load lists
+  // Auto-select current academic year when available (preserve user manual selection if already set)
   useEffect(() => {
-    const loadDropdowns = async () => {
+    if (academicYears.length > 0) {
+      const curr = academicYears.find(y => y.isCurrent);
+      if (curr) {
+        setSourceYear(prev => prev ? prev : curr._id);
+      }
+    }
+  }, [academicYears]);
+
+  // Load term exams independently
+  useEffect(() => {
+    let isMounted = true;
+    const loadExams = async () => {
       try {
-        const { fetchAcademicYears, fetchClasses, fetchSections, fetchBranches } = useMetadataStore.getState();
-        const [yearsList, classesList, secList, branchList, examsRes] = await Promise.all([
-          fetchAcademicYears(),
-          fetchClasses(),
-          fetchSections(),
-          fetchBranches(),
-          api.get('/exams')
-        ]);
-
-        if (yearsList) {
-          setAcademicYears(yearsList);
-          const curr = yearsList.find(y => y.isCurrent);
-          if (curr) setSourceYear(curr._id);
-        }
-        if (classesList) setClassLevels(classesList);
-        if (secList) setSections(secList);
-        if (branchList) setBranches(branchList);
-
-        if (examsRes.data.success) {
+        const examsRes = await api.get('/exams');
+        if (isMounted && examsRes.data?.success) {
           const allExams = examsRes.data.data.exams || [];
           // Requirement 8.5: Only Term Exams (সাময়িক পরীক্ষা) can be used for promotion
           const termList = allExams.filter(e => 
@@ -83,11 +77,82 @@ export default function StudentPromotionPage() {
           setTermExams(termList);
         }
       } catch (err) {
-        console.error('Error loading promotion dropdowns', err);
+        console.error('Error loading promotion exams', err);
       }
     };
-    loadDropdowns();
+    loadExams();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // Filtered section options for source class
+  const sourceSectionOptions = useMemo(() => {
+    if (!sourceClass) return SECTION_OPTIONS;
+    const classSecs = filterSectionsByClass(sections, sourceClass);
+    if (!classSecs || classSecs.length === 0) return SECTION_OPTIONS;
+    const dbNames = classSecs.map(s => s.name?.trim()).filter(Boolean);
+    return Array.from(new Set([...dbNames, ...SECTION_OPTIONS]));
+  }, [sections, sourceClass]);
+
+  // Filtered section options for destination class
+  const destSectionOptions = useMemo(() => {
+    if (!destClass) return SECTION_OPTIONS;
+    const classSecs = filterSectionsByClass(sections, destClass);
+    if (!classSecs || classSecs.length === 0) return SECTION_OPTIONS;
+    const dbNames = classSecs.map(s => s.name?.trim()).filter(Boolean);
+    return Array.from(new Set([...dbNames, ...SECTION_OPTIONS]));
+  }, [sections, destClass]);
+
+  // Validate and reset source section when source class changes
+  const prevSourceClassRef = useRef(sourceClass);
+  useEffect(() => {
+    if (prevSourceClassRef.current !== sourceClass) {
+      prevSourceClassRef.current = sourceClass;
+      if (sourceSection) {
+        const classSecs = filterSectionsByClass(sections, sourceClass);
+        if (classSecs.length > 0) {
+          const isStillValid = classSecs.some(s => {
+            const sName = s.name?.trim() || '';
+            if (sourceSection === 'কোন সেকশন নাই') {
+              return sName.includes('কোন সেকশন নাই') || sName.includes('কোন শাখা নাই') || sName.includes('নাই');
+            }
+            return sName === sourceSection || sName.startsWith(sourceSection);
+          });
+          if (!isStillValid) {
+            setSourceSection('');
+          }
+        } else if (!sourceClass) {
+          setSourceSection('');
+        }
+      }
+    }
+  }, [sourceClass, sourceSection, sections]);
+
+  // Validate and reset destination section when destination class changes
+  const prevDestClassRef = useRef(destClass);
+  useEffect(() => {
+    if (prevDestClassRef.current !== destClass) {
+      prevDestClassRef.current = destClass;
+      if (destSection) {
+        const classSecs = filterSectionsByClass(sections, destClass);
+        if (classSecs.length > 0) {
+          const isStillValid = classSecs.some(s => {
+            const sName = s.name?.trim() || '';
+            if (destSection === 'কোন সেকশন নাই') {
+              return sName.includes('কোন সেকশন নাই') || sName.includes('কোন শাখা নাই') || sName.includes('নাই');
+            }
+            return sName === destSection || sName.startsWith(destSection);
+          });
+          if (!isStillValid) {
+            setDestSection('');
+          }
+        } else if (!destClass) {
+          setDestSection('');
+        }
+      }
+    }
+  }, [destClass, destSection, sections]);
 
   // Fetch candidates
   const handleLoadCandidates = async () => {
@@ -452,7 +517,7 @@ export default function StudentPromotionPage() {
                 <label className="form-label">উৎস সেকশন</label>
                 <select className="form-select form-input" value={sourceSection} onChange={e => setSourceSection(e.target.value)}>
                   <option value="">সকল সেকশন</option>
-                  {SECTION_OPTIONS.map((sec, idx) => (
+                  {sourceSectionOptions.map((sec, idx) => (
                     <option key={idx} value={sec}>{sec}</option>
                   ))}
                 </select>
@@ -552,7 +617,7 @@ export default function StudentPromotionPage() {
                     <label className="form-label">গন্তব্য সেকশন *</label>
                     <select className="form-select form-input" value={destSection} onChange={e => setDestSection(e.target.value)}>
                       <option value="">-- সেকশন নির্বাচন করুন --</option>
-                      {SECTION_OPTIONS.map((sec, idx) => (
+                      {destSectionOptions.map((sec, idx) => (
                         <option key={idx} value={sec}>{sec}</option>
                       ))}
                     </select>

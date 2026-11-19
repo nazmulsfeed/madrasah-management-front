@@ -20,7 +20,7 @@ import {
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSections, useBranches } from '../../hooks/useMetadataQueries';
 import usePermissions from '../../hooks/usePermissions';
 import StudentExportModal from '../../components/students/StudentExportModal';
 import { getMadrasahInfo } from '../../utils/helpers';
@@ -60,8 +60,10 @@ export default function StudentListPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   
-  // Metadata state from centralized store
-  const { classes, sections, branches, fetchClasses, fetchSections, fetchBranches } = useMetadataStore();
+  // Metadata queries via TanStack Query
+  const { data: classes = [] } = useClasses();
+  const { data: sections = [] } = useSections();
+  const { data: branches = [] } = useBranches();
   
   // Active filters
   const [classFilter, setClassFilter] = useState('');
@@ -135,12 +137,6 @@ export default function StudentListPage() {
   };
 
   useEffect(() => {
-    fetchClasses();
-    fetchSections();
-    fetchBranches();
-  }, [fetchClasses, fetchSections, fetchBranches]);
-
-  useEffect(() => {
     if (!selectedSectionName) {
       setSectionFilter('');
       return;
@@ -169,6 +165,31 @@ export default function StudentListPage() {
       setSectionFilter('none_matched');
     }
   }, [selectedSectionName, classFilter, branchFilter, sections]);
+
+  // Validate and reset selected section name if no longer present in selected class/branch
+  useEffect(() => {
+    if (selectedSectionName && (classFilter || branchFilter)) {
+      const hasMatch = sections.some(s => {
+        const sName = s.name.trim();
+        const sClassId = s.classLevel?._id || s.classLevel;
+        const sBranchId = s.branch?._id || s.branch;
+
+        const isClassMatch = !classFilter || (sClassId && sClassId.toString() === classFilter.toString());
+        const isBranchMatch = !branchFilter || (sBranchId && sBranchId.toString() === branchFilter.toString());
+
+        if (!isClassMatch || !isBranchMatch) return false;
+
+        if (selectedSectionName === 'কোন সেকশন নাই') {
+          return sName.includes('কোন সেকশন নাই') || sName.includes('কোন শাখা নাই') || sName.includes('নাই') || sName === 'no_section' || sName.includes('No Section');
+        }
+        return sName.startsWith(selectedSectionName) || sName === selectedSectionName;
+      });
+
+      if (sections.length > 0 && !hasMatch) {
+        setSelectedSectionName('');
+      }
+    }
+  }, [classFilter, branchFilter, sections, selectedSectionName]);
 
   const [selectedIds, setSelectedIds] = useState([]);
 
