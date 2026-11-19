@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Clock, Printer, ArrowLeft, Calendar, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
-import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useTenantContext } from '../../hooks/useMetadataQueries';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
@@ -18,7 +17,8 @@ const UNCONFIGURED_EMPTY_PERIODS = [
 ];
 
 export default function PublicTimetablePage() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useTenantContext();
+  const { data: cachedClasses = [] } = useClasses({ enabled: isAuthenticated });
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -29,6 +29,15 @@ export default function PublicTimetablePage() {
   useEffect(() => {
     fetchTimetableData();
   }, []);
+
+  useEffect(() => {
+    if (classes.length === 0 && isAuthenticated && Array.isArray(cachedClasses) && cachedClasses.length > 0) {
+      setClasses(cachedClasses);
+      if (!selectedClassId) {
+        setSelectedClassId(cachedClasses[0]._id);
+      }
+    }
+  }, [cachedClasses, isAuthenticated, classes.length, selectedClassId]);
 
   const fetchTimetableData = async () => {
     try {
@@ -67,7 +76,17 @@ export default function PublicTimetablePage() {
       setTimetable(savedTimetable);
 
       try {
-        const clsList = await useMetadataStore.getState().fetchClasses();
+        let clsList = [];
+        if (isAuthenticated && Array.isArray(cachedClasses) && cachedClasses.length > 0) {
+          clsList = cachedClasses;
+        } else if (savedTimetable && typeof savedTimetable === 'object') {
+          // Unauthenticated or offline fallback: safely derive classes from saved timetable keys
+          const keys = Object.keys(savedTimetable);
+          if (keys.length > 0) {
+            clsList = keys.map((key) => ({ _id: key, name: key }));
+          }
+        }
+
         if (clsList && clsList.length > 0) {
           setClasses(clsList);
           const classWithSlots = clsList.find(c => {
