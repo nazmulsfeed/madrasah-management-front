@@ -17,10 +17,10 @@ import {
   ExternalLink,
   User,
 } from 'lucide-react';
-import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import { useClasses, useSections, useBranches } from '../../hooks/useMetadataQueries';
+import { useStudents, useDeleteStudent, useBulkDeleteStudents } from '../../hooks/useStudentQueries';
 import usePermissions from '../../hooks/usePermissions';
 import StudentExportModal from '../../components/students/StudentExportModal';
 import { getMadrasahInfo } from '../../utils/helpers';
@@ -49,16 +49,14 @@ export default function StudentListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
 
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(15);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
+  const deletingIdRef = useRef(null);
   
   // Metadata queries via TanStack Query
   const { data: classes = [] } = useClasses();
@@ -99,40 +97,71 @@ export default function StudentListPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const fetchStudents = async (customSearch = null) => {
-    setLoading(true);
-    try {
+  // Normalized query parameters for deterministic TanStack caching
+  const queryParams = useMemo(() => {
+    const params = { page, limit };
+    if (debouncedSearch) params.search = debouncedSearch.trim();
+    if (statusFilter) params.status = statusFilter;
+    if (classFilter) params.classLevel = classFilter;
+    if (branchFilter) params.branch = branchFilter;
+    if (departmentFilter) params.department = departmentFilter;
+    if (residentialStatusFilter) params.residentialStatus = residentialStatusFilter;
+    params.sortBy = sortBy;
+    params.sortOrder = sortOrder;
+
+    if (sectionFilter) {
+      if (sectionFilter.includes(',')) {
+        params.sections = sectionFilter;
+      } else {
+        params.section = sectionFilter;
+      }
+    }
+    return params;
+  }, [page, limit, debouncedSearch, statusFilter, classFilter, sectionFilter, branchFilter, departmentFilter, residentialStatusFilter, sortBy, sortOrder]);
+
+  // Server state query via TanStack Query
+  const {
+    data: studentData,
+    isLoading: isStudentsLoading,
+    isFetching: isStudentsFetching,
+    refetch: refetchStudents,
+  } = useStudents(queryParams);
+
+  const students = studentData?.students || [];
+  const pagination = studentData?.pagination || { total: 0, pages: 1, page, limit };
+
+  // Mutations for deletion
+  const deleteStudentMutation = useDeleteStudent({
+    onSuccess: () => {
+      setSelectedIds((prev) => prev.filter((item) => item !== deletingIdRef.current));
+    },
+    onError: (err) => {
+      const errMsg = err.response?.data?.message || err.message || 'মুছে ফেলা ব্যর্থ হয়েছে';
+      alert(errMsg);
+    },
+  });
+
+  const bulkDeleteMutation = useBulkDeleteStudents({
+    onSuccess: (result) => {
       setSelectedIds([]);
-      const params = { page, limit };
-      const activeSearch = customSearch !== null ? customSearch : debouncedSearch;
-      if (activeSearch) params.search = activeSearch.trim();
-      if (statusFilter) params.status = statusFilter;
-      if (classFilter) params.classLevel = classFilter;
-      if (branchFilter) params.branch = branchFilter;
-      if (departmentFilter) params.department = departmentFilter;
-      if (residentialStatusFilter) params.residentialStatus = residentialStatusFilter;
-      params.sortBy = sortBy;
-      params.sortOrder = sortOrder;
-
-      if (sectionFilter) {
-        if (sectionFilter.includes(',')) {
-          params.sections = sectionFilter;
-        } else {
-          params.section = sectionFilter;
-        }
+      if (result?.failed?.length > 0) {
+        alert(`বাছাইকৃতদের মধ্যে ${result.succeeded.length} জন মুছে ফেলা হয়েছে, কিন্তু ${result.failed.length} জন মুছে ফেলা যায়নি।`);
       }
+    },
+    onError: (err) => {
+      const errMsg = err.response?.data?.message || err.message || 'কিছু ছাত্র/ছাত্রী মুছে ফেলা যায়নি';
+      alert(errMsg);
+    },
+  });
 
-      const res = await api.get('/students', { params });
-      if (res.data.success !== false) {
-        setStudents(res.data.data || []);
-        setPagination(res.data.pagination || { total: 0, pages: 1 });
-      }
-    } catch (err) {
-      console.error('Fetch students error', err);
-      setStudents([]);
-      setPagination({ total: 0, pages: 1 });
-    } finally {
-      setLoading(false);
+  const loading = isStudentsLoading || deleteStudentMutation.isPending || bulkDeleteMutation.isPending;
+
+  const fetchStudents = (customSearch = null) => {
+    if (customSearch !== null) {
+      setDebouncedSearch(customSearch);
+      setPage(1);
+    } else {
+      refetchStudents();
     }
   };
 
@@ -194,7 +223,7 @@ export default function StudentListPage() {
   const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
-    fetchStudents();
+    setSelectedIds([]);
   }, [page, limit, statusFilter, classFilter, sectionFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch, sortBy, sortOrder]);
 
   const handleLimitChange = (newLimit) => {
@@ -206,33 +235,17 @@ export default function StudentListPage() {
     if (e) e.preventDefault();
     setDebouncedSearch(search);
     setPage(1);
-    fetchStudents(search);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('আপনি কি নিশ্চিত যে এই ছাত্র/ছাত্রীকে মুছে ফেলতে চান?')) return;
-    try {
-      await api.delete(`/students/${id}`);
-      setSelectedIds(prev => prev.filter(item => item !== id));
-      fetchStudents();
-    } catch (err) {
-      const errMsg = err.response?.data?.message || 'মুছে ফেলা ব্যর্থ হয়েছে';
-      alert(errMsg);
-    }
+    deletingIdRef.current = id;
+    deleteStudentMutation.mutate(id);
   };
 
   const handleBulkDelete = async () => {
     if (!window.confirm(`আপনি কি নিশ্চিত যে বাছাইকৃত ${selectedIds.length} জন ছাত্র/ছাত্রীকে মুছে ফেলতে চান?`)) return;
-    try {
-      setLoading(true);
-      await Promise.all(selectedIds.map(id => api.delete(`/students/${id}`)));
-      setSelectedIds([]);
-      fetchStudents();
-    } catch (err) {
-      const errMsg = err.response?.data?.message || 'কিছু ছাত্র/ছাত্রী মুছে ফেলা যায়নি';
-      alert(errMsg);
-      fetchStudents();
-    }
+    bulkDeleteMutation.mutate(selectedIds);
   };
 
   const [showExportModal, setShowExportModal] = useState(false);

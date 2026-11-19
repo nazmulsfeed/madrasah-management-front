@@ -95,9 +95,22 @@ export const queryKeys = {
   },
 
   students: {
-    all: (instId, userId) => [...queryKeys.institution(instId), ...queryKeys.user(userId), 'students'],
-    list: (instId, userId, params) => [...queryKeys.students.all(instId, userId), 'list', params || {}],
-    detail: (instId, userId, studentId) => [...queryKeys.students.all(instId, userId), 'detail', String(studentId)],
+    all: (instId, userId) => [
+      ...queryKeys.institution(instId),
+      ...(userId ? queryKeys.user(userId) : []),
+      'students',
+    ],
+    lists: (instId, userId) => [...queryKeys.students.all(instId, userId), 'list'],
+    list: (instId, userId, params) => [
+      ...queryKeys.students.lists(instId, userId),
+      params ? JSON.parse(JSON.stringify(params)) : {},
+    ],
+    details: (instId, userId) => [...queryKeys.students.all(instId, userId), 'detail'],
+    detail: (instId, userId, studentId) => [
+      ...queryKeys.students.details(instId, userId),
+      studentId ? String(studentId) : 'unspecified',
+    ],
+    stats: (instId, userId) => [...queryKeys.students.all(instId, userId), 'stats'],
   },
 
   attendance: {
