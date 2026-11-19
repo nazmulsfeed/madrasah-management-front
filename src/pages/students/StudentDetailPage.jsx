@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send
 } from 'lucide-react';
 import api from '../../api/axios';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useBranches, useAcademicYears } from '../../hooks/useMetadataQueries';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import usePermissions from '../../hooks/usePermissions';
@@ -25,9 +25,9 @@ export default function StudentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'info');
   const [toast, setToast] = useState(null);
-  const [branches, setBranches] = useState([]);
-  const [academicYears, setAcademicYears] = useState([]);
-  const [classLevels, setClassLevels] = useState([]);
+  const { data: classLevels = [] } = useClasses();
+  const { data: branches = [] } = useBranches();
+  const { data: academicYears = [] } = useAcademicYears();
   const { user: currentUser } = useAuthStore();
   const { myPermissions } = usePermissions();
   const [feesInvoices, setFeesInvoices] = useState([]);
@@ -201,24 +201,8 @@ export default function StudentDetailPage() {
     }
   };
 
-  const fetchBranches = async () => {
-    try {
-      const branchList = await useMetadataStore.getState().fetchBranches();
-      setBranches(branchList || []);
-    } catch (err) {
-      console.error('Failed to load branches', err);
-    }
-  };
-
   useEffect(() => {
     fetchStudent();
-    fetchBranches();
-    useMetadataStore.getState().fetchAcademicYears().then(list => {
-      if (list) setAcademicYears(list);
-    }).catch(err => console.error('Failed to load academic years', err));
-    useMetadataStore.getState().fetchClasses().then(list => {
-      if (list) setClassLevels(list);
-    }).catch(err => console.error('Failed to load classes', err));
   }, [targetId]);
 
   useEffect(() => {

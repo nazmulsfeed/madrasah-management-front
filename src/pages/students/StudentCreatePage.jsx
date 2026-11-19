@@ -5,7 +5,7 @@ import {
   AlertCircle, Loader, User, BookOpen, Key, Calendar, Camera, Trash2 
 } from 'lucide-react';
 import api from '../../api/axios';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useBranches, useAcademicYears } from '../../hooks/useMetadataQueries';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import ImageCropModal from '../../components/common/ImageCropModal';
 
@@ -14,10 +14,10 @@ export default function StudentCreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Dropdown lists
-  const [academicYears, setAcademicYears] = useState([]);
-  const [classLevels, setClassLevels] = useState([]);
-  const [branches, setBranches] = useState([]);
+  // Dropdown lists via TanStack Query
+  const { data: classLevels = [] } = useClasses();
+  const { data: branches = [] } = useBranches();
+  const { data: academicYears = [] } = useAcademicYears();
   const [stream, setStream] = useState('noorani'); // 'noorani' or 'hifz'
 
 
@@ -66,43 +66,32 @@ export default function StudentCreatePage() {
     }
   }, [toast]);
 
-  // Load initial dropdowns
+  // Auto select current academic year when metadata loads (without overwriting user choice)
   useEffect(() => {
-    const fetchDropdowns = async () => {
-      try {
-        const { fetchAcademicYears, fetchClasses, fetchBranches } = useMetadataStore.getState();
-        const [yearsList, classesList, branchesList] = await Promise.all([
-          fetchAcademicYears(),
-          fetchClasses(),
-          fetchBranches()
-        ]);
-        if (yearsList) {
-          setAcademicYears(yearsList);
-          // Auto select current year
-          const currentYear = yearsList.find(y => y.isCurrent);
-          if (currentYear) {
-            setFormData(prev => ({ ...prev, academicYearId: currentYear._id }));
-          }
-        }
-        if (classesList) {
-          setClassLevels(classesList);
-        }
-        if (branchesList) {
-          setBranches(branchesList);
-          const nooraniBranch = branchesList.find(b => b.name === 'নুরানী শাখা' || b.code === 'NOORANI');
-          if (nooraniBranch) {
-            setFormData(prev => ({ 
-              ...prev, 
-              branchId: nooraniBranch._id,
-              department: 'নুরানী বিভাগ'
-            }));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load dropdowns', err);
+    if (academicYears && academicYears.length > 0) {
+      const currentYear = academicYears.find(y => y.isCurrent);
+      if (currentYear) {
+        setFormData(prev => (prev.academicYearId ? prev : { ...prev, academicYearId: currentYear._id }));
       }
-    };
-    fetchDropdowns();
+    }
+  }, [academicYears]);
+
+  // Auto select default Noorani branch when branches load (without overwriting user choice)
+  useEffect(() => {
+    if (branches && branches.length > 0) {
+      const nooraniBranch = branches.find(b => b.name === 'নুরানী শাখা' || b.code === 'NOORANI');
+      if (nooraniBranch) {
+        setFormData(prev => (prev.branchId ? prev : {
+          ...prev,
+          branchId: nooraniBranch._id,
+          department: prev.department || 'নুরানী বিভাগ'
+        }));
+      }
+    }
+  }, [branches]);
+
+  // Load initial next student ID on mount
+  useEffect(() => {
     fetchNextStudentId('male');
   }, []);
 
