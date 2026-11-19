@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, CheckCircle, AlertCircle, Save, Users, Plus, Edit, Trash2, X, Settings } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useInvalidateMetadata } from '../../hooks/useMetadataQueries';
 
 export default function ClassSubjectsPage() {
   const { user } = useAuthStore();
@@ -26,7 +26,8 @@ export default function ClassSubjectsPage() {
     if (isSuperOrAdmin) return true;
     return !!(myPermissions['subject.create'] || myPermissions['subject.update'] || myPermissions['subject.delete']);
   }, [user, myPermissions]);
-  const [classes, setClasses] = useState([]);
+  const { data: classes = [] } = useClasses();
+  const { invalidateClasses } = useInvalidateMetadata();
   const [subjects, setSubjects] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
@@ -67,30 +68,34 @@ export default function ClassSubjectsPage() {
     }
   }, [toast]);
 
-  // Fetch initial classes and all subjects
-  const fetchData = async (force = false) => {
+  // Auto-select first class when classes are loaded
+  useEffect(() => {
+    if (classes && classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0]._id);
+    }
+  }, [classes, selectedClassId]);
+
+  // Fetch all subjects
+  const fetchSubjects = async () => {
     setLoading(true);
     try {
-      const [classList, subjectsRes] = await Promise.all([
-        useMetadataStore.getState().fetchClasses(force),
-        api.get('/students/subjects')
-      ]);
-      setClasses(classList || []);
-      if (classList && classList.length > 0 && !selectedClassId) {
-        setSelectedClassId(classList[0]._id);
-      }
-
+      const subjectsRes = await api.get('/students/subjects');
       setSubjects(subjectsRes.data?.data?.subjects || []);
     } catch (error) {
-      console.error('Error fetching initial data:', error);
+      console.error('Error fetching subjects:', error);
       setToast({ type: 'error', message: 'ডাটা লোড করতে সমস্যা হয়েছে' });
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchData = async () => {
+    invalidateClasses();
+    fetchSubjects();
+  };
+
   useEffect(() => {
-    fetchData();
+    fetchSubjects();
   }, []);
 
   // Fetch subjects of selected class and students in selected class

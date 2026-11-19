@@ -9,7 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useBranches } from '../../hooks/useMetadataQueries';
 import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
@@ -26,6 +26,7 @@ export default function DailyTransactionsPage() {
   const [methodFilter, setMethodFilter] = useState('all');
   const [branchFilter, setBranchFilter] = useState('all');
   const [branchesList, setBranchesList] = useState([]);
+  const { data: dbBranches = [] } = useBranches();
   const [selectedSignatureRoles, setSelectedSignatureRoles] = useState(() => {
     try {
       const saved = localStorage.getItem('annur_footer_roles__daily_transactions');
@@ -45,21 +46,13 @@ export default function DailyTransactionsPage() {
     type: 'all' // all, income, expense
   });
 
-  // Pre-load all registered branches from settings/students API
+  // Pre-load all registered branches from metadata query
   useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const branchList = await useMetadataStore.getState().fetchBranches();
-        if (branchList) {
-          const names = branchList.map(b => b.name).filter(Boolean);
-          setBranchesList(prev => Array.from(new Set([...prev, ...names])));
-        }
-      } catch (err) {
-        console.error('Failed to load branches:', err);
-      }
-    };
-    fetchBranches();
-  }, []);
+    if (dbBranches && dbBranches.length > 0) {
+      const names = dbBranches.map(b => b.name).filter(Boolean);
+      setBranchesList(prev => Array.from(new Set([...prev, ...names])));
+    }
+  }, [dbBranches]);
 
   const fetchTransactions = async () => {
     try {

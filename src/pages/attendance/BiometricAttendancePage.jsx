@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSections } from '../../hooks/useMetadataQueries';
 
 export default function BiometricAttendancePage() {
   const { user } = useAuthStore();
@@ -23,8 +23,8 @@ export default function BiometricAttendancePage() {
   const [usersList, setUsersList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userStats, setUserStats] = useState({ total: 0, notUploaded: 0, needsUpdate: 0, synced: 0 });
-  const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
+  const { data: classes = [] } = useClasses();
+  const { data: sections = [] } = useSections();
 
   // Filters
   const [filterType, setFilterType] = useState('all'); // all, student, teacher
@@ -84,31 +84,12 @@ export default function BiometricAttendancePage() {
   // Global Message / Alert
   const [message, setMessage] = useState(null);
 
-  // Load initial metadata and settings
+  // Load initial settings and data (classes & sections are reactively provided by useClasses & useSections)
   useEffect(() => {
-    fetchMetadata();
     fetchBiometricSettings();
     fetchDevices();
     fetchBiometricUsers();
   }, []);
-
-  const fetchMetadata = async () => {
-    try {
-      const { fetchClasses, fetchSections } = useMetadataStore.getState();
-      const [classList, sectionList] = await Promise.all([
-        fetchClasses(),
-        fetchSections(),
-      ]);
-      if (classList) {
-        setClasses(classList);
-      }
-      if (sectionList) {
-        setSections(sectionList);
-      }
-    } catch (e) {
-      console.warn('Metadata fetch error:', e);
-    }
-  };
 
   const fetchBiometricSettings = async () => {
     try {
