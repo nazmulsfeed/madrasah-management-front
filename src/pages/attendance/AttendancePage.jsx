@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useBranches, useSections, filterSectionsByClass } from '../../hooks/useMetadataQueries';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getMadrasahInfo } from '../../utils/helpers';
@@ -43,10 +43,11 @@ export default function AttendancePage() {
   });
   const [endDate, setEndDate] = useState(todayStr);
 
-  // Filters
-  const [classes, setClasses] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [dbSections, setDbSections] = useState([]);
+  // Filters via TanStack Query
+  const { data: classes = [], isLoading: classesLoading } = useClasses({ enabled: canMarkAttendance });
+  const { data: branches = [], isLoading: branchesLoading } = useBranches({ enabled: canMarkAttendance });
+  const { data: dbSections = [], isLoading: sectionsLoading } = useSections({ enabled: canMarkAttendance });
+  const metaLoading = canMarkAttendance ? (classesLoading || branchesLoading || sectionsLoading) : false;
 
   const [selectedClass, setSelectedClass] = useState('all'); // 'all' or class ID
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -64,7 +65,6 @@ export default function AttendancePage() {
   const [matrixAttendance, setMatrixAttendance] = useState({});
 
   const [loading, setLoading] = useState(false);
-  const [metaLoading, setMetaLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: '' }
   const [historyRecords, setHistoryRecords] = useState([]);
@@ -257,34 +257,9 @@ export default function AttendancePage() {
     }
   };
 
-  // Fetch initial metadata (classes, branches, sections) & biometric settings
+  // Fetch biometric cutoff settings
   useEffect(() => {
-    if (!canMarkAttendance) {
-      setMetaLoading(false);
-      return;
-    }
-    const fetchMetadata = async () => {
-      try {
-        const { fetchClasses, fetchBranches, fetchSections } = useMetadataStore.getState();
-        const [classList, branchList, sectionList] = await Promise.all([
-          fetchClasses(),
-          fetchBranches(),
-          fetchSections()
-        ]);
-
-        setClasses(classList || []);
-        setBranches(branchList || []);
-        setDbSections(sectionList || []);
-      } catch (err) {
-        console.error('Failed to fetch metadata', err);
-        setToast({ type: 'error', message: 'মেটাডাটা লোড করতে সমস্যা হয়েছে' });
-      } finally {
-        setMetaLoading(false);
-      }
-    };
-    fetchMetadata();
-
-    // Fetch biometric cutoff settings
+    if (!isSuperOrAdmin) return;
     const fetchBioSettings = async () => {
       try {
         setLoadingBioSettings(true);
@@ -300,10 +275,8 @@ export default function AttendancePage() {
         setLoadingBioSettings(false);
       }
     };
-    if (isSuperOrAdmin) {
-      fetchBioSettings();
-    }
-  }, [canMarkAttendance, isSuperOrAdmin]);
+    fetchBioSettings();
+  }, [isSuperOrAdmin]);
 
   // সেভ কাট-অফ ও অটো-অ্যাবসেন্ট সেটিংস
   const handleSaveCutoffSettings = async (e) => {
@@ -349,17 +322,28 @@ export default function AttendancePage() {
     }
   };
 
-  // Combined Section Options
+  // Combined Section Options filtered by selected class and branch
   const availableSectionOptions = useMemo(() => {
     const options = [
       { value: 'all', label: 'সকল সেকশন (All Sections)' }
     ];
 
+    let filteredDbSections = dbSections;
+    if (selectedClass && selectedClass !== 'all') {
+      filteredDbSections = filterSectionsByClass(filteredDbSections, selectedClass);
+    }
+    if (selectedBranch) {
+      filteredDbSections = filteredDbSections.filter(s => {
+        const sBranchId = s.branch?._id || s.branch;
+        return !sBranchId || String(sBranchId) === String(selectedBranch);
+      });
+    }
+
     SECTION_OPTIONS.forEach(sec => {
       options.push({ value: sec, label: `সেকশন ${sec}` });
     });
 
-    dbSections.forEach(s => {
+    filteredDbSections.forEach(s => {
       const sName = (s.name || '').trim();
       if (sName && !SECTION_OPTIONS.includes(sName) && !options.some(o => o.value === s._id || o.label === sName)) {
         options.push({ value: s._id, label: sName });
@@ -367,7 +351,36 @@ export default function AttendancePage() {
     });
 
     return options;
-  }, [dbSections]);
+  }, [dbSections, selectedClass, selectedBranch]);
+
+  // Validate and reset selectedSection if invalid when selectedClass or selectedBranch changes
+  useEffect(() => {
+    if (selectedSection && selectedSection !== 'all' && (selectedClass !== 'all' || selectedBranch)) {
+      const matchingClassSections = filterSectionsByClass(dbSections, selectedClass === 'all' ? undefined : selectedClass);
+      const matchingSections = selectedBranch
+        ? matchingClassSections.filter(s => {
+            const sBranchId = s.branch?._id || s.branch;
+            return !sBranchId || String(sBranchId) === String(selectedBranch);
+          })
+        : matchingClassSections;
+
+      if (matchingClassSections.length > 0) {
+        const isValid = matchingSections.some(s => {
+          const sName = (s.name || '').trim();
+          const sId = String(s._id || s.id);
+          if (selectedSection === sId || selectedSection === sName) return true;
+          if (selectedSection === 'কোন সেকশন নাই') {
+            return sName.includes('কোন সেকশন নাই') || sName.includes('কোন শাখা নাই') || sName.includes('নাই');
+          }
+          return sName === selectedSection || sName.startsWith(selectedSection);
+        });
+
+        if (!isValid) {
+          setSelectedSection('all');
+        }
+      }
+    }
+  }, [selectedClass, selectedBranch, dbSections, selectedSection]);
 
   // Helper: Get array of date strings between startDate and endDate
   const dateRangeList = useMemo(() => {
