@@ -5,7 +5,7 @@ import SeatPlanGenerator from '../../components/exams/SeatPlanGenerator';
 import AdmitCardGenerator from '../../components/exams/AdmitCardGenerator';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSections, filterSectionsByClass } from '../../hooks/useMetadataQueries';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { formatDateDDMMYYYY, getMadrasahInfo, getNumericRoll, parseBnToEnNumber, toBnNumber } from '../../utils/helpers';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -60,8 +60,9 @@ export default function ExamPage({ initialViewMode }) {
   const location = useLocation();
   const { user } = useAuthStore();
   const { madrasahName, branchName } = getMadrasahInfo(user);
+  const { data: classes = [], refetch: refetchClasses } = useClasses();
+  const { data: allSections = [], refetch: refetchSections } = useSections();
   const [exams, setExams] = useState([]);
-  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [selectedSignatureRoles, setSelectedSignatureRoles] = useState(() => {
@@ -226,10 +227,11 @@ export default function ExamPage({ initialViewMode }) {
 
   const fetchClasses = async () => {
     try {
-      const clsList = await useMetadataStore.getState().fetchClasses();
-      setClasses(clsList || []);
+      const result = await refetchClasses();
+      return result.data || classes;
     } catch (error) {
       console.error('Error fetching classes:', error);
+      return classes;
     }
   };
 
@@ -446,14 +448,27 @@ export default function ExamPage({ initialViewMode }) {
       
       // 2. Fetch sections for the classLevel (centralized metadata cache with fallback)
       try {
-        const { fetchSections, getSectionsByClass } = useMetadataStore.getState();
-        await fetchSections();
-        const filteredSecs = getSectionsByClass(classLevelId);
+        let filteredSecs = filterSectionsByClass(allSections, classLevelId);
+        if (!filteredSecs || filteredSecs.length === 0) {
+          const refetchRes = await refetchSections();
+          filteredSecs = filterSectionsByClass(refetchRes.data || [], classLevelId);
+        }
+        if (!filteredSecs || filteredSecs.length === 0) {
+          const sectionsRes = await api.get(`/students/sections?classLevel=${classLevelId}`);
+          if (sectionsRes.data?.success) {
+            filteredSecs = sectionsRes.data.data?.sections || [];
+          }
+        }
         setSections(filteredSecs || []);
       } catch (_) {
-        const sectionsRes = await api.get(`/students/sections?classLevel=${classLevelId}`);
-        if (sectionsRes.data?.success) {
-          setSections(sectionsRes.data.data?.sections || []);
+        try {
+          const sectionsRes = await api.get(`/students/sections?classLevel=${classLevelId}`);
+          if (sectionsRes.data?.success) {
+            setSections(sectionsRes.data.data?.sections || []);
+          }
+        } catch (secErr) {
+          console.warn('Failed to fetch sections for mark entry fallback:', secErr);
+          setSections([]);
         }
       }
 
