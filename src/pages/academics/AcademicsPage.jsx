@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, Plus, Clock, Calendar, Edit, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useAcademicYears, useInvalidateMetadata } from '../../hooks/useMetadataQueries';
 
 export default function AcademicsPage() {
   const { user } = useAuthStore();
@@ -21,13 +21,14 @@ export default function AcademicsPage() {
   }, [user, myPermissions]);
   const [activeTab, setActiveTab] = useState('subjects');
   const [subjects, setSubjects] = useState([]);
-  const [classes, setClasses] = useState([]);
+  const { data: classes = [] } = useClasses();
+  const { data: academicYears = [] } = useAcademicYears();
+  const { invalidateAcademicYears, invalidateClasses } = useInvalidateMetadata();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
   // Academic Year State
-  const [academicYears, setAcademicYears] = useState([]);
   const [isAYModalOpen, setIsAYModalOpen] = useState(false);
   const [aySubmitting, setAYSubmitting] = useState(false);
   const [editAYId, setEditAYId] = useState(null);
@@ -100,18 +101,15 @@ export default function AcademicsPage() {
     }
   };
 
-  const fetchClasses = async (force = false) => {
-    try {
-      const classList = await useMetadataStore.getState().fetchClasses(force);
-      if (classList) {
-        setClasses(classList);
-        if (classList.length > 0) {
-          setSelectedClassId(classList[0]._id);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching classes:', error);
+  // Auto-select initial class for timetable if not already selected
+  useEffect(() => {
+    if (classes.length > 0) {
+      setSelectedClassId(prev => prev ? prev : classes[0]._id);
     }
+  }, [classes]);
+
+  const fetchClasses = (force = false) => {
+    if (force) invalidateClasses();
   };
 
   const fetchTeachers = async () => {
@@ -125,23 +123,14 @@ export default function AcademicsPage() {
     }
   };
 
-  const fetchAcademicYears = async (force = false) => {
-    try {
-      const list = await useMetadataStore.getState().fetchAcademicYears(force);
-      if (list) {
-        setAcademicYears(list);
-      }
-    } catch (error) {
-      console.error('Error fetching academic years:', error);
-    }
+  const fetchAcademicYears = (force = false) => {
+    if (force) invalidateAcademicYears();
   };
 
   // Initialize Timetable and Calendar from Backend API & LocalStorage
   useEffect(() => {
     fetchSubjects();
-    fetchClasses();
     fetchTeachers();
-    fetchAcademicYears();
 
     // Fetch Public/Centralized Timetable
     api.get('/academics/public/timetable')
