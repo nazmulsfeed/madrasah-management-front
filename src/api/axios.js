@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { cancelAndClearQueries } from '../lib/queryClient';
 
 const getBaseURL = () => {
   if (import.meta.env.VITE_API_URL) {
@@ -32,13 +33,21 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — 401 হলে logout
+// Response interceptor — 401 হলে logout ও কোয়েরি ক্যাশ ক্লিয়ারিং
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // AbortSignal দ্বারা ক্যানসেল হওয়া রিকোয়েস্ট কোনো অথ ফেইলিওর নয়, বরং ইচ্ছাকৃত অ্যাবোর্ট
+    if (axios.isCancel(error) || error?.name === 'CanceledError') {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
+      // সেশন অবৈধ হলে ইন-ফ্লাইট কোয়েরি ক্যানসেল এবং সম্পূর্ণ ক্যাশ ক্লিয়ার করা
+      cancelAndClearQueries();
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('userPermissions');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

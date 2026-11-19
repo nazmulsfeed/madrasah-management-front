@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../api/axios';
 import useMetadataStore from './metadataStore';
+import { cancelAndClearQueries } from '../lib/queryClient';
 
 const getSafeInitialUser = () => {
   try {
@@ -90,6 +91,7 @@ const useAuthStore = create((set, get) => ({
         isLoading: false,
         error: null
       });
+      cancelAndClearQueries();
       useMetadataStore.getState().clearMetadata();
       return true;
     } catch (err) {
@@ -100,6 +102,7 @@ const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    cancelAndClearQueries();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userPermissions');
