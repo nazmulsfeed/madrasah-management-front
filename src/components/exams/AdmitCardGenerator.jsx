@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSectionsByClass } from '../../hooks/useMetadataQueries';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll, formatDateDDMMYYYY } from '../../utils/helpers';
 
 /**
@@ -50,12 +50,15 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const { user } = useAuthStore();
   const madrasah = useMemo(() => getMadrasahInfo(user), [user]);
 
-  // Safe Props
+  // Safe Props & Query fallback for classes
+  const { data: queryClasses = [] } = useClasses({ enabled: !classes || classes.length === 0 });
+  const resolvedClasses = (classes && classes.length > 0) ? classes : queryClasses;
+
   const safeClasses = useMemo(() => {
-    if (Array.isArray(classes)) return classes;
-    if (classes && Array.isArray(classes.classes)) return classes.classes;
+    if (Array.isArray(resolvedClasses)) return resolvedClasses;
+    if (resolvedClasses && Array.isArray(resolvedClasses.classes)) return resolvedClasses.classes;
     return [];
-  }, [classes]);
+  }, [resolvedClasses]);
 
   const safeExams = useMemo(() => {
     if (Array.isArray(exams)) return exams;
@@ -68,8 +71,11 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [sections, setSections] = useState([]);
-  
+
+  // Dependent sections via TanStack Query (in-memory filtered from cached sections)
+  const { data: classSections = [] } = useSectionsByClass(selectedClassId, { enabled: Boolean(selectedClassId) });
+  const sections = useMemo(() => (!selectedClassId ? [] : classSections), [selectedClassId, classSections]);
+
   // Data States
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -115,26 +121,25 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     }
   }, [safeExams, selectedExamId]);
 
-  // Fetch sections when class changes
+  // Reset selected section if class changes or if previously selected section is no longer valid
+  const prevClassIdRef = useRef(selectedClassId);
   useEffect(() => {
-    if (!selectedClassId) {
-      setSections([]);
+    if (prevClassIdRef.current !== selectedClassId) {
+      prevClassIdRef.current = selectedClassId;
       setSelectedSection('all');
       return;
     }
-    const fetchSections = async () => {
-      try {
-        const { fetchSections: loadSecs, getSectionsByClass } = useMetadataStore.getState();
-        await loadSecs();
-        const data = getSectionsByClass(selectedClassId);
-        setSections(data || []);
+    if (!selectedClassId) {
+      if (selectedSection !== 'all') setSelectedSection('all');
+      return;
+    }
+    if (selectedSection && selectedSection !== 'all') {
+      const isValid = sections.some(s => (s._id || s.id) === selectedSection || s.name === selectedSection);
+      if (!isValid) {
         setSelectedSection('all');
-      } catch (err) {
-        setSections([]);
       }
-    };
-    fetchSections();
-  }, [selectedClassId]);
+    }
+  }, [selectedClassId, sections, selectedSection]);
 
   // Fetch students from backend with bulletproof fallback
   const fetchStudents = async () => {

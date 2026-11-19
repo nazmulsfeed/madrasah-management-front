@@ -17,7 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import api from '../../api/axios';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSectionsByClass } from '../../hooks/useMetadataQueries';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll } from '../../utils/helpers';
 
 /**
@@ -33,18 +33,25 @@ const logoFallbackSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2
 export default function SeatPlanGenerator({ selectedExam = null, classes = [], user = null }) {
   const madrasahInfo = useMemo(() => getMadrasahInfo(user), [user]);
 
+  // Safe Props & Query fallback for classes
+  const { data: queryClasses = [] } = useClasses({ enabled: !classes || classes.length === 0 });
+  const resolvedClasses = (classes && classes.length > 0) ? classes : queryClasses;
+
   const safeClasses = useMemo(() => {
-    if (Array.isArray(classes)) return classes;
-    if (classes && Array.isArray(classes.classes)) return classes.classes;
+    if (Array.isArray(resolvedClasses)) return resolvedClasses;
+    if (resolvedClasses && Array.isArray(resolvedClasses.classes)) return resolvedClasses.classes;
     return [];
-  }, [classes]);
+  }, [resolvedClasses]);
 
   // Exams and classes states
   const [examsList, setExamsList] = useState([]);
   const [activeExamId, setActiveExamId] = useState(selectedExam?._id || '');
   const [selectedClassId, setSelectedClassId] = useState(selectedExam?.classLevel?._id || selectedExam?.classLevel || '');
-  const [sectionsList, setSectionsList] = useState([]);
   const [selectedSection, setSelectedSection] = useState('all');
+
+  // Dependent sections via TanStack Query (in-memory filtered from cached sections)
+  const { data: classSections = [] } = useSectionsByClass(selectedClassId, { enabled: Boolean(selectedClassId) });
+  const sectionsList = useMemo(() => (!selectedClassId ? [] : classSections), [selectedClassId, classSections]);
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [academicYear, setAcademicYear] = useState(selectedExam?.academicYear || '2026');
   const [customExamTitle, setCustomExamTitle] = useState(selectedExam?.name || 'বার্ষিক পরীক্ষা - ২০২৬');
@@ -121,25 +128,19 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
     }
   }, [activeExamId, examsList]);
 
-  // Fetch sections when class changes
+  // Reset selected section if it is no longer valid for the selected class
   useEffect(() => {
     if (!selectedClassId) {
-      setSectionsList([]);
+      if (selectedSection !== 'all') setSelectedSection('all');
       return;
     }
-    const fetchSections = async () => {
-      try {
-        const { fetchSections: loadSecs, getSectionsByClass } = useMetadataStore.getState();
-        await loadSecs();
-        const data = getSectionsByClass(selectedClassId);
-        setSectionsList(data || []);
-      } catch (e) {
-        console.warn('Failed to load sections:', e);
-        setSectionsList([]);
+    if (selectedSection && selectedSection !== 'all') {
+      const isValid = sectionsList.some(s => (s._id || s.id) === selectedSection || s.name === selectedSection);
+      if (!isValid) {
+        setSelectedSection('all');
       }
-    };
-    fetchSections();
-  }, [selectedClassId]);
+    }
+  }, [selectedClassId, sectionsList, selectedSection]);
 
   // Load students for the selected class/section
   const fetchStudents = async () => {

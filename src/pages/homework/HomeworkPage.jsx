@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses } from '../../hooks/useMetadataQueries';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getNextWorkingDay, formatDateDDMMYYYY } from '../../utils/helpers';
@@ -168,6 +168,7 @@ export default function HomeworkPage() {
   const [dateFilter, setDateFilter] = useState('today');
   const [customDate, setCustomDate] = useState('');
 
+  const { data: dbClasses = [] } = useClasses();
   const [classes, setClasses] = useState([]);
   const [modalSubjects, setModalSubjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -333,24 +334,24 @@ export default function HomeworkPage() {
   };
 
   useEffect(() => {
-    const fetchClassesAndStudents = async () => {
+    if (dbClasses && dbClasses.length > 0) {
+      setClasses(dbClasses);
+      fetchFilterOptions(dbClasses);
+    }
+  }, [dbClasses]);
+
+  useEffect(() => {
+    const fetchStudentsList = async () => {
       try {
-        const [loadedClasses, resStudents] = await Promise.all([
-          useMetadataStore.getState().fetchClasses(),
-          api.get('/students', { params: { limit: 500 } }).catch(() => ({ data: {} }))
-        ]);
-        if (loadedClasses && loadedClasses.length > 0) {
-          setClasses(loadedClasses);
-          fetchFilterOptions(loadedClasses);
-        }
+        const resStudents = await api.get('/students', { params: { limit: 500 } }).catch(() => ({ data: {} }));
         if (resStudents.data?.success) {
           setStudents(resStudents.data.data || []);
         }
       } catch (err) {
-        console.error('Failed to fetch initial metadata:', err);
+        console.error('Failed to fetch initial students:', err);
       }
     };
-    fetchClassesAndStudents();
+    fetchStudentsList();
   }, []);
 
   useEffect(() => {
