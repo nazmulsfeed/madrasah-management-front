@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import RouteLoadingFallback from '../components/common/RouteLoadingFallback';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
+import usePermissions from '../hooks/usePermissions';
 import {
   LogOut,
   Moon,
@@ -29,9 +30,9 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const [myPermissions, setMyPermissions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
-  });
+  const { myPermissions } = usePermissions();
+
+
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -81,20 +82,7 @@ export default function DashboardLayout() {
   };
 
 
-  // Fetch and cache user permissions
-  useEffect(() => {
-    const fetchPerms = async () => {
-      try {
-        const res = await api.get('/permissions/me');
-        if (res.data.success) {
-          const perms = res.data.data;
-          localStorage.setItem('userPermissions', JSON.stringify(perms));
-          setMyPermissions(perms);
-        }
-      } catch (_) {}
-    };
-    if (user) fetchPerms();
-  }, [user]);
+
 
 
 

@@ -17,6 +17,7 @@ import {
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
 import { getVisibleNavigation } from '../../utils/navigationConfig';
+import usePermissions from '../../hooks/usePermissions';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -36,24 +37,8 @@ export default function DashboardPage() {
     activities: [],
   });
 
-  const [myPermissions, setMyPermissions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
-  });
+  const { myPermissions } = usePermissions();
   const [activeCategory, setActiveCategory] = useState('all');
-
-  useEffect(() => {
-    const fetchPerms = async () => {
-      try {
-        const res = await api.get('/permissions/me');
-        if (res.data.success) {
-          const perms = res.data.data;
-          localStorage.setItem('userPermissions', JSON.stringify(perms));
-          setMyPermissions(perms);
-        }
-      } catch (_) {}
-    };
-    fetchPerms();
-  }, []);
 
   const visibleGroups = useMemo(() => {
     return getVisibleNavigation(user, myPermissions);

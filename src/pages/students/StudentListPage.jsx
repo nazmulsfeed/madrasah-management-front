@@ -20,6 +20,7 @@ import {
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
+import usePermissions from '../../hooks/usePermissions';
 import StudentExportModal from '../../components/students/StudentExportModal';
 import { getMadrasahInfo } from '../../utils/helpers';
 import AuditBadge from '../../components/common/AuditBadge';
@@ -35,23 +36,7 @@ const statusLabels = {
 export default function StudentListPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [myPermissions, setMyPermissions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
-  });
-
-  useEffect(() => {
-    const fetchPerms = async () => {
-      try {
-        const res = await api.get('/permissions/me');
-        if (res.data.success) {
-          const perms = res.data.data;
-          localStorage.setItem('userPermissions', JSON.stringify(perms));
-          setMyPermissions(perms);
-        }
-      } catch (e) {}
-    };
-    if (user) fetchPerms();
-  }, [user]);
+  const { myPermissions } = usePermissions();
 
   const isSuperOrCoSuper = ['super_admin', 'co_super_admin'].includes(user?.userType) || 
                            ['co_super_admin'].includes(user?.adminRole);

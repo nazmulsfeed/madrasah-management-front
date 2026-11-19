@@ -8,6 +8,7 @@ import {
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
+import usePermissions from '../../hooks/usePermissions';
 import ImageCropModal from '../../components/common/ImageCropModal';
 import AuditBadge from '../../components/common/AuditBadge';
 import { formatDateDDMMYYYY } from '../../utils/helpers';
@@ -27,9 +28,7 @@ export default function StudentDetailPage() {
   const [academicYears, setAcademicYears] = useState([]);
   const [classLevels, setClassLevels] = useState([]);
   const { user: currentUser } = useAuthStore();
-  const [myPermissions, setMyPermissions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
-  });
+  const { myPermissions } = usePermissions();
   const [feesInvoices, setFeesInvoices] = useState([]);
   const [loadingFees, setLoadingFees] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -78,19 +77,6 @@ export default function StudentDetailPage() {
     }
   }, [activeTab, student?._id]);
 
-  useEffect(() => {
-    const fetchPerms = async () => {
-      try {
-        const res = await api.get('/permissions/me');
-        if (res.data.success) {
-          const perms = res.data.data;
-          localStorage.setItem('userPermissions', JSON.stringify(perms));
-          setMyPermissions(perms);
-        }
-      } catch (e) {}
-    };
-    if (currentUser) fetchPerms();
-  }, [currentUser]);
 
   const isSuperOrCoSuper = ['super_admin', 'co_super_admin'].includes(currentUser?.userType) || 
                            ['co_super_admin'].includes(currentUser?.adminRole);
