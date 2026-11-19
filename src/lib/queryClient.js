@@ -75,13 +75,17 @@ export const queryKeys = {
     homework: () => ['public', 'homework'],
   },
 
-  // Institution-wide metadata (classes, sections, branches, academic years)
+  // Institution-wide and user-scoped metadata (classes, sections, branches, academic years)
   metadata: {
-    all: (instId) => [...queryKeys.institution(instId), 'metadata'],
-    classes: (instId) => [...queryKeys.metadata.all(instId), 'classes'],
-    sections: (instId) => [...queryKeys.metadata.all(instId), 'sections'],
-    branches: (instId) => [...queryKeys.metadata.all(instId), 'branches'],
-    academicYears: (instId) => [...queryKeys.metadata.all(instId), 'academicYears'],
+    all: (instId, userId) => [
+      ...queryKeys.institution(instId),
+      ...(userId ? queryKeys.user(userId) : []),
+      'metadata',
+    ],
+    classes: (instId, userId) => [...queryKeys.metadata.all(instId, userId), 'classes'],
+    sections: (instId, userId) => [...queryKeys.metadata.all(instId, userId), 'sections'],
+    branches: (instId, userId) => [...queryKeys.metadata.all(instId, userId), 'branches'],
+    academicYears: (instId, userId) => [...queryKeys.metadata.all(instId, userId), 'academicYears'],
   },
 
   // User & Institution scoped entities (role-restricted views)

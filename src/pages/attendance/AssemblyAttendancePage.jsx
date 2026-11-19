@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useSections } from '../../hooks/useMetadataQueries';
 import { getMadrasahInfo } from '../../utils/helpers';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -77,8 +77,8 @@ export default function AssemblyAttendancePage() {
 
   // Filters & State
   const [date, setDate] = useState(getBDTodayStr());
-  const [classes, setClasses] = useState([]);
-  const [dbSections, setDbSections] = useState([]);
+  const { data: classes = [] } = useClasses();
+  const { data: dbSections = [] } = useSections();
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedSection, setSelectedSection] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -218,23 +218,7 @@ export default function AssemblyAttendancePage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // 1. Fetch Classes & Sections
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const { fetchClasses, fetchSections } = useMetadataStore.getState();
-        const [clsList, secList] = await Promise.all([
-          fetchClasses(),
-          fetchSections(),
-        ]);
-        if (clsList) setClasses(clsList);
-        if (secList) setDbSections(secList);
-      } catch (err) {
-        console.error('Error fetching classes/sections:', err);
-      }
-    };
-    fetchMetadata();
-  }, []);
+  // 1. Classes & Sections are reactively provided by useClasses & useSections hooks with TanStack Query caching
 
   // Combine standard SECTION_OPTIONS with database sections for reliable section filtering
   const availableSectionOptions = useMemo(() => {
