@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import useMetadataStore from '../../store/metadataStore';
+import { useClasses, useInvalidateMetadata } from '../../hooks/useMetadataQueries';
 import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -21,9 +21,10 @@ const MONTHS = [
 export default function FeesPage() {
   const { user } = useAuthStore();
   const { madrasahName, branchName } = getMadrasahInfo(user);
+  const { data: classes = [], refetch: refetchClasses } = useClasses();
+  const { invalidateClasses } = useInvalidateMetadata();
   const [invoices, setInvoices] = useState([]);
   const [students, setStudents] = useState([]);
-  const [classes, setClasses] = useState([]);
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [pendingPayments, setPendingPayments] = useState([]);
@@ -268,8 +269,12 @@ export default function FeesPage() {
 
   const fetchClasses = async (force = false) => {
     try {
-      const clsList = await useMetadataStore.getState().fetchClasses(force);
-      setClasses(clsList || []);
+      let clsList = classes;
+      if (force) {
+        await invalidateClasses();
+        const res = await refetchClasses();
+        clsList = res.data || classes;
+      }
       const fees = {};
       (clsList || []).forEach(c => {
         fees[c._id] = {
@@ -280,10 +285,33 @@ export default function FeesPage() {
         };
       });
       setClassFeeInputs(fees);
+      return clsList;
     } catch (error) {
       console.error('Error fetching classes:', error);
+      return classes;
     }
   };
+
+  useEffect(() => {
+    if (classes && classes.length > 0) {
+      setClassFeeInputs(prev => {
+        const fees = { ...prev };
+        let updated = false;
+        classes.forEach(c => {
+          if (!fees[c._id]) {
+            fees[c._id] = {
+              monthlyFee: c.monthlyFee || 0,
+              admissionFee: c.admissionFee || 0,
+              sessionFee: c.sessionFee || 0,
+              examFee: c.examFee || 0
+            };
+            updated = true;
+          }
+        });
+        return updated ? fees : prev;
+      });
+    }
+  }, [classes]);
 
   const fetchPendingPayments = async () => {
     if (!canManage) return;
@@ -674,7 +702,7 @@ export default function FeesPage() {
       await Promise.all(promises);
       setToast({ type: 'success', message: 'সকল শ্রেণির ফি সফলভাবে সংরক্ষণ করা হয়েছে' });
       setIsClassFeeModalOpen(false);
-      fetchClasses(true);
+      await fetchClasses(true);
       fetchStudents();
     } catch (error) {
       console.error('Error saving all class fees:', error);
