@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, Plus, Clock, Calendar, Edit, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 
 export default function AcademicsPage() {
   const { user } = useAuthStore();
@@ -99,11 +100,10 @@ export default function AcademicsPage() {
     }
   };
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (force = false) => {
     try {
-      const res = await api.get('/students/classes');
-      if (res.data.success) {
-        const classList = res.data.data.classes || [];
+      const classList = await useMetadataStore.getState().fetchClasses(force);
+      if (classList) {
         setClasses(classList);
         if (classList.length > 0) {
           setSelectedClassId(classList[0]._id);
@@ -125,11 +125,11 @@ export default function AcademicsPage() {
     }
   };
 
-  const fetchAcademicYears = async () => {
+  const fetchAcademicYears = async (force = false) => {
     try {
-      const res = await api.get('/students/academic-years');
-      if (res.data.success) {
-        setAcademicYears(res.data.data.academicYears || []);
+      const list = await useMetadataStore.getState().fetchAcademicYears(force);
+      if (list) {
+        setAcademicYears(list);
       }
     } catch (error) {
       console.error('Error fetching academic years:', error);
@@ -331,7 +331,7 @@ export default function AcademicsPage() {
           type: 'success',
           message: editAYId ? 'শিক্ষাবর্ষ সফলভাবে আপডেট করা হয়েছে!' : 'শিক্ষাবর্ষ সফলভাবে তৈরি করা হয়েছে!'
         });
-        fetchAcademicYears();
+        fetchAcademicYears(true);
       }
     } catch (error) {
       console.error('Failed to save academic year', error);
@@ -348,7 +348,7 @@ export default function AcademicsPage() {
       const res = await api.delete(`/students/academic-years/${id}`);
       if (res.data.success) {
         setToast({ type: 'success', message: 'শিক্ষাবর্ষ সফলভাবে মুছে ফেলা হয়েছে!' });
-        fetchAcademicYears();
+        fetchAcademicYears(true);
       }
     } catch (error) {
       console.error('Failed to delete academic year', error);
@@ -363,7 +363,7 @@ export default function AcademicsPage() {
       const res = await api.patch(`/students/academic-years/${id}`, { isCurrent: true });
       if (res.data.success) {
         setToast({ type: 'success', message: 'চলতি শিক্ষাবর্ষ পরিবর্তন করা হয়েছে!' });
-        fetchAcademicYears();
+        fetchAcademicYears(true);
       }
     } catch (error) {
       console.error('Failed to toggle current academic year', error);

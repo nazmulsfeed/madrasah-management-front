@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getNextWorkingDay, formatDateDDMMYYYY } from '../../utils/helpers';
@@ -334,12 +335,11 @@ export default function HomeworkPage() {
   useEffect(() => {
     const fetchClassesAndStudents = async () => {
       try {
-        const [resClasses, resStudents] = await Promise.all([
-          api.get('/students/classes').catch(() => ({ data: {} })),
+        const [loadedClasses, resStudents] = await Promise.all([
+          useMetadataStore.getState().fetchClasses(),
           api.get('/students', { params: { limit: 500 } }).catch(() => ({ data: {} }))
         ]);
-        if (resClasses.data?.success) {
-          const loadedClasses = resClasses.data.data.classes || [];
+        if (loadedClasses && loadedClasses.length > 0) {
           setClasses(loadedClasses);
           fetchFilterOptions(loadedClasses);
         }

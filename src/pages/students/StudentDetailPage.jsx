@@ -6,6 +6,7 @@ import {
   Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send
 } from 'lucide-react';
 import api from '../../api/axios';
+import useMetadataStore from '../../store/metadataStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import usePermissions from '../../hooks/usePermissions';
@@ -202,10 +203,8 @@ export default function StudentDetailPage() {
 
   const fetchBranches = async () => {
     try {
-      const res = await api.get('/students/branches');
-      if (res.data.success) {
-        setBranches(res.data.data.branches || []);
-      }
+      const branchList = await useMetadataStore.getState().fetchBranches();
+      setBranches(branchList || []);
     } catch (err) {
       console.error('Failed to load branches', err);
     }
@@ -214,11 +213,11 @@ export default function StudentDetailPage() {
   useEffect(() => {
     fetchStudent();
     fetchBranches();
-    api.get('/students/academic-years').then(res => {
-      if (res.data.success) setAcademicYears(res.data.data.academicYears || []);
+    useMetadataStore.getState().fetchAcademicYears().then(list => {
+      if (list) setAcademicYears(list);
     }).catch(err => console.error('Failed to load academic years', err));
-    api.get('/students/classes').then(res => {
-      if (res.data.success) setClassLevels(res.data.data.classes || []);
+    useMetadataStore.getState().fetchClasses().then(list => {
+      if (list) setClassLevels(list);
     }).catch(err => console.error('Failed to load classes', err));
   }, [targetId]);
 

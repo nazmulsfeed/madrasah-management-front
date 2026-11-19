@@ -9,6 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
@@ -48,9 +49,9 @@ export default function DailyTransactionsPage() {
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const res = await api.get('/students/branches');
-        if (res.data?.success && res.data.data?.branches) {
-          const names = res.data.data.branches.map(b => b.name).filter(Boolean);
+        const branchList = await useMetadataStore.getState().fetchBranches();
+        if (branchList) {
+          const names = branchList.map(b => b.name).filter(Boolean);
           setBranchesList(prev => Array.from(new Set([...prev, ...names])));
         }
       } catch (err) {

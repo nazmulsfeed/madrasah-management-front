@@ -5,6 +5,7 @@ import SeatPlanGenerator from '../../components/exams/SeatPlanGenerator';
 import AdmitCardGenerator from '../../components/exams/AdmitCardGenerator';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { formatDateDDMMYYYY, getMadrasahInfo, getNumericRoll, parseBnToEnNumber, toBnNumber } from '../../utils/helpers';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -225,10 +226,8 @@ export default function ExamPage({ initialViewMode }) {
 
   const fetchClasses = async () => {
     try {
-      const res = await api.get('/students/classes');
-      if (res.data.success) {
-        setClasses(res.data.data.classes || []);
-      }
+      const clsList = await useMetadataStore.getState().fetchClasses();
+      setClasses(clsList || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -445,10 +444,17 @@ export default function ExamPage({ initialViewMode }) {
         setSubjects(subs);
       }
       
-      // 2. Fetch sections for the classLevel
-      const sectionsRes = await api.get(`/students/sections?classLevel=${classLevelId}`);
-      if (sectionsRes.data.success) {
-        setSections(sectionsRes.data.data.sections || []);
+      // 2. Fetch sections for the classLevel (centralized metadata cache with fallback)
+      try {
+        const { fetchSections, getSectionsByClass } = useMetadataStore.getState();
+        await fetchSections();
+        const filteredSecs = getSectionsByClass(classLevelId);
+        setSections(filteredSecs || []);
+      } catch (_) {
+        const sectionsRes = await api.get(`/students/sections?classLevel=${classLevelId}`);
+        if (sectionsRes.data?.success) {
+          setSections(sectionsRes.data.data?.sections || []);
+        }
       }
 
       // 3. Fetch students of this classLevel for single student selection

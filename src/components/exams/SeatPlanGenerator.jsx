@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import api from '../../api/axios';
+import useMetadataStore from '../../store/metadataStore';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll } from '../../utils/helpers';
 
 /**
@@ -128,9 +129,10 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
     }
     const fetchSections = async () => {
       try {
-        const res = await api.get(`/students/sections?classLevel=${selectedClassId}`);
-        const raw = res.data?.data?.sections || res.data?.sections || res.data?.data || [];
-        setSectionsList(Array.isArray(raw) ? raw : []);
+        const { fetchSections: loadSecs, getSectionsByClass } = useMetadataStore.getState();
+        await loadSecs();
+        const data = getSectionsByClass(selectedClassId);
+        setSectionsList(data || []);
       } catch (e) {
         console.warn('Failed to load sections:', e);
         setSectionsList([]);

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll, formatDateDDMMYYYY } from '../../utils/helpers';
 
 /**
@@ -123,10 +124,10 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     }
     const fetchSections = async () => {
       try {
-        const res = await api.get(`/students/sections?classLevel=${selectedClassId}`);
-        const raw = res.data?.data?.sections || res.data?.sections || res.data?.data || [];
-        const data = Array.isArray(raw) ? raw : [];
-        setSections(data);
+        const { fetchSections: loadSecs, getSectionsByClass } = useMetadataStore.getState();
+        await loadSecs();
+        const data = getSectionsByClass(selectedClassId);
+        setSections(data || []);
         setSelectedSection('all');
       } catch (err) {
         setSections([]);

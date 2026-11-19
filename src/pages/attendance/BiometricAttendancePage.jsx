@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 
 export default function BiometricAttendancePage() {
   const { user } = useAuthStore();
@@ -93,15 +94,16 @@ export default function BiometricAttendancePage() {
 
   const fetchMetadata = async () => {
     try {
-      const [resClasses, resSections] = await Promise.all([
-        api.get('/students/classes').catch(() => ({ data: { success: false } })),
-        api.get('/students/sections').catch(() => ({ data: { success: false } })),
+      const { fetchClasses, fetchSections } = useMetadataStore.getState();
+      const [classList, sectionList] = await Promise.all([
+        fetchClasses(),
+        fetchSections(),
       ]);
-      if (resClasses.data?.success) {
-        setClasses(resClasses.data.data.classes || []);
+      if (classList) {
+        setClasses(classList);
       }
-      if (resSections.data?.success) {
-        setSections(resSections.data.data.sections || []);
+      if (sectionList) {
+        setSections(sectionList);
       }
     } catch (e) {
       console.warn('Metadata fetch error:', e);

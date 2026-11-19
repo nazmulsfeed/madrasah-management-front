@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, CheckCircle, AlertCircle, Save, Users, Plus, Edit, Trash2, X, Settings } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 
 export default function ClassSubjectsPage() {
   const { user } = useAuthStore();
@@ -67,18 +68,19 @@ export default function ClassSubjectsPage() {
   }, [toast]);
 
   // Fetch initial classes and all subjects
-  const fetchData = async () => {
+  const fetchData = async (force = false) => {
     setLoading(true);
     try {
-      const classesRes = await api.get('/students/classes');
-      const classList = classesRes.data.data.classes || [];
-      setClasses(classList);
-      if (classList.length > 0 && !selectedClassId) {
+      const [classList, subjectsRes] = await Promise.all([
+        useMetadataStore.getState().fetchClasses(force),
+        api.get('/students/subjects')
+      ]);
+      setClasses(classList || []);
+      if (classList && classList.length > 0 && !selectedClassId) {
         setSelectedClassId(classList[0]._id);
       }
 
-      const subjectsRes = await api.get('/students/subjects');
-      setSubjects(subjectsRes.data.data.subjects || []);
+      setSubjects(subjectsRes.data?.data?.subjects || []);
     } catch (error) {
       console.error('Error fetching initial data:', error);
       setToast({ type: 'error', message: 'ডাটা লোড করতে সমস্যা হয়েছে' });
@@ -186,7 +188,7 @@ export default function ClassSubjectsPage() {
         if (selectedClassId === id) {
           setSelectedClassId('');
         }
-        fetchData();
+        fetchData(true);
       }
     } catch (error) {
       console.error('Failed to delete class level:', error);
@@ -211,7 +213,7 @@ export default function ClassSubjectsPage() {
           message: isEditingClass ? 'শ্রেণি সফলভাবে আপডেট করা হয়েছে!' : 'শ্রেণি সফলভাবে তৈরি করা হয়েছে!'
         });
         setIsClassModalOpen(false);
-        fetchData();
+        fetchData(true);
       }
     } catch (error) {
       console.error('Failed to save class level:', error);

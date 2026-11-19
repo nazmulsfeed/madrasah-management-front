@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -265,22 +266,20 @@ export default function FeesPage() {
     }
   };
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (force = false) => {
     try {
-      const res = await api.get('/students/classes');
-      if (res.data.success) {
-        setClasses(res.data.data.classes || []);
-        const fees = {};
-        res.data.data.classes.forEach(c => {
-          fees[c._id] = {
-            monthlyFee: c.monthlyFee || 0,
-            admissionFee: c.admissionFee || 0,
-            sessionFee: c.sessionFee || 0,
-            examFee: c.examFee || 0
-          };
-        });
-        setClassFeeInputs(fees);
-      }
+      const clsList = await useMetadataStore.getState().fetchClasses(force);
+      setClasses(clsList || []);
+      const fees = {};
+      (clsList || []).forEach(c => {
+        fees[c._id] = {
+          monthlyFee: c.monthlyFee || 0,
+          admissionFee: c.admissionFee || 0,
+          sessionFee: c.sessionFee || 0,
+          examFee: c.examFee || 0
+        };
+      });
+      setClassFeeInputs(fees);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -675,7 +674,7 @@ export default function FeesPage() {
       await Promise.all(promises);
       setToast({ type: 'success', message: 'সকল শ্রেণির ফি সফলভাবে সংরক্ষণ করা হয়েছে' });
       setIsClassFeeModalOpen(false);
-      fetchClasses();
+      fetchClasses(true);
       fetchStudents();
     } catch (error) {
       console.error('Error saving all class fees:', error);

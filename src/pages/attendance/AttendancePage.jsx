@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getMadrasahInfo } from '../../utils/helpers';
@@ -264,24 +265,16 @@ export default function AttendancePage() {
     }
     const fetchMetadata = async () => {
       try {
-        const [resClasses, resBranches, resSections] = await Promise.all([
-          api.get('/students/classes'),
-          api.get('/students/branches'),
-          api.get('/students/sections')
+        const { fetchClasses, fetchBranches, fetchSections } = useMetadataStore.getState();
+        const [classList, branchList, sectionList] = await Promise.all([
+          fetchClasses(),
+          fetchBranches(),
+          fetchSections()
         ]);
 
-        if (resClasses.data.success) {
-          const classList = resClasses.data.data.classes || [];
-          setClasses(classList);
-        }
-
-        if (resBranches.data.success) {
-          setBranches(resBranches.data.data.branches || []);
-        }
-
-        if (resSections.data.success) {
-          setDbSections(resSections.data.data.sections || []);
-        }
+        setClasses(classList || []);
+        setBranches(branchList || []);
+        setDbSections(sectionList || []);
       } catch (err) {
         console.error('Failed to fetch metadata', err);
         setToast({ type: 'error', message: 'মেটাডাটা লোড করতে সমস্যা হয়েছে' });

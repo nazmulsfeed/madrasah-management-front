@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import { getMadrasahInfo } from '../../utils/helpers';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -221,12 +222,13 @@ export default function AssemblyAttendancePage() {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const [clsRes, secRes] = await Promise.all([
-          api.get('/students/classes').catch(() => ({ data: { data: { classes: [] } } })),
-          api.get('/students/sections').catch(() => ({ data: { data: { sections: [] } } })),
+        const { fetchClasses, fetchSections } = useMetadataStore.getState();
+        const [clsList, secList] = await Promise.all([
+          fetchClasses(),
+          fetchSections(),
         ]);
-        if (clsRes.data?.data?.classes) setClasses(clsRes.data.data.classes);
-        if (secRes.data?.data?.sections) setDbSections(secRes.data.data.sections);
+        if (clsList) setClasses(clsList);
+        if (secList) setDbSections(secList);
       } catch (err) {
         console.error('Error fetching classes/sections:', err);
       }

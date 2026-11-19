@@ -3,6 +3,7 @@ import { BookOpen, Clock, Printer, ArrowLeft, Calendar, Loader2 } from 'lucide-r
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
@@ -66,17 +67,14 @@ export default function PublicTimetablePage() {
       setTimetable(savedTimetable);
 
       try {
-        const classRes = await api.get('/students/classes');
-        if (classRes.data?.success) {
-          const clsList = classRes.data.data.classes || [];
+        const clsList = await useMetadataStore.getState().fetchClasses();
+        if (clsList && clsList.length > 0) {
           setClasses(clsList);
-          if (clsList.length > 0) {
-            const classWithSlots = clsList.find(c => {
-              const list = savedTimetable[c._id] || savedTimetable[String(c._id)] || savedTimetable[c.name];
-              return Array.isArray(list) && list.length > 0;
-            });
-            setSelectedClassId(classWithSlots ? classWithSlots._id : clsList[0]._id);
-          }
+          const classWithSlots = clsList.find(c => {
+            const list = savedTimetable[c._id] || savedTimetable[String(c._id)] || savedTimetable[c.name];
+            return Array.isArray(list) && list.length > 0;
+          });
+          setSelectedClassId(classWithSlots ? classWithSlots._id : clsList[0]._id);
         }
       } catch (_) {}
     } finally {

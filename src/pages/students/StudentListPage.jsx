@@ -20,6 +20,7 @@ import {
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
+import useMetadataStore from '../../store/metadataStore';
 import usePermissions from '../../hooks/usePermissions';
 import StudentExportModal from '../../components/students/StudentExportModal';
 import { getMadrasahInfo } from '../../utils/helpers';
@@ -59,10 +60,8 @@ export default function StudentListPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   
-  // Metadata state for dropdowns
-  const [classes, setClasses] = useState([]);
-  const [sections, setSections] = useState([]);
-  const [branches, setBranches] = useState([]);
+  // Metadata state from centralized store
+  const { classes, sections, branches, fetchClasses, fetchSections, fetchBranches } = useMetadataStore();
   
   // Active filters
   const [classFilter, setClassFilter] = useState('');
@@ -136,22 +135,10 @@ export default function StudentListPage() {
   };
 
   useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [resClasses, resSections, resBranches] = await Promise.all([
-          api.get('/students/classes'),
-          api.get('/students/sections'),
-          api.get('/students/branches'),
-        ]);
-        if (resClasses.data.success) setClasses(resClasses.data.data.classes || []);
-        if (resSections.data.success) setSections(resSections.data.data.sections || []);
-        if (resBranches.data.success) setBranches(resBranches.data.data.branches || []);
-      } catch (err) {
-        console.error('Failed to fetch filter metadata', err);
-      }
-    };
-    fetchMetadata();
-  }, []);
+    fetchClasses();
+    fetchSections();
+    fetchBranches();
+  }, [fetchClasses, fetchSections, fetchBranches]);
 
   useEffect(() => {
     if (!selectedSectionName) {

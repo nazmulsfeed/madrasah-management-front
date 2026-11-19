@@ -5,6 +5,7 @@ import {
   AlertCircle, Loader, User, BookOpen, Key, Calendar, Camera, Trash2 
 } from 'lucide-react';
 import api from '../../api/axios';
+import useMetadataStore from '../../store/metadataStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import ImageCropModal from '../../components/common/ImageCropModal';
 
@@ -69,27 +70,26 @@ export default function StudentCreatePage() {
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
-        const [yearsRes, classesRes, branchesRes] = await Promise.all([
-          api.get('/students/academic-years'),
-          api.get('/students/classes'),
-          api.get('/students/branches')
+        const { fetchAcademicYears, fetchClasses, fetchBranches } = useMetadataStore.getState();
+        const [yearsList, classesList, branchesList] = await Promise.all([
+          fetchAcademicYears(),
+          fetchClasses(),
+          fetchBranches()
         ]);
-        if (yearsRes.data.success) {
-          const list = yearsRes.data.data.academicYears || [];
-          setAcademicYears(list);
+        if (yearsList) {
+          setAcademicYears(yearsList);
           // Auto select current year
-          const currentYear = list.find(y => y.isCurrent);
+          const currentYear = yearsList.find(y => y.isCurrent);
           if (currentYear) {
             setFormData(prev => ({ ...prev, academicYearId: currentYear._id }));
           }
         }
-        if (classesRes.data.success) {
-          setClassLevels(classesRes.data.data.classes || []);
+        if (classesList) {
+          setClassLevels(classesList);
         }
-        if (branchesRes.data.success) {
-          const list = branchesRes.data.data.branches || [];
-          setBranches(list);
-          const nooraniBranch = list.find(b => b.name === 'নুরানী শাখা' || b.code === 'NOORANI');
+        if (branchesList) {
+          setBranches(branchesList);
+          const nooraniBranch = branchesList.find(b => b.name === 'নুরানী শাখা' || b.code === 'NOORANI');
           if (nooraniBranch) {
             setFormData(prev => ({ 
               ...prev, 

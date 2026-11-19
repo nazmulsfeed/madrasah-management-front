@@ -5,6 +5,7 @@ import {
   Search, Award, ShieldAlert, Star, TrendingUp, CheckSquare, Square 
 } from 'lucide-react';
 import api from '../../api/axios';
+import useMetadataStore from '../../store/metadataStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
 
 export default function StudentPromotionPage() {
@@ -54,23 +55,23 @@ export default function StudentPromotionPage() {
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
-        const [yearsRes, classesRes, secRes, branchRes, examsRes] = await Promise.all([
-          api.get('/students/academic-years'),
-          api.get('/students/classes'),
-          api.get('/students/sections'),
-          api.get('/students/branches'),
+        const { fetchAcademicYears, fetchClasses, fetchSections, fetchBranches } = useMetadataStore.getState();
+        const [yearsList, classesList, secList, branchList, examsRes] = await Promise.all([
+          fetchAcademicYears(),
+          fetchClasses(),
+          fetchSections(),
+          fetchBranches(),
           api.get('/exams')
         ]);
 
-        if (yearsRes.data.success) {
-          const list = yearsRes.data.data.academicYears || [];
-          setAcademicYears(list);
-          const curr = list.find(y => y.isCurrent);
+        if (yearsList) {
+          setAcademicYears(yearsList);
+          const curr = yearsList.find(y => y.isCurrent);
           if (curr) setSourceYear(curr._id);
         }
-        if (classesRes.data.success) setClassLevels(classesRes.data.data.classes || []);
-        if (secRes.data.success) setSections(secRes.data.data.sections || []);
-        if (branchRes.data.success) setBranches(branchRes.data.data.branches || []);
+        if (classesList) setClassLevels(classesList);
+        if (secList) setSections(secList);
+        if (branchList) setBranches(branchList);
 
         if (examsRes.data.success) {
           const allExams = examsRes.data.data.exams || [];
