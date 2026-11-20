@@ -698,6 +698,14 @@
       </div>
 
       <div class="control-item">
+        <label>হেডার বিন্যাস (Header Layout):</label>
+        <select id="headerLayoutOption" onchange="updateAllCards()">
+          <option value="logo-left" selected>বামে লোগো, ডানে ছবি (নতুন ডিফল্ট)</option>
+          <option value="photo-left">বামে ছবি, ডানে লোগো</option>
+        </select>
+      </div>
+
+      <div class="control-item">
         <label>কক্ষ / বেঞ্চ ফিল্ড:</label>
         <select id="roomOption" onchange="toggleRoom(this.value)">
           <option value="show" selected>কক্ষ নম্বর দেখান</option>
@@ -762,6 +770,7 @@
       const badgeText = document.getElementById('badgeTextInput').value;
       const photoType = document.getElementById('photoOption').value;
       const roomOption = document.getElementById('roomOption').value;
+      const headerLayout = document.getElementById('headerLayoutOption')?.value || 'logo-left';
 
       const photoSrc = photoType === 'avatar' ? boyAvatarSvg : blankPhotoSvg;
 
@@ -777,11 +786,28 @@
           </tr>
         ` : '';
 
-        card.innerHTML = `
-          <!-- Watermark -->
-          <img src="images/madrasah_logo.png" onerror="this.src='madrasah_logo.png'; this.onerror=()=>this.src='${logoSvg}';" class="card-watermark" alt="watermark">
+        const headerHtml = headerLayout === 'logo-left' ? `
+          <!-- Header (Logo Left, Photo Right) -->
+          <div class="card-header">
+            <!-- Madrasah Logo (Left) -->
+            <div class="inst-logo-wrapper">
+              <img src="images/madrasah_logo.png" onerror="this.src='madrasah_logo.png'; this.onerror=()=>this.src='${logoSvg}';" alt="Madrasah Logo">
+            </div>
 
-          <!-- Header -->
+            <!-- Madrasah Info & Badge (Center) -->
+            <div class="inst-center">
+              <div class="madrasah-name">${madrasahName}</div>
+              <div class="inst-address">${madrasahAddress}</div>
+              <div class="card-badge">${badgeText}</div>
+            </div>
+
+            <!-- Student Photo (Right) -->
+            <div class="student-photo-wrapper">
+              <img src="${photoSrc}" alt="Student Photo">
+            </div>
+          </div>
+        ` : `
+          <!-- Header (Photo Left, Logo Right) -->
           <div class="card-header">
             <!-- Student Photo (Left) -->
             <div class="student-photo-wrapper">
@@ -800,6 +826,13 @@
               <img src="images/madrasah_logo.png" onerror="this.src='madrasah_logo.png'; this.onerror=()=>this.src='${logoSvg}';" alt="Madrasah Logo">
             </div>
           </div>
+        `;
+
+        card.innerHTML = `
+          <!-- Watermark -->
+          <img src="images/madrasah_logo.png" onerror="this.src='madrasah_logo.png'; this.onerror=()=>this.src='${logoSvg}';" class="card-watermark" alt="watermark">
+
+          ${headerHtml}
 
           <!-- Body -->
           <div class="card-body">
