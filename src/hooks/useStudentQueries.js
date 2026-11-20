@@ -366,6 +366,179 @@ export const useStudentPassword = (options = {}) => {
 };
 
 /**
+ * Custom Hook: useNextStudentId
+ * Fetches the next available student ID and admission number based on gender.
+ *
+ * @param {string} gender - 'male' | 'female'
+ * @param {Object} options - TanStack Query options
+ */
+export const useNextStudentId = (gender = 'male', options = {}) => {
+  const { institutionId, userId, isAuthenticated } = useTenantContext();
+  const normalizedGender = gender ? String(gender).toLowerCase() : 'male';
+
+  return useQuery({
+    queryKey: queryKeys.students.nextId(institutionId, userId, normalizedGender),
+    queryFn: async ({ signal }) => {
+      const res = await api.get('/students/next-student-id', {
+        params: { gender: normalizedGender },
+        signal,
+      });
+      return res.data?.data || null;
+    },
+    enabled: isAuthenticated && (options.enabled ?? true),
+    staleTime: options.staleTime ?? 30 * 1000,
+    gcTime: options.gcTime ?? 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Custom Hook: useNextRollNumber
+ * Dynamically computes next roll number for a given class, section, and academic year.
+ *
+ * @param {Object} params - { classLevelId, sectionId, academicYearId }
+ * @param {Object} options - TanStack Query options
+ */
+export const useNextRollNumber = (params = {}, options = {}) => {
+  const { institutionId, userId, isAuthenticated } = useTenantContext();
+
+  const isComplete = Boolean(params?.classLevelId && params?.sectionId && params?.academicYearId);
+
+  const cleanParams = {
+    classLevelId: params?.classLevelId || '',
+    sectionId: params?.sectionId || '',
+    academicYearId: params?.academicYearId || '',
+  };
+
+  return useQuery({
+    queryKey: queryKeys.students.nextRoll(institutionId, userId, cleanParams),
+    queryFn: async ({ signal }) => {
+      if (!isComplete) return null;
+      const res = await api.get('/students/next-roll', {
+        params: cleanParams,
+        signal,
+      });
+      return res.data?.data?.nextRollNumber ?? null;
+    },
+    enabled: isComplete && isAuthenticated && (options.enabled ?? true),
+    staleTime: options.staleTime ?? 30 * 1000,
+    gcTime: options.gcTime ?? 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Custom Hook: useCreateStudent
+ * Creates a new student record and enrollment, then invalidates affected caches.
+ */
+export const useCreateStudent = (options = {}) => {
+  const queryClient = useQueryClient();
+  const { institutionId, userId } = useTenantContext();
+
+  return useMutation({
+    mutationFn: async (submitData) => {
+      const res = await api.post('/students', submitData);
+      return res.data;
+    },
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.students.lists(institutionId, userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.students.stats(institutionId, userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.summary(institutionId, userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.students.all(institutionId, userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.fees.all(institutionId, userId),
+      });
+      if (options.onSuccess) {
+        options.onSuccess(data, variables, context);
+      }
+    },
+    onError: (error, variables, context) => {
+      if (options.onError) {
+        options.onError(error, variables, context);
+      }
+    },
+    ...options,
+  });
+};
+
+/**
+ * Custom Hook: usePromotionCandidates
+ * Fetches eligible promotion candidates based on source academic year, class, and optional filters.
+ *
+ * @param {Object} params - { academicYear, classLevel, section, branch, department, residentialStatus, examId }
+ * @param {Object} options - TanStack Query options
+ */
+export const usePromotionCandidates = (params = {}, options = {}) => {
+  const { institutionId, userId, isAuthenticated } = useTenantContext();
+
+  const isEnabled = Boolean(params?.academicYear && params?.classLevel);
+
+  const cleanParams = Object.entries(params || {}).reduce((acc, [key, val]) => {
+    if (val !== undefined && val !== null && val !== '') {
+      acc[key] = typeof val === 'string' ? val.trim() : val;
+    }
+    return acc;
+  }, {});
+
+  return useQuery({
+    queryKey: queryKeys.students.promotionCandidates(institutionId, userId, cleanParams),
+    queryFn: async ({ signal }) => {
+      if (!isEnabled) return [];
+      const res = await api.get('/students/promotion-candidates', {
+        params: cleanParams,
+        signal,
+      });
+      return res.data?.data?.candidates || [];
+    },
+    enabled: isEnabled && isAuthenticated && (options.enabled ?? true),
+    staleTime: options.staleTime ?? 60 * 1000,
+    gcTime: options.gcTime ?? 10 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Custom Hook: usePromoteStudents
+ * Promotes or graduates a batch of students and synchronizes related caches.
+ */
+export const usePromoteStudents = (options = {}) => {
+  const queryClient = useQueryClient();
+  const { institutionId, userId } = useTenantContext();
+
+  return useMutation({
+    mutationFn: async (payload) => {
+      const res = await api.post('/students/promote', payload);
+      return res.data;
+    },
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.students.all(institutionId, userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.summary(institutionId, userId),
+      });
+      if (options.onSuccess) {
+        options.onSuccess(data, variables, context);
+      }
+    },
+    onError: (error, variables, context) => {
+      if (options.onError) {
+        options.onError(error, variables, context);
+      }
+    },
+    ...options,
+  });
+};
+
+/**
  * Custom Hook: useInvalidateStudents
  * Helper for manual cache invalidation of student queries.
  */
@@ -397,6 +570,18 @@ export const useInvalidateStudents = () => {
     invalidateFees: (studentId) =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.fees.invoices(institutionId, userId, { student: String(studentId) }),
+      }),
+    invalidateNextId: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.students.all(institutionId, userId), 'next-id'],
+      }),
+    invalidateNextRoll: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.students.all(institutionId, userId), 'next-roll'],
+      }),
+    invalidatePromotionCandidates: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.students.all(institutionId, userId), 'promotion-candidates'],
       }),
   };
 };

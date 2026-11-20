@@ -4,13 +4,13 @@ import {
   ArrowLeft, GraduationCap, RefreshCw, CheckCircle, AlertCircle, 
   Search, Award, ShieldAlert, Star, TrendingUp, CheckSquare, Square 
 } from 'lucide-react';
-import api from '../../api/axios';
 import { useClasses, useSections, useBranches, useAcademicYears, filterSectionsByClass } from '../../hooks/useMetadataQueries';
+import { useExams } from '../../hooks/useExamQueries';
+import { usePromotionCandidates, usePromoteStudents } from '../../hooks/useStudentQueries';
 import { SECTION_OPTIONS } from '../../utils/constants';
 
 export default function StudentPromotionPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Lists via TanStack Query hooks
@@ -18,7 +18,17 @@ export default function StudentPromotionPage() {
   const { data: classLevels = [] } = useClasses();
   const { data: sections = [] } = useSections();
   const { data: branches = [] } = useBranches();
-  const [termExams, setTermExams] = useState([]);
+
+  // Exams via TanStack Query (decoupled loadExams)
+  const { data: examsData, refetch: loadExams } = useExams();
+  const termExams = useMemo(() => {
+    const allExams = examsData?.exams || [];
+    // Requirement 8.5: Only Term Exams (সাময়িক পরীক্ষা) can be used for promotion
+    return allExams.filter(e => 
+      e.examCategory === 'term_exam' || 
+      (e.name && (e.name.includes('সাময়িক') || e.name.includes('টার্ম')))
+    );
+  }, [examsData]);
 
   // Source selection states
   const [sourceYear, setSourceYear] = useState('');
@@ -37,9 +47,25 @@ export default function StudentPromotionPage() {
   const [destDepartment, setDestDepartment] = useState('');
   const [destResidential, setDestResidential] = useState('');
 
-  // Candidates
+  // Candidates query via TanStack Query
+  const [candidateParams, setCandidateParams] = useState(null);
   const [candidates, setCandidates] = useState([]);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
+
+  const {
+    data: fetchedCandidates = [],
+    isLoading: candidateLoading,
+    isFetching: fetchingCandidates,
+    refetch: refetchCandidates,
+    error: candidatesError
+  } = usePromotionCandidates(candidateParams, {
+    enabled: Boolean(candidateParams?.academicYear && candidateParams?.classLevel),
+  });
+
+  const loadingCandidates = candidateLoading || fetchingCandidates;
+
+  // Promote mutation via TanStack Query
+  const promoteMutation = usePromoteStudents();
+  const loading = promoteMutation.isPending;
   
   // Selection/Input states
   const [actionType, setActionType] = useState('promote'); // 'promote', 'graduate'
@@ -60,31 +86,6 @@ export default function StudentPromotionPage() {
       }
     }
   }, [academicYears]);
-
-  // Load term exams independently
-  useEffect(() => {
-    let isMounted = true;
-    const loadExams = async () => {
-      try {
-        const examsRes = await api.get('/exams');
-        if (isMounted && examsRes.data?.success) {
-          const allExams = examsRes.data.data.exams || [];
-          // Requirement 8.5: Only Term Exams (সাময়িক পরীক্ষা) can be used for promotion
-          const termList = allExams.filter(e => 
-            e.examCategory === 'term_exam' || 
-            (e.name && (e.name.includes('সাময়িক') || e.name.includes('টার্ম')))
-          );
-          setTermExams(termList);
-        }
-      } catch (err) {
-        console.error('Error loading promotion exams', err);
-      }
-    };
-    loadExams();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Filtered section options for source class
   const sourceSectionOptions = useMemo(() => {
@@ -154,47 +155,54 @@ export default function StudentPromotionPage() {
     }
   }, [destClass, destSection, sections]);
 
-  // Fetch candidates
-  const handleLoadCandidates = async () => {
+  // Sync candidates when TanStack Query returns data
+  useEffect(() => {
+    if (candidateParams && fetchedCandidates) {
+      setCandidates(fetchedCandidates);
+      // Default select all
+      setSelectedIds(fetchedCandidates.map(c => c.studentId));
+      
+      // Initial custom rolls mapping
+      const rolls = {};
+      fetchedCandidates.forEach(c => {
+        rolls[c.studentId] = c.rollNumber;
+      });
+      setCustomRolls(rolls);
+
+      // Pre-fill destination branch & department based on source if empty
+      if (sourceBranch && !destBranch) setDestBranch(sourceBranch);
+      if (sourceDepartment && !destDepartment) setDestDepartment(sourceDepartment);
+    }
+  }, [fetchedCandidates, candidateParams]);
+
+  // Sync candidate loading error
+  useEffect(() => {
+    if (candidatesError) {
+      const errMsg = candidatesError.response?.data?.message || candidatesError.message || 'শিক্ষার্থী তালিকা লোড করতে সমস্যা হয়েছে';
+      setToast({ type: 'error', message: errMsg });
+    }
+  }, [candidatesError]);
+
+  // Trigger candidate load
+  const handleLoadCandidates = () => {
     if (!sourceYear || !sourceClass) {
       setToast({ type: 'error', message: 'অনুগ্রহ করে উৎস শিক্ষাবর্ষ ও শ্রেণি নির্বাচন করুন' });
       return;
     }
-    setLoadingCandidates(true);
-    setCandidates([]);
-    setSelectedIds([]);
-    try {
-      const params = { academicYear: sourceYear, classLevel: sourceClass };
-      if (sourceSection) params.section = sourceSection;
-      if (sourceBranch) params.branch = sourceBranch;
-      if (sourceDepartment) params.department = sourceDepartment;
-      if (sourceResidential) params.residentialStatus = sourceResidential;
-      if (selectedTermExamId) params.examId = selectedTermExamId;
+    const params = {
+      academicYear: sourceYear,
+      classLevel: sourceClass,
+      ...(sourceSection ? { section: sourceSection } : {}),
+      ...(sourceBranch ? { branch: sourceBranch } : {}),
+      ...(sourceDepartment ? { department: sourceDepartment } : {}),
+      ...(sourceResidential ? { residentialStatus: sourceResidential } : {}),
+      ...(selectedTermExamId ? { examId: selectedTermExamId } : {}),
+    };
 
-      const res = await api.get('/students/promotion-candidates', { params });
-      if (res.data.success) {
-        const list = res.data.data.candidates || [];
-        setCandidates(list);
-        // Default select all
-        setSelectedIds(list.map(c => c.studentId));
-        
-        // Initial custom rolls mapping
-        const rolls = {};
-        list.forEach(c => {
-          rolls[c.studentId] = c.rollNumber;
-        });
-        setCustomRolls(rolls);
-
-        // Pre-fill destination branch & department based on source if empty
-        if (sourceBranch && !destBranch) setDestBranch(sourceBranch);
-        if (sourceDepartment && !destDepartment) setDestDepartment(sourceDepartment);
-      }
-    } catch (err) {
-      console.error(err);
-      const errMsg = err.response?.data?.message || err.message || 'শিক্ষার্থী তালিকা লোড করতে সমস্যা হয়েছে';
-      setToast({ type: 'error', message: errMsg });
-    } finally {
-      setLoadingCandidates(false);
+    if (candidateParams && JSON.stringify(params) === JSON.stringify(candidateParams)) {
+      refetchCandidates();
+    } else {
+      setCandidateParams(params);
     }
   };
 
@@ -283,30 +291,30 @@ export default function StudentPromotionPage() {
         return;
       }
 
-      setLoading(true);
-      try {
-        const promotions = selectedIds.map(id => {
-          const cand = candidates.find(c => c.studentId === id);
-          return {
-            studentId: id,
-            enrollmentId: cand.enrollmentId
-          };
-        });
+      const promotions = selectedIds.map(id => {
+        const cand = candidates.find(c => c.studentId === id);
+        return {
+          studentId: id,
+          enrollmentId: cand.enrollmentId
+        };
+      });
 
-        const res = await api.post('/students/promote', { promotions, actionType: 'graduate' });
-        if (res.data.success) {
-          setToast({ type: 'success', message: res.data.message || 'শিক্ষার্থীদের সফলভাবে সমাপনী স্নাতক করা হয়েছে!' });
-          setTimeout(() => {
-            navigate('/students');
-          }, 2000);
+      promoteMutation.mutate(
+        { promotions, actionType: 'graduate' },
+        {
+          onSuccess: (resData) => {
+            setToast({ type: 'success', message: resData?.message || 'শিক্ষার্থীদের সফলভাবে সমাপনী স্নাতক করা হয়েছে!' });
+            setTimeout(() => {
+              navigate('/students');
+            }, 2000);
+          },
+          onError: (err) => {
+            console.error(err);
+            const errMsg = err.response?.data?.message || 'গ্র্যাজুয়েশন কার্যক্রম সম্পন্ন করতে ব্যর্থ হয়েছে';
+            setToast({ type: 'error', message: errMsg });
+          }
         }
-      } catch (err) {
-        console.error(err);
-        const errMsg = err.response?.data?.message || 'গ্র্যাজুয়েশন কার্যক্রম সম্পন্ন করতে ব্যর্থ হয়েছে';
-        setToast({ type: 'error', message: errMsg });
-      } finally {
-        setLoading(false);
-      }
+      );
       return;
     }
 
@@ -339,42 +347,43 @@ export default function StudentPromotionPage() {
       return;
     }
 
-    setLoading(true);
-    try {
-      // Build promotions payload
-      const promotions = selectedIds.map(id => {
-        const cand = candidates.find(c => c.studentId === id);
-        return {
-          studentId: id,
-          enrollmentId: cand.enrollmentId,
-          rollNumber: customRolls[id]
-        };
-      });
-
-      const payload = {
-        promotions,
-        destClassLevelId: destClass,
-        destSectionId: destSection,
-        destAcademicYearId: destYear,
-        destBranchId: destBranch || undefined,
-        destDepartment: destDepartment || undefined,
-        destResidentialStatus: destResidential || undefined
+    // Build promotions payload
+    const promotions = selectedIds.map(id => {
+      const cand = candidates.find(c => c.studentId === id);
+      return {
+        studentId: id,
+        enrollmentId: cand.enrollmentId,
+        rollNumber: customRolls[id]
       };
+    });
 
-      const res = await api.post('/students/promote', payload);
-      if (res.data.success) {
-        setToast({ type: 'success', message: res.data.message || 'শিক্ষার্থীদের সফলভাবে উত্তীর্ণ করা হয়েছে!' });
-        setTimeout(() => {
-          navigate('/students');
-        }, 2000);
+    const payload = {
+      promotions,
+      destClassLevelId: destClass,
+      destSectionId: destSection,
+      destAcademicYearId: destYear,
+      destBranchId: destBranch || undefined,
+      destDepartment: destDepartment || undefined,
+      destResidentialStatus: destResidential || undefined
+    };
+
+    promoteMutation.mutate(
+      payload,
+      {
+        onSuccess: (resData) => {
+          setToast({ type: 'success', message: resData?.message || 'শিক্ষার্থীদের সফলভাবে উত্তীর্ণ করা হয়েছে!' });
+          setTimeout(() => {
+            navigate('/students');
+          }, 2000);
+        },
+        onError: (err) => {
+          console.error(err);
+          const errMsg = err.response?.data?.message || 'উত্তীর্ণ কার্যক্রম ব্যর্থ হয়েছে';
+          setToast({ type: 'error', message: errMsg });
+        }
       }
-    } catch (err) {
-      console.error(err);
-      const errMsg = err.response?.data?.message || 'উত্তীর্ণ কার্যক্রম ব্যর্থ হয়েছে';
-      setToast({ type: 'error', message: errMsg });
-    } finally {
-      setLoading(false);
-    }
+    );
+  };
   };
 
   return (

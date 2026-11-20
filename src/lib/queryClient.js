@@ -111,6 +111,34 @@ export const queryKeys = {
       studentId ? String(studentId) : 'unspecified',
     ],
     stats: (instId, userId) => [...queryKeys.students.all(instId, userId), 'stats'],
+    nextId: (instId, userId, gender) => [
+      ...queryKeys.students.all(instId, userId),
+      'next-id',
+      gender ? String(gender).toLowerCase() : 'male',
+    ],
+    nextRoll: (instId, userId, params) => [
+      ...queryKeys.students.all(instId, userId),
+      'next-roll',
+      params ? JSON.parse(JSON.stringify(params)) : {},
+    ],
+    promotionCandidates: (instId, userId, params) => [
+      ...queryKeys.students.all(instId, userId),
+      'promotion-candidates',
+      params ? JSON.parse(JSON.stringify(params)) : {},
+    ],
+  },
+
+  exams: {
+    all: (instId, userId) => [
+      ...queryKeys.institution(instId),
+      ...(userId ? queryKeys.user(userId) : []),
+      'exams',
+    ],
+    lists: (instId, userId) => [...queryKeys.exams.all(instId, userId), 'list'],
+    list: (instId, userId, params) => [
+      ...queryKeys.exams.lists(instId, userId),
+      params ? JSON.parse(JSON.stringify(params)) : {},
+    ],
   },
 
   attendance: {
