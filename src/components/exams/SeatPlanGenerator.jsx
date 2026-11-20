@@ -81,6 +81,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
   const [isCustomCards, setIsCustomCards] = useState(false);
   const [customCardsInput, setCustomCardsInput] = useState('12');
   const [selectedTheme, setSelectedTheme] = useState('theme-classic'); // 'theme-classic' | 'theme-emerald' | 'theme-navy'
+  const [headerSwap, setHeaderSwap] = useState('logo-left'); // 'logo-left' | 'photo-left'
   const [isEnglish, setIsEnglish] = useState(false);
 
   // Batch room inputs
@@ -611,6 +612,30 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
                 </label>
               </div>
             </div>
+
+            <div className="flex items-center gap-12 mt-8 pt-8 border-t border-slate-200">
+              <span className="text-slate-600 font-semibold">হেডার বিন্যাস:</span>
+              <div className="flex gap-8">
+                <label className="flex items-center gap-4 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="sp_header_swap"
+                    checked={headerSwap === 'logo-left'}
+                    onChange={() => setHeaderSwap('logo-left')}
+                  />
+                  <span className="font-bold text-emerald-700">বামে লোগো, ডানে ছবি (ডিফল্ট)</span>
+                </label>
+                <label className="flex items-center gap-4 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="sp_header_swap"
+                    checked={headerSwap === 'photo-left'}
+                    onChange={() => setHeaderSwap('photo-left')}
+                  />
+                  <span>বামে ছবি, ডানে লোগো</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -741,38 +766,81 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
 
                     {/* Card Header */}
                     <div className="sp-card-header">
-                      {/* Student Photo */}
-                      {showPhoto && (
-                        <div className="sp-photo-wrapper">
-                          <img 
-                            src={photoSrc} 
-                            onError={(e) => { e.currentTarget.src = boyAvatarSvg; }}
-                            alt="Photo" 
-                          />
-                        </div>
+                      {headerSwap === 'logo-left' ? (
+                        <>
+                          {/* Madrasah Logo (Left) */}
+                          <div className="sp-logo-wrapper">
+                            <img
+                              src="/images/madrasah_logo.png"
+                              onError={(e) => { e.currentTarget.src = logoFallbackSvg; }}
+                              alt="Logo"
+                            />
+                          </div>
+
+                          {/* Institution Center */}
+                          <div className="sp-center-info">
+                            <div className="sp-madrasah-title">
+                              {isEnglish ? 'AN-NUR ISLAMIC ACADEMY' : (madrasahInfo.madrasahName || 'আন্-নূর ইসলামিক একাডেমি')}
+                            </div>
+                            <div className="sp-madrasah-sub">
+                              {isEnglish ? 'Shahibag, Chapainawabganj' : (madrasahInfo.address || 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ')}
+                            </div>
+                            <div className="sp-badge">
+                              Exam Seat Plan
+                            </div>
+                          </div>
+
+                          {/* Student Photo (Right) */}
+                          {showPhoto ? (
+                            <div className="sp-photo-wrapper">
+                              <img
+                                src={photoSrc}
+                                onError={(e) => { e.currentTarget.src = boyAvatarSvg; }}
+                                alt="Photo"
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ width: '38px', height: '38px' }} />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {/* Student Photo (Left) */}
+                          {showPhoto ? (
+                            <div className="sp-photo-wrapper">
+                              <img
+                                src={photoSrc}
+                                onError={(e) => { e.currentTarget.src = boyAvatarSvg; }}
+                                alt="Photo"
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ width: '38px', height: '38px' }} />
+                          )}
+
+                          {/* Institution Center */}
+                          <div className="sp-center-info">
+                            <div className="sp-madrasah-title">
+                              {isEnglish ? 'AN-NUR ISLAMIC ACADEMY' : (madrasahInfo.madrasahName || 'আন্-নূর ইসলামিক একাডেমি')}
+                            </div>
+                            <div className="sp-madrasah-sub">
+                              {isEnglish ? 'Shahibag, Chapainawabganj' : (madrasahInfo.address || 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ')}
+                            </div>
+                            <div className="sp-badge">
+                              Exam Seat Plan
+                            </div>
+                          </div>
+
+                          {/* Madrasah Logo (Right) */}
+                          <div className="sp-logo-wrapper">
+                            <img
+                              src="/images/madrasah_logo.png"
+                              onError={(e) => { e.currentTarget.src = logoFallbackSvg; }}
+                              alt="Logo"
+                            />
+                          </div>
+                        </>
                       )}
-
-                      {/* Institution Center */}
-                      <div className="sp-center-info">
-                        <div className="sp-madrasah-title">
-                          {isEnglish ? 'AN-NUR ISLAMIC ACADEMY' : (madrasahInfo.madrasahName || 'আন্-নূর ইসলামিক একাডেমি')}
-                        </div>
-                        <div className="sp-madrasah-sub">
-                          {isEnglish ? 'Shahibag, Chapainawabganj' : (madrasahInfo.address || 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ')}
-                        </div>
-                        <div className="sp-badge">
-                          Exam Seat Plan
-                        </div>
-                      </div>
-
-                      {/* Madrasah Logo */}
-                      <div className="sp-logo-wrapper">
-                        <img 
-                          src="/images/madrasah_logo.png" 
-                          onError={(e) => { e.currentTarget.src = logoFallbackSvg; }}
-                          alt="Logo" 
-                        />
-                      </div>
                     </div>
 
                     {/* Card Body */}
