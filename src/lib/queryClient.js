@@ -117,6 +117,12 @@ export const queryKeys = {
     all: (instId, userId) => [...queryKeys.institution(instId), ...queryKeys.user(userId), 'attendance'],
     daily: (instId, userId, params) => [...queryKeys.attendance.all(instId, userId), 'daily', params || {}],
     matrix: (instId, userId, params) => [...queryKeys.attendance.all(instId, userId), 'matrix', params || {}],
+    student: (instId, userId, studentId, params) => [
+      ...queryKeys.attendance.all(instId, userId),
+      'student',
+      studentId ? String(studentId) : 'unspecified',
+      params ? JSON.parse(JSON.stringify(params)) : {},
+    ],
   },
 
   fees: {

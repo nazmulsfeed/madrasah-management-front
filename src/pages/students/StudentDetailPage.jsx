@@ -5,8 +5,16 @@ import {
   ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle,
   Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send
 } from 'lucide-react';
-import api from '../../api/axios';
 import { useClasses, useBranches, useAcademicYears } from '../../hooks/useMetadataQueries';
+import {
+  useStudent,
+  useUpdateStudent,
+  useUpdateStudentPhoto,
+  useUpdateStudentFeeConfig,
+  useStudentAttendance,
+  useStudentFees,
+  useStudentPassword,
+} from '../../hooks/useStudentQueries';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import usePermissions from '../../hooks/usePermissions';
@@ -21,8 +29,6 @@ export default function StudentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [student, setStudent] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'info');
   const [toast, setToast] = useState(null);
   const { data: classLevels = [] } = useClasses();
@@ -30,53 +36,104 @@ export default function StudentDetailPage() {
   const { data: academicYears = [] } = useAcademicYears();
   const { user: currentUser } = useAuthStore();
   const { myPermissions } = usePermissions();
-  const [feesInvoices, setFeesInvoices] = useState([]);
-  const [loadingFees, setLoadingFees] = useState(false);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
-  const [loadingAttendance, setLoadingAttendance] = useState(false);
 
-  useEffect(() => {
-    if (activeTab === 'attendance' && student?._id) {
-      const fetchStudentAttendance = async () => {
-        try {
-          setLoadingAttendance(true);
-          const res = await api.get('/attendance', {
-            params: {
-              student: student._id,
-              limit: 100
-            }
-          });
-          if (res.data.success) {
-            setAttendanceRecords(res.data.data.records || []);
-          }
-        } catch (err) {
-          console.error('Error fetching student attendance:', err);
-        } finally {
-          setLoadingAttendance(false);
-        }
-      };
-      fetchStudentAttendance();
-    }
-  }, [activeTab, student?._id]);
+  const targetId = id || currentUser?.studentId || (currentUser?.guardianStudents?.[0]?._id);
 
+  // TanStack Query for Student Profile
+  const {
+    data: student,
+    isLoading: isStudentLoading,
+    refetch: refetchStudent,
+    error: studentError,
+  } = useStudent(targetId);
+
+  const fetchStudent = refetchStudent;
+
+  // TanStack Query for Attendance tab (conditional on activeTab)
+  const {
+    data: attendanceData,
+    isLoading: loadingAttendance,
+  } = useStudentAttendance(student?._id, { limit: 100 }, {
+    enabled: activeTab === 'attendance' && Boolean(student?._id),
+  });
+  const attendanceRecords = attendanceData?.records || [];
+
+  // TanStack Query for Fees tab (conditional on activeTab)
+  const {
+    data: feesData,
+    isLoading: loadingFees,
+  } = useStudentFees(student?._id, {
+    enabled: activeTab === 'fees' && Boolean(student?._id),
+  });
+  const feesInvoices = feesData?.invoices || [];
+
+  const loading = isStudentLoading;
+
+  // Mutations
+  const updateStudentMutation = useUpdateStudent({
+    onSuccess: () => {
+      setToast({ type: 'success', message: 'শিক্ষার্থীর তথ্য সফলভাবে আপডেট হয়েছে!' });
+      setIsEditModalOpen(false);
+    },
+    onError: (err) => {
+      console.error('Update student failed:', err);
+      const backendMsg = err.response?.data?.message;
+      const validationMsgs = Array.isArray(err.response?.data?.errors)
+        ? err.response.data.errors.join(', ')
+        : (typeof err.response?.data?.errors === 'string' ? err.response.data.errors : null);
+      const errMsg = backendMsg || validationMsgs || (typeof err.response?.data === 'string' && err.response.data.length < 200 ? err.response.data : null) || err.message || 'তথ্য আপডেট করতে ব্যর্থ হয়েছে';
+      setToast({ type: 'error', message: errMsg });
+    },
+  });
+  const updating = updateStudentMutation.isPending;
+
+  const updatePhotoMutation = useUpdateStudentPhoto({
+    onSuccess: (data, variables) => {
+      setToast({
+        type: 'success',
+        message: variables?.photo ? 'শিক্ষার্থীর প্রোফাইল ছবি সফলভাবে পরিবর্তন হয়েছে!' : 'শিক্ষার্থীর প্রোফাইল ছবি মুছে ফেলা হয়েছে',
+      });
+    },
+    onError: (err) => {
+      console.error('Update photo failed:', err);
+      const msg = err.response?.data?.message || 'প্রোফাইল ছবি পরিবর্তন করতে ব্যর্থ হয়েছে';
+      setToast({ type: 'error', message: msg });
+    },
+  });
+  const uploadingDirectPhoto = updatePhotoMutation.isPending;
+
+  const updateFeeConfigMutation = useUpdateStudentFeeConfig({
+    onSuccess: () => {
+      setToast({ type: 'success', message: 'বিশেষ ফি ও ছাড়ের তথ্য সফলভাবে আপডেট হয়েছে!' });
+      setIsFeeModalOpen(false);
+    },
+    onError: (err) => {
+      console.error('Update custom fee failed:', err);
+      setToast({ type: 'error', message: err.response?.data?.message || 'ফি আপডেট করতে সমস্যা হয়েছে' });
+    },
+  });
+  const savingFeeModal = updateFeeConfigMutation.isPending;
+
+  const showPasswordMutation = useStudentPassword({
+    onSuccess: (plainPassword) => {
+      setVisiblePassword(plainPassword);
+      setShowPasswordVisible(true);
+    },
+    onError: (err) => {
+      console.error('Show password error:', err);
+      setToast({ type: 'error', message: err.response?.data?.message || 'পাসওয়ার্ড দেখতে ব্যর্থ হয়েছে' });
+    },
+  });
+  const loadingPassword = showPasswordMutation.isPending;
+
+  // Sync query error with toast
   useEffect(() => {
-    if (activeTab === 'fees' && student?._id) {
-      const fetchStudentFees = async () => {
-        try {
-          setLoadingFees(true);
-          const res = await api.get('/finance/invoices', { params: { student: student._id } });
-          if (res.data.success) {
-            setFeesInvoices(res.data.data.invoices || []);
-          }
-        } catch (err) {
-          console.error('Error fetching student fees:', err);
-        } finally {
-          setLoadingFees(false);
-        }
-      };
-      fetchStudentFees();
+    if (studentError) {
+      console.error('Fetch student error', studentError);
+      const errMsg = studentError.response?.data?.message || 'ছাত্র/ছাত্রীর তথ্য পাওয়া যায়নি';
+      setToast({ type: 'error', message: errMsg });
     }
-  }, [activeTab, student?._id]);
+  }, [studentError]);
 
 
   const isSuperOrCoSuper = ['super_admin', 'co_super_admin'].includes(currentUser?.userType) || 
@@ -93,11 +150,9 @@ export default function StudentDetailPage() {
   // Password show state
   const [showPasswordVisible, setShowPasswordVisible] = useState(false);
   const [visiblePassword, setVisiblePassword] = useState('');
-  const [loadingPassword, setLoadingPassword] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [updating, setUpdating] = useState(false);
   const [editFormData, setEditFormData] = useState({
     admissionNumber: '',
     studentId: '',
@@ -132,13 +187,11 @@ export default function StudentDetailPage() {
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState(null);
   const [cropTarget, setCropTarget] = useState('edit_form'); // 'edit_form' or 'direct'
-  const [uploadingDirectPhoto, setUploadingDirectPhoto] = useState(false);
 
   // Quick Custom Fee Modal State
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
   const [feeModalCustomFee, setFeeModalCustomFee] = useState('');
   const [feeModalDiscountNote, setFeeModalDiscountNote] = useState('');
-  const [savingFeeModal, setSavingFeeModal] = useState(false);
 
   const handleOpenFeeModal = () => {
     setFeeModalCustomFee(
@@ -150,26 +203,14 @@ export default function StudentDetailPage() {
     setIsFeeModalOpen(true);
   };
 
-  const handleSaveFeeModal = async (e) => {
+  const handleSaveFeeModal = (e) => {
     e?.preventDefault();
-    setSavingFeeModal(true);
-    try {
-      const payload = {
-        customMonthlyFee: feeModalCustomFee === '' ? null : Number(feeModalCustomFee),
-        feeDiscountNote: feeModalDiscountNote.trim()
-      };
-      const res = await api.patch(`/students/${student._id}`, payload);
-      if (res.data.success) {
-        setToast({ type: 'success', message: 'বিশেষ ফি ও ছাড়ের তথ্য সফলভাবে আপডেট হয়েছে!' });
-        setIsFeeModalOpen(false);
-        fetchStudent();
-      }
-    } catch (err) {
-      console.error('Update custom fee failed:', err);
-      setToast({ type: 'error', message: err.response?.data?.message || 'ফি আপডেট করতে সমস্যা হয়েছে' });
-    } finally {
-      setSavingFeeModal(false);
-    }
+    if (!student?._id) return;
+    updateFeeConfigMutation.mutate({
+      id: student._id,
+      customMonthlyFee: feeModalCustomFee,
+      feeDiscountNote: feeModalDiscountNote
+    });
   };
 
   // Auto-hide toast
@@ -179,31 +220,6 @@ export default function StudentDetailPage() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
-
-  const targetId = id || currentUser?.studentId || (currentUser?.guardianStudents?.[0]?._id);
-
-  const fetchStudent = async () => {
-    if (!targetId) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const res = await api.get(`/students/${targetId}`);
-      if (res.data.success) {
-        setStudent(res.data.data.student);
-      }
-    } catch (err) {
-      console.error('Fetch student error', err);
-      const errMsg = err.response?.data?.message || 'ছাত্র/ছাত্রীর তথ্য পাওয়া যায়নি';
-      setToast({ type: 'error', message: errMsg });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStudent();
-  }, [targetId]);
 
   useEffect(() => {
     if (student && location.state?.edit && canUpdateStudent) {
@@ -249,31 +265,14 @@ export default function StudentDetailPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateSubmit = async (e) => {
+  const handleUpdateSubmit = (e) => {
     e.preventDefault();
-    setUpdating(true);
-    try {
-      const payload = { ...editFormData };
-      if (!payload.dateOfBirth || payload.dateOfBirth.trim() === '') {
-        payload.dateOfBirth = null;
-      }
-      const res = await api.patch(`/students/${id}`, payload);
-      if (res.data.success) {
-        setToast({ type: 'success', message: 'শিক্ষার্থীর তথ্য সফলভাবে আপডেট হয়েছে!' });
-        setIsEditModalOpen(false);
-        fetchStudent();
-      }
-    } catch (err) {
-      console.error('Update student failed:', err);
-      const backendMsg = err.response?.data?.message;
-      const validationMsgs = Array.isArray(err.response?.data?.errors)
-        ? err.response.data.errors.join(', ')
-        : (typeof err.response?.data?.errors === 'string' ? err.response.data.errors : null);
-      const errMsg = backendMsg || validationMsgs || (typeof err.response?.data === 'string' && err.response.data.length < 200 ? err.response.data : null) || err.message || 'তথ্য আপডেট করতে ব্যর্থ হয়েছে';
-      setToast({ type: 'error', message: errMsg });
-    } finally {
-      setUpdating(false);
+    const payload = { ...editFormData };
+    if (!payload.dateOfBirth || payload.dateOfBirth.trim() === '') {
+      payload.dateOfBirth = null;
     }
+    const targetStudentId = id || student?._id;
+    updateStudentMutation.mutate({ id: targetStudentId, data: payload });
   };
 
   const handleDirectPhotoSelect = (e) => {
@@ -290,32 +289,9 @@ export default function StudentDetailPage() {
     }
   };
 
-  const handleSaveDirectPhoto = async (photoValue) => {
+  const handleSaveDirectPhoto = (photoValue) => {
     if (!student?._id) return;
-    try {
-      setUploadingDirectPhoto(true);
-      const res = await api.patch(`/students/${student._id}/photo`, { photo: photoValue });
-      if (res.data.success) {
-        setStudent(prev => ({
-          ...prev,
-          photo: photoValue,
-          user: {
-            ...(prev.user || {}),
-            photo: photoValue
-          }
-        }));
-        setToast({
-          type: 'success',
-          message: photoValue ? 'শিক্ষার্থীর প্রোফাইল ছবি সফলভাবে পরিবর্তন হয়েছে!' : 'শিক্ষার্থীর প্রোফাইল ছবি মুছে ফেলা হয়েছে'
-        });
-      }
-    } catch (err) {
-      console.error('Update photo failed:', err);
-      const msg = err.response?.data?.message || 'প্রোফাইল ছবি পরিবর্তন করতে ব্যর্থ হয়েছে';
-      setToast({ type: 'error', message: msg });
-    } finally {
-      setUploadingDirectPhoto(false);
-    }
+    updatePhotoMutation.mutate({ id: student._id, photo: photoValue });
   };
 
   if (loading) {
@@ -832,24 +808,12 @@ export default function StudentDetailPage() {
                     className="btn btn-secondary"
                     style={{ marginLeft: 'auto', fontSize: '0.8rem', padding: '6px 14px' }}
                     disabled={loadingPassword}
-                    onClick={async () => {
+                    onClick={() => {
                       if (showPasswordVisible) {
                         setShowPasswordVisible(false);
                         setVisiblePassword('');
                       } else {
-                        setLoadingPassword(true);
-                        try {
-                          const res = await api.get(`/students/${id}/show-password`);
-                          if (res.data.success) {
-                            setVisiblePassword(res.data.data.plainPassword || '(সেট হয়নি)');
-                            setShowPasswordVisible(true);
-                          }
-                        } catch (err) {
-                          console.error('Show password error:', err);
-                          setToast({ type: 'error', message: err.response?.data?.message || 'পাসওয়ার্ড দেখতে ব্যর্থ হয়েছে' });
-                        } finally {
-                          setLoadingPassword(false);
-                        }
+                        showPasswordMutation.mutate(id || student?._id);
                       }
                     }}
                   >
