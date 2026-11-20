@@ -62,6 +62,16 @@ export default function StudentListPage() {
   const { data: classes = [] } = useClasses();
   const { data: sections = [] } = useSections();
   const { data: branches = [] } = useBranches();
+
+  // Academic Classes (Excluding Special Department Names to avoid redundancy in class dropdown)
+  const academicClasses = useMemo(() => {
+    const specialDeptNames = [
+      'মক্তব বিভাগ', 'নাজেরা বিভাগ', 'হিফজ বিভাগ',
+      'উর্দু জামাত', 'তাইসীর জামাত', 'মিযান মুনশায়িব জামাত',
+      'নুরানী বিভাগ', 'মক্তব', 'নাজেরা', 'হিফজ'
+    ];
+    return classes.filter(c => !specialDeptNames.includes(c.name?.trim()));
+  }, [classes]);
   
   // Active filters
   const [classFilter, setClassFilter] = useState('');
@@ -534,7 +544,7 @@ export default function StudentListPage() {
               title="শ্রেণি ফিল্টার"
             >
               <option value="">সকল শ্রেণি</option>
-              {classes.map(c => (
+              {academicClasses.map(c => (
                 <option key={c._id} value={c._id}>{c.name}</option>
               ))}
             </select>

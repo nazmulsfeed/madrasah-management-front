@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import {
   Users, CheckCircle2, XCircle, Clock, Save, RefreshCw,
   Search, Printer, AlertCircle, Check, Sparkles, Filter,
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import { useClasses, useSections } from '../../hooks/useMetadataQueries';
+import { useClasses, useSections, useBranches } from '../../hooks/useMetadataQueries';
 import { getMadrasahInfo } from '../../utils/helpers';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
@@ -39,6 +39,55 @@ function parseCustomId(idStr) {
   return digits ? parseInt(digits, 10) : 999999;
 }
 
+// Universal Class & Department Hierarchy Order for Consistent Sequencing
+const getClassHierarchyOrder = (name) => {
+  if (!name) return 99;
+  const s = String(name).trim();
+  const HIERARCHY_MAP = {
+    'প্লে': 1,
+    'Play': 1,
+    'নার্সারী': 2,
+    'Nursery': 2,
+    'প্রথম': 3,
+    '১ম': 3,
+    'Class 1': 3,
+    'দ্বিতীয়': 4,
+    '২য়': 4,
+    'Class 2': 4,
+    'তৃতীয়': 5,
+    '৩য়': 5,
+    'Class 3': 5,
+    'চতুর্থ': 6,
+    '৪র্থ': 6,
+    'Class 4': 6,
+    'পঞ্চম': 7,
+    '৫ম': 7,
+    'Class 5': 7,
+    'ষষ্ঠ': 8,
+    '৬ষ্ঠ': 8,
+    'Class 6': 8,
+    'সপ্তম': 9,
+    '৭ম': 9,
+    'Class 7': 9,
+    'অষ্টম': 10,
+    '৮ম': 10,
+    'Class 8': 10,
+    'নবম': 11,
+    '৯ম': 11,
+    'Class 9': 11,
+    'দশম': 12,
+    '১০ম': 12,
+    'নুরানী বিভাগ': 13,
+    'মক্তব বিভাগ': 14,
+    'নাজেরা বিভাগ': 15,
+    'হিফজ বিভাগ': 16,
+    'উর্দু জামাত': 17,
+    'তাইসীর জামাত': 18,
+    'মিযান মুনশায়িব জামাত': 19,
+  };
+  return HIERARCHY_MAP[s] ?? 99;
+};
+
 // All available columns for assembly report print sheet in default sequence
 const ALL_PRINT_COLUMNS = [
   { key: 'serial', label: 'ক্রমিক নং (#)' },
@@ -49,6 +98,7 @@ const ALL_PRINT_COLUMNS = [
   { key: 'fatherName', label: 'পিতার নাম' },
   { key: 'phone', label: 'অভিভাবকের মোবাইল' },
   { key: 'classSection', label: 'শ্রেণি ও সেকশন' },
+  { key: 'department', label: 'বিভাগ' },
   { key: 'status', label: 'সমাবেশ স্ট্যাটাস' },
   { key: 'signBox', label: 'স্বাক্ষর বক্স (Sign)' },
   { key: 'remarks', label: 'মন্তব্য' },
@@ -68,6 +118,17 @@ const DEFAULT_PRINT_COLUMN_KEYS = [
   'remarks',
 ];
 
+const DEPARTMENT_OPTIONS = [
+  { value: 'all', label: 'সকল বিভাগ' },
+  { value: 'নুরানী বিভাগ', label: 'নুরানী বিভাগ' },
+  { value: 'মক্তব বিভাগ', label: 'মক্তব বিভাগ' },
+  { value: 'নাজেরা বিভাগ', label: 'নাজেরা বিভাগ' },
+  { value: 'হিফজ বিভাগ', label: 'হিফজ বিভাগ' },
+  { value: 'উর্দু জামাত', label: 'উর্দু জামাত' },
+  { value: 'তাইসীর জামাত', label: 'তাইসীর জামাত' },
+  { value: 'মিযান মুনশায়িব জামাত', label: 'মিযান মুনশায়িব জামাত' },
+];
+
 export default function AssemblyAttendancePage() {
   const { user } = useAuthStore();
   const { madrasahName, branchName } = getMadrasahInfo(user);
@@ -79,12 +140,29 @@ export default function AssemblyAttendancePage() {
   const [date, setDate] = useState(getBDTodayStr());
   const { data: classes = [] } = useClasses();
   const { data: dbSections = [] } = useSections();
+  const { data: branches = [] } = useBranches();
+  const [selectedBranch, setSelectedBranch] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedSection, setSelectedSection] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('roll');
   const [sortOrder, setSortOrder] = useState('asc');
+
+  // Academic Classes (Excluding Special Department Names to avoid redundancy)
+  const academicClasses = useMemo(() => {
+    const specialDeptNames = [
+      'মক্তব বিভাগ', 'নাজেরা বিভাগ', 'হিফজ বিভাগ',
+      'উর্দু জামাত', 'তাইসীর জামাত', 'মিযান মুনশায়িব জামাত'
+    ];
+    return classes.filter(c => !specialDeptNames.includes(c.name?.trim()));
+  }, [classes]);
+
+  // Clean Branches List (Excluding redundant dept branches like 'হিফজ শাখা')
+  const availableBranches = useMemo(() => {
+    return branches.filter(b => b.name?.trim() !== 'হিফজ শাখা');
+  }, [branches]);
 
   // Sorting Handler & Header Icon (like StudentListPage)
   const handleSort = (col) => {
@@ -240,6 +318,8 @@ export default function AssemblyAttendancePage() {
     try {
       setLoading(true);
       const params = { date };
+      if (selectedBranch !== 'all') params.branch = selectedBranch;
+      if (selectedDepartment !== 'all') params.department = selectedDepartment;
       if (selectedClass !== 'all') params.classLevel = selectedClass;
       if (selectedSection !== 'all') params.section = selectedSection;
 
@@ -256,7 +336,7 @@ export default function AssemblyAttendancePage() {
 
   useEffect(() => {
     fetchAttendance();
-  }, [date, selectedClass, selectedSection]);
+  }, [date, selectedBranch, selectedDepartment, selectedClass, selectedSection]);
 
   // Recalculate stats: Present, Absent, Reset/Unmarked
   const currentStats = useMemo(() => {
@@ -373,6 +453,8 @@ export default function AssemblyAttendancePage() {
           cmp = (a.studentName || '').localeCompare(b.studentName || '', 'bn', { sensitivity: 'base' });
         } else if (sortBy === 'fatherName') {
           cmp = (a.fatherName || '').localeCompare(b.fatherName || '', 'bn', { sensitivity: 'base' });
+        } else if (sortBy === 'department') {
+          cmp = (a.department || '').localeCompare(b.department || '', 'bn', { sensitivity: 'base' });
         } else if (sortBy === 'status') {
           const priority = { present: 1, absent: 2, reset: 3, '': 3 };
           const pA = priority[a.status] || 3;
@@ -386,6 +468,30 @@ export default function AssemblyAttendancePage() {
     return list;
   }, [records, statusFilter, searchQuery, sortBy, sortOrder]);
 
+  // Group records by Class for clear overview when "All Classes" is selected
+  const groupedRecords = useMemo(() => {
+    if (selectedClass !== 'all') {
+      const targetObj = classes.find(c => String(c._id) === String(selectedClass));
+      const label = targetObj?.name || 'নির্বাচিত শ্রেণি';
+      return [{ className: label, classOrder: 0, records: filteredRecords }];
+    }
+    const map = new Map();
+    filteredRecords.forEach(r => {
+      const cName = (r.className || 'অন্যান্য').trim();
+      if (!map.has(cName)) {
+        map.set(cName, {
+          className: cName,
+          classOrder: getClassHierarchyOrder(cName),
+          records: [],
+        });
+      }
+      map.get(cName).records.push(r);
+    });
+    const groups = Array.from(map.values());
+    groups.sort((a, b) => a.classOrder - b.classOrder || a.className.localeCompare(b.className, 'bn'));
+    return groups;
+  }, [selectedClass, classes, filteredRecords]);
+
   // Individual Status Change (Present, Absent, Reset)
   const handleStatusChange = (studentId, newStatus) => {
     setRecords(prev => prev.map(item => {
@@ -394,6 +500,18 @@ export default function AssemblyAttendancePage() {
       }
       return item;
     }));
+  };
+
+  // Group Bulk Status Change
+  const handleMarkGroup = (className, targetStatus) => {
+    setRecords(prev => prev.map(item => {
+      if ((item.className || 'অন্যান্য') === className) {
+        return { ...item, status: targetStatus };
+      }
+      return item;
+    }));
+    const label = targetStatus === 'present' ? 'উপস্থিত' : targetStatus === 'absent' ? 'অনুপস্থিত' : 'রিসেট';
+    showToast(`"${className}" এর সকল শিক্ষার্থীকে "${label}" করা হয়েছে`);
   };
 
   // Bulk Status Change
@@ -455,26 +573,70 @@ export default function AssemblyAttendancePage() {
       return;
     }
 
-    // Sort records based on user choice
+    // Sort records based on user choice with strict Class Hierarchy when "All Classes" is selected
     let sortedList = [...records];
-    if (printSortBy === 'id_custom') {
+    if (selectedClass === 'all') {
       sortedList.sort((a, b) => {
-        const numA = parseCustomId(a.studentCode);
-        const numB = parseCustomId(b.studentCode);
-        if (numA !== numB) return numA - numB;
-        return (a.studentCode || '').localeCompare(b.studentCode || '');
+        const orderA = getClassHierarchyOrder(a.className);
+        const orderB = getClassHierarchyOrder(b.className);
+        if (orderA !== orderB) return orderA - orderB;
+
+        // Same class: sort by user's chosen printSortBy
+        if (printSortBy === 'roll') {
+          const rA = parseBnEnNumber(a.rollNumber);
+          const rB = parseBnEnNumber(b.rollNumber);
+          if (rA !== null && rB !== null) return rA - rB;
+          if (rA !== null) return -1;
+          if (rB !== null) return 1;
+          return String(a.rollNumber || '').localeCompare(String(b.rollNumber || ''), 'bn');
+        } else if (printSortBy === 'department') {
+          const deptA = (a.department || '').trim();
+          const deptB = (b.department || '').trim();
+          if (deptA !== deptB) return deptA.localeCompare(deptB, 'bn');
+          const rA = parseBnEnNumber(a.rollNumber);
+          const rB = parseBnEnNumber(b.rollNumber);
+          if (rA !== null && rB !== null) return rA - rB;
+          return (a.studentName || '').localeCompare(b.studentName || '', 'bn');
+        } else if (printSortBy === 'name') {
+          return (a.studentName || '').localeCompare(b.studentName || '', 'bn');
+        } else {
+          // Default: custom ID order
+          const numA = parseCustomId(a.studentCode);
+          const numB = parseCustomId(b.studentCode);
+          if (numA !== numB) return numA - numB;
+          return (a.studentCode || '').localeCompare(b.studentCode || '');
+        }
       });
-    } else if (printSortBy === 'roll') {
-      sortedList.sort((a, b) => {
-        const rA = parseBnEnNumber(a.rollNumber);
-        const rB = parseBnEnNumber(b.rollNumber);
-        if (rA !== null && rB !== null) return rA - rB;
-        if (rA !== null) return -1;
-        if (rB !== null) return 1;
-        return String(a.rollNumber || '').localeCompare(String(b.rollNumber || ''), 'bn');
-      });
-    } else if (printSortBy === 'name') {
-      sortedList.sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'bn'));
+    } else {
+      if (printSortBy === 'id_custom') {
+        sortedList.sort((a, b) => {
+          const numA = parseCustomId(a.studentCode);
+          const numB = parseCustomId(b.studentCode);
+          if (numA !== numB) return numA - numB;
+          return (a.studentCode || '').localeCompare(b.studentCode || '');
+        });
+      } else if (printSortBy === 'roll') {
+        sortedList.sort((a, b) => {
+          const rA = parseBnEnNumber(a.rollNumber);
+          const rB = parseBnEnNumber(b.rollNumber);
+          if (rA !== null && rB !== null) return rA - rB;
+          if (rA !== null) return -1;
+          if (rB !== null) return 1;
+          return String(a.rollNumber || '').localeCompare(String(b.rollNumber || ''), 'bn');
+        });
+      } else if (printSortBy === 'department') {
+        sortedList.sort((a, b) => {
+          const deptA = (a.department || '').trim();
+          const deptB = (b.department || '').trim();
+          if (deptA !== deptB) return deptA.localeCompare(deptB, 'bn');
+          const rA = parseBnEnNumber(a.rollNumber);
+          const rB = parseBnEnNumber(b.rollNumber);
+          if (rA !== null && rB !== null) return rA - rB;
+          return (a.studentName || '').localeCompare(b.studentName || '', 'bn');
+        });
+      } else if (printSortBy === 'name') {
+        sortedList.sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '', 'bn'));
+      }
     }
 
     const formattedDate = new Date(date).toLocaleDateString('bn-BD', {
@@ -516,6 +678,9 @@ export default function AssemblyAttendancePage() {
         case 'classSection':
           thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">শ্রেণি ও সেকশন</th>`;
           break;
+        case 'department':
+          thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">বিভাগ</th>`;
+          break;
         case 'status':
           thHtml += `<th style="width: 1%; white-space: nowrap; text-align: center; padding: 6px 8px; border: 1px solid #0d9488;">সমাবেশ স্ট্যাটাস</th>`;
           break;
@@ -532,7 +697,21 @@ export default function AssemblyAttendancePage() {
 
     // Build Table Rows dynamically based on user-chosen active columns and their selected sequence
     let rowsHtml = '';
+    let lastPrintClassName = null;
     sortedList.forEach((r, idx) => {
+      const currentClassName = (r.className || '').trim();
+      if (selectedClass === 'all' && currentClassName && currentClassName !== lastPrintClassName) {
+        lastPrintClassName = currentClassName;
+        const groupCount = sortedList.filter(item => (item.className || '').trim() === lastPrintClassName).length;
+        rowsHtml += `
+          <tr style="background: #e0f2fe; height: 26px;">
+            <td colspan="${activePrintColumns.length}" style="padding: 4px 10px; font-weight: bold; font-size: 11px; color: #0369a1; border: 1px solid #cbd5e1; text-align: left;">
+              📂 শ্রেণি / বিভাগ: ${lastPrintClassName} (মোট ${groupCount} জন)
+            </td>
+          </tr>
+        `;
+      }
+
       const isPresent = r.status === 'present';
       const isAbsent = r.status === 'absent';
       const statusColor = isPresent ? '#15803d' : isAbsent ? '#b91c1c' : '#64748b';
@@ -588,6 +767,9 @@ export default function AssemblyAttendancePage() {
             break;
           case 'classSection':
             rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.className || '—'}${r.sectionName && r.sectionName !== '—' ? ` (${r.sectionName})` : ''}</td>`;
+            break;
+          case 'department':
+            rowsHtml += `<td style="width: 1%; white-space: nowrap; text-align: center; font-size: 11px; padding: 4px 6px; border: 1px solid #cbd5e1;">${r.department || '—'}</td>`;
             break;
           case 'status':
             rowsHtml += `
@@ -1008,39 +1190,71 @@ export default function AssemblyAttendancePage() {
         ))}
       </div>
 
-      {/* ── Filter & Action Toolbar ── */}
-      <div className="card assembly-filter-card">
-        <div className="assembly-filter-container">
+      {/* ── Filter & Action Toolbar (Single Compact Row) ── */}
+      <div className="card assembly-filter-card" style={{ padding: '8px 12px', marginBottom: '14px', overflowX: 'auto', background: 'var(--bg-secondary, #f8fafc)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '8px' }}>
+        <div className="assembly-filter-container" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', minWidth: 'max-content' }}>
           {/* 1. Date Picker */}
-          <div className="assembly-filter-item-date">
+          <div style={{ flexShrink: 0, width: '135px' }} title="হাজিরার তারিখ">
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
               className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0 }}
             />
           </div>
 
-          {/* 2. Class Filter */}
-          <div className="assembly-filter-item-class">
+          {/* 2. Branch Filter (শাখা) */}
+          <div style={{ flexShrink: 0, width: '125px' }} title="শাখা ফিল্টার">
+            <select
+              value={selectedBranch}
+              onChange={e => setSelectedBranch(e.target.value)}
+              className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
+            >
+              <option value="all">সকল শাখা</option>
+              {availableBranches.map(b => (
+                <option key={b._id} value={b._id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Department Filter (বিভাগ) */}
+          <div style={{ flexShrink: 0, width: '130px' }} title="বিভাগ ফিল্টার">
+            <select
+              value={selectedDepartment}
+              onChange={e => setSelectedDepartment(e.target.value)}
+              className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
+            >
+              {DEPARTMENT_OPTIONS.map(d => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Class Filter (শ্রেণি - শুধু একাডেমিক শ্রেণি) */}
+          <div style={{ flexShrink: 0, width: '120px' }} title="শ্রেণি ফিল্টার (একাডেমিক)">
             <select
               value={selectedClass}
               onChange={e => setSelectedClass(e.target.value)}
               className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
             >
               <option value="all">সকল শ্রেণি</option>
-              {classes.map(c => (
+              {academicClasses.map(c => (
                 <option key={c._id} value={c._id}>{c.name}</option>
               ))}
             </select>
           </div>
 
-          {/* 3. Section Filter */}
-          <div className="assembly-filter-item-section">
+          {/* 5. Section Filter (সেকশন) */}
+          <div style={{ flexShrink: 0, width: '115px' }} title="সেকশন ফিল্টার">
             <select
               value={selectedSection}
               onChange={e => setSelectedSection(e.target.value)}
               className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
             >
               {availableSectionOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1048,12 +1262,13 @@ export default function AssemblyAttendancePage() {
             </select>
           </div>
 
-          {/* 4. Status Quick Filter */}
-          <div className="assembly-filter-item-status">
+          {/* 6. Status Quick Filter */}
+          <div style={{ flexShrink: 0, width: '115px' }} title="উপস্থিতি স্ট্যাটাস">
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
               className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
             >
               <option value="all">সকল স্ট্যাটাস</option>
               <option value="present">উপস্থিত</option>
@@ -1062,39 +1277,42 @@ export default function AssemblyAttendancePage() {
             </select>
           </div>
 
-          {/* 5. Search Bar */}
-          <div className="assembly-filter-item-search">
-            <Search size={14} className="assembly-search-icon" />
+          {/* 7. Search Bar */}
+          <div style={{ flexShrink: 0, width: '170px', position: 'relative' }} title="নাম, পিতা বা রোল নম্বর দিয়ে খুঁজুন">
+            <Search size={13} style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted, #94a3b8)', pointerEvents: 'none' }} />
             <input
               type="text"
-              placeholder="নাম, পিতা বা রোল..."
+              placeholder="নাম বা রোল..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px 0 28px', marginBottom: 0 }}
             />
           </div>
 
-          {/* 6. Sorting Controls */}
-          <div className="assembly-filter-item-sort">
+          {/* 8. Sorting Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} title="সর্ট কলাম">
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              className="form-input assembly-sort-select"
-              title="সর্ট কলাম নির্বাচন করুন"
+              className="form-input"
+              style={{ height: '34px', fontSize: '0.82rem', padding: '0 6px', width: '120px', marginBottom: 0 }}
             >
               <option value="roll">রোল অনুযায়ী</option>
               <option value="studentId">আইডি অনুযায়ী</option>
               <option value="name">নাম অনুযায়ী</option>
-              <option value="fatherName">পিতার নাম অনুযায়ী</option>
+              <option value="fatherName">পিতার নাম</option>
+              <option value="department">বিভাগ অনুযায়ী</option>
               <option value="status">স্ট্যাটাস অনুযায়ী</option>
             </select>
             <button
               type="button"
-              className="btn btn-secondary btn-sm assembly-sort-btn"
+              className="btn btn-secondary btn-sm"
               onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
               title={sortOrder === 'asc' ? 'আরোহী (Ascending) — ক্লিক করে অবরোহী করুন' : 'অবরোহী (Descending) — ক্লিক করে আরোহী করুন'}
+              style={{ height: '34px', padding: '0 8px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
             >
-              <span style={{ fontWeight: 700 }}>{sortOrder === 'asc' ? '▲ আরোহী' : '▼ অবরোহী'}</span>
+              <span style={{ fontWeight: 700 }}>{sortOrder === 'asc' ? '▲' : '▼'}</span>
             </button>
           </div>
 
@@ -1184,7 +1402,7 @@ export default function AssemblyAttendancePage() {
                     পিতার নাম (Father's Name) <SortIcon col="fatherName" />
                   </span>
                 </th>
-                <th style={{ width: '130px', minWidth: '120px', textAlign: 'center' }}>শ্রেণি ও সেকশন</th>
+                <th style={{ width: '160px', minWidth: '140px', textAlign: 'center' }}>শ্রেণি, সেকশন ও শাখা</th>
                 <th
                   onClick={() => handleSort('status')}
                   style={{ width: '235px', minWidth: '225px', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
@@ -1199,88 +1417,137 @@ export default function AssemblyAttendancePage() {
             </thead>
             <tbody>
               {filteredRecords.length > 0 ? (
-                filteredRecords.map((r) => {
+                groupedRecords.map((group) => {
+                  const isMultiGroup = selectedClass === 'all' && groupedRecords.length > 1;
                   return (
-                    <tr key={r.studentId}>
-                      <td style={{ textAlign: 'center', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.95rem', color: 'var(--primary)' }}>
-                        {r.rollNumber ? r.rollNumber : '—'}
-                      </td>
-                      <td style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                        {r.studentCode || '—'}
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{r.studentName}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          {r.fatherName || '—'}
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'center', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                        {r.className}
-                        {r.sectionName && r.sectionName !== '—' && (
-                          <span className="text-muted" style={{ fontSize: '0.78rem', marginLeft: '4px' }}>
-                            ({r.sectionName})
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                          {/* Present Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(r.studentId, 'present')}
-                            style={{
-                              padding: '5px 12px', fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer',
-                              background: r.status === 'present' ? 'var(--success)' : 'transparent',
-                              color: r.status === 'present' ? '#fff' : 'var(--text-secondary)',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            উপস্থিত
-                          </button>
-                          {/* Absent Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(r.studentId, 'absent')}
-                            style={{
-                              padding: '5px 12px', fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer',
-                              borderLeft: '1px solid var(--border-color)',
-                              borderRight: '1px solid var(--border-color)',
-                              background: r.status === 'absent' ? 'var(--danger)' : 'transparent',
-                              color: r.status === 'absent' ? '#fff' : 'var(--text-secondary)',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            অনুপস্থিত
-                          </button>
-                          {/* Reset Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(r.studentId, '')}
-                            style={{
-                              padding: '5px 12px', fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer',
-                              background: (!r.status || r.status === 'reset') ? 'var(--bg-tertiary)' : 'transparent',
-                              color: (!r.status || r.status === 'reset') ? 'var(--text-primary)' : 'var(--text-muted)',
-                              transition: 'all 0.15s ease',
-                            }}
-                            title="রিসেট করুন"
-                          >
-                            রিসেট
-                          </button>
-                        </div>
-                      </td>
-                      <td style={{ minWidth: '180px' }}>
-                        <input
-                          type="text"
-                          value={r.remarks || ''}
-                          onChange={e => handleFieldChange(r.studentId, 'remarks', e.target.value)}
-                          placeholder="মন্তব্য লিখুন..."
-                          className="form-input"
-                          style={{ width: '100%', minWidth: '160px', height: '34px', fontSize: '0.82rem', padding: '4px 10px', marginBottom: 0 }}
-                        />
-                      </td>
-                    </tr>
+                    <Fragment key={`group-block-${group.className}`}>
+                      {isMultiGroup && (
+                        <tr style={{ background: 'var(--bg-secondary, #f8fafc)', borderTop: '2px solid var(--border-color, #e2e8f0)', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+                          <td colSpan="7" style={{ padding: '8px 14px', fontWeight: 700, fontSize: '0.88rem', color: 'var(--primary)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '1rem' }}>📂</span>
+                                <span>শ্রেণি / বিভাগ: <strong style={{ color: 'var(--text-primary)' }}>{group.className}</strong></span>
+                                <span className="badge badge-primary" style={{ fontSize: '0.74rem', padding: '2px 8px', borderRadius: '10px' }}>
+                                  মোট {group.records.length} জন
+                                </span>
+                                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                  (উপস্থিত: {group.records.filter(r => r.status === 'present').length}, অনুপস্থিত: {group.records.filter(r => r.status === 'absent').length})
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkGroup(group.className, 'present')}
+                                  className="btn btn-xs"
+                                  style={{ fontSize: '0.72rem', padding: '3px 8px', background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', border: '1px solid rgba(22, 163, 74, 0.3)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                  title={`${group.className} এর সবাইকে উপস্থিত করুন`}
+                                >
+                                  সবাই উপস্থিত
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkGroup(group.className, 'absent')}
+                                  className="btn btn-xs"
+                                  style={{ fontSize: '0.72rem', padding: '3px 8px', background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626', border: '1px solid rgba(220, 38, 38, 0.3)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                  title={`${group.className} এর সবাইকে অনুপস্থিত করুন`}
+                                >
+                                  সবাই অনুপস্থিত
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {group.records.map((r) => {
+                        return (
+                          <tr key={r.studentId}>
+                            <td style={{ textAlign: 'center', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.95rem', color: 'var(--primary)' }}>
+                              {r.rollNumber ? r.rollNumber : '—'}
+                            </td>
+                            <td style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                              {r.studentCode || '—'}
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{r.studentName}</div>
+                              {r.department && (
+                                <span style={{ display: 'inline-block', fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.08)', color: 'var(--primary)', marginTop: '2px', fontWeight: 500 }}>
+                                  {r.department}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                {r.fatherName || '—'}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'center', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                              <div style={{ fontWeight: 600 }}>{r.className}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                {r.sectionName && r.sectionName !== '—' ? `সেকশন ${r.sectionName}` : ''}
+                                {r.branchName && r.branchName !== '—' ? ` · ${r.branchName}` : ''}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                                {/* Present Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusChange(r.studentId, 'present')}
+                                  style={{
+                                    padding: '5px 12px', fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                    background: r.status === 'present' ? 'var(--success)' : 'transparent',
+                                    color: r.status === 'present' ? '#fff' : 'var(--text-secondary)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  উপস্থিত
+                                </button>
+                                {/* Absent Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusChange(r.studentId, 'absent')}
+                                  style={{
+                                    padding: '5px 12px', fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                    borderLeft: '1px solid var(--border-color)',
+                                    borderRight: '1px solid var(--border-color)',
+                                    background: r.status === 'absent' ? 'var(--danger)' : 'transparent',
+                                    color: r.status === 'absent' ? '#fff' : 'var(--text-secondary)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  অনুপস্থিত
+                                </button>
+                                {/* Reset Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleStatusChange(r.studentId, '')}
+                                  style={{
+                                    padding: '5px 12px', fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                    background: (!r.status || r.status === 'reset') ? 'var(--bg-tertiary)' : 'transparent',
+                                    color: (!r.status || r.status === 'reset') ? 'var(--text-primary)' : 'var(--text-muted)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  title="রিসেট করুন"
+                                >
+                                  রিসেট
+                                </button>
+                              </div>
+                            </td>
+                            <td style={{ minWidth: '180px' }}>
+                              <input
+                                type="text"
+                                value={r.remarks || ''}
+                                onChange={e => handleFieldChange(r.studentId, 'remarks', e.target.value)}
+                                placeholder="মন্তব্য লিখুন..."
+                                className="form-input"
+                                style={{ width: '100%', minWidth: '160px', height: '34px', fontSize: '0.82rem', padding: '4px 10px', marginBottom: 0 }}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
                   );
                 })
               ) : (
@@ -1439,6 +1706,7 @@ export default function AssemblyAttendancePage() {
                     { id: 'id_custom', label: 'স্টুডেন্ট আইডি ক্রমানুসারে (ANG20* / ANB20* এর পর থেকে)' },
                     { id: 'roll', label: 'রোল নম্বর ক্রমানুসারে (১, ২, ৩...)' },
                     { id: 'name', label: 'শিক্ষার্থীর নামের বর্ণানুক্রমিক (ক, খ, গ...)' },
+                    { id: 'department', label: 'বিভাগ অনুযায়ী (নুরানী, মক্তব, নাজেরা, হিফজ...)' },
                   ].map(opt => (
                     <label
                       key={opt.id}
