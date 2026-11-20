@@ -384,7 +384,6 @@ export default function StudentPromotionPage() {
       }
     );
   };
-  };
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '50px' }}>
