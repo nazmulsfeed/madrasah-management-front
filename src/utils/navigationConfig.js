@@ -45,6 +45,7 @@ export const RAW_MENU_GROUPS = [
     group: 'শিক্ষা ব্যবস্থাপনা',
     items: [
       { path: '/students', label: 'ছাত্র/ছাত্রী', icon: GraduationCap, color: '#0284c7' },
+      { path: '/transfer-certificates', label: 'ছাড়পত্র', icon: FileText, color: '#059669' },
       { path: '/teachers', label: 'শিক্ষকমণ্ডলী ও স্টাফ', icon: Users, color: '#2563eb' },
       { path: '/teacher-attendance', label: 'শিক্ষক হাজিরা', icon: UserCheck, color: '#0891b2' },
       { path: '/guardians', label: 'অভিভাবক', icon: UserCheck, color: '#4f46e5' },

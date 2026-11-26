@@ -30,6 +30,7 @@ const StudentListPage = lazy(() => import('./pages/students/StudentListPage'));
 const StudentPromotionPage = lazy(() => import('./pages/students/StudentPromotionPage'));
 const StudentCreatePage = lazy(() => import('./pages/students/StudentCreatePage'));
 const StudentDetailPage = lazy(() => import('./pages/students/StudentDetailPage'));
+const TransferCertificatePage = lazy(() => import('./pages/students/TransferCertificatePage'));
 
 // ── শিক্ষক ও স্টাফ ব্যবস্থাপনা পেজসমূহ (Lazy Loaded) ──
 const TeacherListPage = lazy(() => import('./pages/teachers/TeacherListPage'));
@@ -115,6 +116,7 @@ export default function App() {
               <Route path="/students/promote" element={<RoleRoute><StudentPromotionPage /></RoleRoute>} />
               <Route path="/students/new" element={<RoleRoute><StudentCreatePage /></RoleRoute>} />
               <Route path="/students/:id" element={<StudentDetailPage />} />
+              <Route path="/transfer-certificates" element={<RoleRoute><TransferCertificatePage /></RoleRoute>} />
               <Route path="/student-profile" element={<StudentDetailPage />} />
 
               <Route path="/teachers" element={<RoleRoute><TeacherListPage /></RoleRoute>} />

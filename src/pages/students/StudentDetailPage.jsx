@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Mail, Phone, Calendar, BookOpen, CreditCard,
   ClipboardCheck, GraduationCap, Edit, User, X, Loader, Save, CheckCircle, AlertCircle,
-  Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send
+  Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send, FileText
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
@@ -14,6 +14,8 @@ import AuditBadge from '../../components/common/AuditBadge';
 import { formatDateDDMMYYYY } from '../../utils/helpers';
 import { getTelegramLink } from '../../utils/phoneNormalizer';
 import StudentResultView from '../../components/students/StudentResultView';
+import BangladeshAddressFields from '../../components/common/BangladeshAddressFields';
+import { DEFAULT_ADDRESS } from '../../utils/bdAddressData';
 import MealRoutineView from '../../components/hostel/MealRoutineView';
 
 export default function StudentDetailPage() {
@@ -120,7 +122,7 @@ export default function StudentDetailPage() {
     rollNumber: '',
     fatherName: '',
     motherName: '',
-    village: '',
+    ...DEFAULT_ADDRESS,
     nationalIdOrBirthCertNo: '',
     customMonthlyFee: '',
     feeDiscountNote: '',
@@ -257,6 +259,10 @@ export default function StudentDetailPage() {
       fatherName: student.fatherName || '',
       motherName: student.motherName || '',
       village: student.village || '',
+      postOffice: student.postOffice || '',
+      upazila: student.upazila || DEFAULT_ADDRESS.upazila,
+      district: student.district || DEFAULT_ADDRESS.district,
+      division: student.division || DEFAULT_ADDRESS.division,
       nationalIdOrBirthCertNo: student.nationalIdOrBirthCertNo || '',
       deviceUserId: student.deviceUserId || '',
       customMonthlyFee: student.customMonthlyFee !== null && student.customMonthlyFee !== undefined ? student.customMonthlyFee : '',
@@ -377,6 +383,7 @@ export default function StudentDetailPage() {
   const statusMap = {
     active: { label: 'সক্রিয়', class: 'badge-active' },
     inactive: { label: 'নিষ্ক্রিয়', class: 'badge-inactive' },
+    transferred: { label: 'ছাড়পত্র প্রাপ্ত', class: 'badge-inactive' },
     graduated: { label: 'স্নাতক', class: 'badge-info' },
   };
   const st = statusMap[student.status] || statusMap.active;
@@ -412,11 +419,22 @@ export default function StudentDetailPage() {
             <p className="page-subtitle">বিস্তারিত একাডেমিক ও ব্যক্তিগত বিবরণী</p>
           </div>
         </div>
-        {canUpdateStudent && (
-          <button className="btn btn-primary" onClick={handleOpenEdit} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <Edit size={16} /> তথ্য সম্পাদনা
-          </button>
-        )}
+        <div className="flex gap-8" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          {!isStudentOrGuardian && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate(`/transfer-certificates?studentId=${student._id}`)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FileText size={16} /> ছাড়পত্র
+            </button>
+          )}
+          {canUpdateStudent && (
+            <button className="btn btn-primary" onClick={handleOpenEdit} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <Edit size={16} /> তথ্য সম্পাদনা
+            </button>
+          )}
+        </div>
       </div>
 
       {/* প্রোফাইল কার্ড */}
@@ -831,6 +849,22 @@ export default function StudentDetailPage() {
               <div>
                 <div className="text-sm text-muted mb-4">গ্রাম</div>
                 <div className="font-semibold">{student.village || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">ডাকঘর</div>
+                <div className="font-semibold">{student.postOffice || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">উপজেলা / থানা</div>
+                <div className="font-semibold">{student.upazila || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">জেলা</div>
+                <div className="font-semibold">{student.district || '—'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted mb-4">বিভাগ</div>
+                <div className="font-semibold">{student.division || '—'}</div>
               </div>
               <div>
                 <div className="text-sm text-muted mb-4">আইডি/জন্ম নিবন্ধন নাম্বার</div>
@@ -1532,14 +1566,7 @@ export default function StudentDetailPage() {
                       onChange={e => setEditFormData({ ...editFormData, motherName: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <label className="form-label">গ্রাম (ঐচ্ছিক)</label>
-                    <input 
-                      type="text" className="form-input" placeholder="গ্রাম"
-                      value={editFormData.village} 
-                      onChange={e => setEditFormData({ ...editFormData, village: e.target.value })}
-                    />
-                  </div>
+                  <BangladeshAddressFields value={editFormData} onChange={setEditFormData} />
                   <div>
                     <label className="form-label">আইডি/জন্ম নিবন্ধন নাম্বার (ঐচ্ছিক)</label>
                     <input 

@@ -7,6 +7,8 @@ import {
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import ImageCropModal from '../../components/common/ImageCropModal';
+import BangladeshAddressFields from '../../components/common/BangladeshAddressFields';
+import { DEFAULT_ADDRESS } from '../../utils/bdAddressData';
 
 export default function StudentCreatePage() {
   const navigate = useNavigate();
@@ -46,7 +48,7 @@ export default function StudentCreatePage() {
     department: '',
     fatherName: '',
     motherName: '',
-    village: '',
+    ...DEFAULT_ADDRESS,
     nationalIdOrBirthCertNo: '',
     customMonthlyFee: '',
     feeDiscountNote: '',
@@ -667,16 +669,7 @@ export default function StudentCreatePage() {
                   />
                 </div>
 
-                <div>
-                  <label className="form-label">গ্রাম (ঐচ্ছিক)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="যেমন: কমলাপুর"
-                    value={formData.village}
-                    onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                  />
-                </div>
+                <BangladeshAddressFields value={formData} onChange={setFormData} />
 
                 <div>
                   <label className="form-label">আইডি/জন্ম নিবন্ধন নাম্বার (ঐচ্ছিক)</label>

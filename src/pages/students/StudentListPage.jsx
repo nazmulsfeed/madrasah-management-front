@@ -16,6 +16,7 @@ import {
   Maximize2,
   ExternalLink,
   User,
+  FileText,
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
@@ -438,6 +439,13 @@ export default function StudentListPage() {
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
             <Download size={14} /> রপ্তানি
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => navigate('/transfer-certificates')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <FileText size={16} /> ছাড়পত্র
           </button>
           <button
             className="btn btn-secondary"
