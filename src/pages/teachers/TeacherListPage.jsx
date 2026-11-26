@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Users, User, Phone, Mail, X, CheckCircle, AlertCircle, Trash2, Edit, ChevronLeft, ChevronRight, Camera, Shield, Printer, Maximize2, Download } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import usePermissions from '../../hooks/usePermissions';
 import ImageCropModal from '../../components/common/ImageCropModal';
 import AuditBadge from '../../components/common/AuditBadge';
 import { getMadrasahInfo } from '../../utils/helpers';
@@ -10,23 +11,7 @@ import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../compo
 
 export default function TeacherListPage() {
   const { user } = useAuthStore();
-  const [myPermissions, setMyPermissions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
-  });
-
-  useEffect(() => {
-    const fetchPerms = async () => {
-      try {
-        const res = await api.get('/permissions/me');
-        if (res.data.success) {
-          const perms = res.data.data;
-          localStorage.setItem('userPermissions', JSON.stringify(perms));
-          setMyPermissions(perms);
-        }
-      } catch (e) {}
-    };
-    fetchPerms();
-  }, [user]);
+  const { myPermissions } = usePermissions();
 
   const isSuperOrAdmin = ['super_admin', 'co_super_admin', 'admin'].includes(user?.userType) || 
                          ['co_super_admin', 'admin'].includes(user?.adminRole);

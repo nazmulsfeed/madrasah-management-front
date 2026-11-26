@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"const fs=require('fs'); fs.cpSync('dist', '.', {recursive: true});\"",
+    "build": "vite build && node -e \"const fs=require('fs'), path=require('path'); for(const f of fs.readdirSync('dist')){ fs.cpSync(path.join('dist', f), path.join('.', f), {recursive: true}); }\"",
     "preview": "vite preview"
   },
   "dependencies": {

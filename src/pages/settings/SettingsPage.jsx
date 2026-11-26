@@ -18,6 +18,7 @@ import {
   Scroll
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import usePermissions from '../../hooks/usePermissions';
 import api from '../../api/axios';
 import MadrasahBlankLetterheadModal from '../../components/common/MadrasahBlankLetterheadModal';
 
@@ -98,24 +99,7 @@ export default function SettingsPage() {
 
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const [myPermissions, setMyPermissions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('userPermissions') || '{}'); } catch { return {}; }
-  });
-
-  // Fetch latest permissions when visiting Settings page to ensure real-time accuracy
-  useEffect(() => {
-    const fetchPerms = async () => {
-      try {
-        const res = await api.get('/permissions/me');
-        if (res.data?.success) {
-          const perms = res.data.data;
-          localStorage.setItem('userPermissions', JSON.stringify(perms));
-          setMyPermissions(perms);
-        }
-      } catch (e) {}
-    };
-    if (user) fetchPerms();
-  }, [user]);
+  const { myPermissions, fetchPermissions } = usePermissions();
 
   const isSuperOrAdmin = user?.userType === 'super_admin' || 
                          user?.userType === 'co_super_admin' || 

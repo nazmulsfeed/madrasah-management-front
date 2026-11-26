@@ -11,11 +11,61 @@ const getSafeInitialUser = () => {
   }
 };
 
+const getSafeInitialPermissions = () => {
+  try {
+    const perms = localStorage.getItem('userPermissions');
+    return perms ? JSON.parse(perms) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+let inFlightPermissionsPromise = null;
+
 const useAuthStore = create((set, get) => ({
   user: getSafeInitialUser(),
   token: localStorage.getItem('token') || null,
+  permissions: getSafeInitialPermissions(),
+  permissionsLoaded: false,
+  permissionsLoading: false,
   isLoading: false,
   error: null,
+
+  fetchPermissions: async (force = false) => {
+    // If already loaded in current session and not forced, return cached state
+    if (get().permissionsLoaded && !force) {
+      return get().permissions;
+    }
+
+    // Deduplicate in-flight requests (simultaneous mounts share the same promise)
+    if (inFlightPermissionsPromise && !force) {
+      return inFlightPermissionsPromise;
+    }
+
+    set({ permissionsLoading: true });
+
+    inFlightPermissionsPromise = (async () => {
+      try {
+        const res = await api.get('/permissions/me');
+        if (res.data?.success) {
+          const perms = res.data.data || {};
+          try {
+            localStorage.setItem('userPermissions', JSON.stringify(perms));
+          } catch (_) {}
+          set({ permissions: perms, permissionsLoaded: true, permissionsLoading: false });
+          return perms;
+        }
+      } catch (err) {
+        console.warn('fetchPermissions error:', err);
+      } finally {
+        inFlightPermissionsPromise = null;
+        set({ permissionsLoading: false });
+      }
+      return get().permissions;
+    })();
+
+    return inFlightPermissionsPromise;
+  },
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
@@ -30,7 +80,15 @@ const useAuthStore = create((set, get) => ({
         localStorage.setItem('userPermissions', JSON.stringify(user.permissions));
       }
 
-      set({ user, token, isLoading: false, error: null });
+      set({
+        user,
+        token,
+        permissions: user.permissions || {},
+        permissionsLoaded: Boolean(user.permissions),
+        permissionsLoading: false,
+        isLoading: false,
+        error: null
+      });
       return true;
     } catch (err) {
       const message = err.response?.data?.message || 'লগ ইন ব্যর্থ হয়েছে';
@@ -43,7 +101,15 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userPermissions');
-    set({ user: null, token: null, error: null });
+    inFlightPermissionsPromise = null;
+    set({
+      user: null,
+      token: null,
+      permissions: {},
+      permissionsLoaded: false,
+      permissionsLoading: false,
+      error: null
+    });
   },
 
   fetchMe: async () => {
