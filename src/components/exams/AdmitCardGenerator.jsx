@@ -27,6 +27,7 @@ import {
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll, formatDateDDMMYYYY } from '../../utils/helpers';
+import AdmitCardBacksideCard, { DEFAULT_BACKSIDE_CONFIG } from './AdmitCardBacksideCard';
 
 /**
  * Islamic Boy with Topi SVG Avatar Fallback
@@ -85,10 +86,39 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const [activeTab, setActiveTab] = useState('preview');
 
   // Preview Zoom & Language & Layout
-  const [previewZoom, setPreviewZoom] = useState(100);
+  const [previewZoom, setPreviewZoom] = useState(85);
   const [langMode, setLangMode] = useState('en'); // 'en' | 'bn' | 'bi'
-  const [cardsPerPage, setCardsPerPage] = useState(2); // 1, 2, 4, 6
-  const [customCardsInput, setCustomCardsInput] = useState('2');
+  const [cardsPerPage, setCardsPerPage] = useState(4); // 1, 2, 4, 6
+  const [customCardsInput, setCustomCardsInput] = useState('4');
+  const [pageOrientation, setPageOrientation] = useState('landscape'); // 'portrait' | 'landscape'
+  const [includeBackside, setIncludeBackside] = useState(true);
+  const [printMode, setPrintMode] = useState('admit'); // 'admit' | 'backside_only'
+  const [cardFontScale, setCardFontScale] = useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem('admit_card_font_scale'), 10);
+      if (!isNaN(saved) && saved >= 80 && saved <= 135) return saved;
+    } catch (_) {}
+    return 100;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('admit_card_font_scale', String(cardFontScale));
+    } catch (_) {}
+  }, [cardFontScale]);
+  const [backsideConfig, setBacksideConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('admit_backside_config');
+      if (saved) return { ...DEFAULT_BACKSIDE_CONFIG, ...JSON.parse(saved) };
+    } catch (_) {}
+    return DEFAULT_BACKSIDE_CONFIG;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('admit_backside_config', JSON.stringify(backsideConfig));
+    } catch (_) {}
+  }, [backsideConfig]);
 
   // Field Visibility Toggles
   const [fieldToggles, setFieldToggles] = useState({
@@ -260,6 +290,9 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const handleCardsPreset = (num) => {
     setCardsPerPage(num);
     setCustomCardsInput(String(num));
+    if (num !== 4 && includeBackside) {
+      setIncludeBackside(false);
+    }
   };
 
   const handleCustomCardsChange = (val) => {
@@ -267,6 +300,29 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     const parsed = parseInt(val, 10);
     if (!isNaN(parsed) && parsed > 0 && parsed <= 8) {
       setCardsPerPage(parsed);
+      if (parsed !== 4 && includeBackside) {
+        setIncludeBackside(false);
+      }
+    }
+  };
+
+  const handleOrientationChange = (orient) => {
+    setPageOrientation(orient);
+    if (orient === 'landscape') {
+      setCardsPerPage(4);
+      setCustomCardsInput('4');
+    } else if (includeBackside) {
+      setIncludeBackside(false);
+    }
+  };
+
+  const handleToggleBackside = () => {
+    const nextVal = !includeBackside;
+    setIncludeBackside(nextVal);
+    if (nextVal) {
+      setPageOrientation('landscape');
+      setCardsPerPage(4);
+      setCustomCardsInput('4');
     }
   };
 
@@ -285,13 +341,137 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     setFieldToggles(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Refs for isolated iframe printing (guarantees A4 landscape without index.css interference)
+  const printContainerRef = useRef(null);
+  const printStyleRef = useRef(null);
+
+  // Execute isolated iframe print
+  const executeIframePrint = (orient) => {
+    const containerEl = printContainerRef.current;
+    const styleEl = printStyleRef.current;
+    if (!containerEl || !styleEl) {
+      window.print();
+      return;
+    }
+
+    const oldFrame = document.getElementById('admit-print-iframe');
+    if (oldFrame) oldFrame.remove();
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'admit-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    const origin = window.location.origin;
+
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <base href="${origin}/" />
+  <title>Admit Card Print</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --admit-font-scale: ${cardFontScale / 100};
+    }
+    @page {
+      size: A4 ${orient};
+      margin: 4mm;
+    }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      font-family: 'Noto Sans Bengali', sans-serif !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    ${styleEl.textContent}
+    .admit-print-only-container {
+      display: block !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .a4-page-sheet {
+      width: 100% !important;
+      height: ${orient === 'landscape' ? '201mm' : '288mm'} !important;
+      min-height: unset !important;
+      box-shadow: none !important;
+      border: none !important;
+      margin: 0 !important;
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    .a4-page-sheet:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="admit-print-only-container">${containerEl.innerHTML}</div>
+</body>
+</html>`);
+    doc.close();
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.error('Iframe print error:', err);
+        window.print();
+      }
+    };
+
+    const imgs = Array.from(doc.images || []);
+    if (imgs.length === 0) {
+      setTimeout(triggerPrint, 120);
+    } else {
+      let done = false;
+      const runOnce = () => {
+        if (!done) {
+          done = true;
+          setTimeout(triggerPrint, 100);
+        }
+      };
+      Promise.all(
+        imgs.map(img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise(res => {
+                img.onload = res;
+                img.onerror = res;
+              })
+        )
+      ).then(runOnce);
+      setTimeout(runOnce, 1200);
+    }
+  };
+
   // Execute Direct Print
   const handlePrint = () => {
     if (selectedStudentsList.length === 0) {
       alert('অনুগ্রহ করে অন্তত একজন শিক্ষার্থী নির্বাচন করুন।');
       return;
     }
-    window.print();
+    setPrintMode('admit');
+    const orient = pageOrientation === 'landscape' ? 'landscape' : 'portrait';
+    setTimeout(() => executeIframePrint(orient), 80);
+  };
+
+  const handlePrintBacksideOnly = () => {
+    setPrintMode('backside_only');
+    setTimeout(() => executeIframePrint('landscape'), 80);
   };
 
   return (
@@ -360,6 +540,17 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             >
               <RotateCw size={15} className={loadingStudents ? 'animate-spin' : ''} />
               <span>রিফ্রেশ</span>
+            </button>
+
+            {/* Print Backside Instructions Only Button */}
+            <button
+              type="button"
+              onClick={handlePrintBacksideOnly}
+              className="admit-btn-ghost"
+              title="শুধুমাত্র A4 Landscape-এ ৪টি বিশেষ জ্ঞাতব্য কার্ড প্রিন্ট করুন"
+            >
+              <Printer size={15} />
+              <span>জ্ঞাতব্য পেজ প্রিন্ট</span>
             </button>
 
             {/* Print Button */}
@@ -537,6 +728,83 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             </div>
           </div>
 
+          {/* Orientation & Backside Duplex Controls */}
+          <div className="admit-sec-group">
+            <span className="admit-sec-label">
+              <Layers size={14} className="text-emerald-600" />
+              <span>পেজ ও উল্টো পিঠ:</span>
+            </span>
+            <div className="admit-pill-buttons">
+              <button
+                type="button"
+                onClick={() => handleOrientationChange('portrait')}
+                className={`admit-pill-btn ${pageOrientation === 'portrait' ? 'active' : ''}`}
+              >
+                Portrait
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOrientationChange('landscape')}
+                className={`admit-pill-btn ${pageOrientation === 'landscape' ? 'active' : ''}`}
+              >
+                Landscape (২×২)
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleBackside}
+              className={`admit-pill-btn ${includeBackside ? 'active' : ''}`}
+              style={{
+                border: includeBackside ? '1px solid #0d3b66' : '1px solid #cbd5e1',
+                background: includeBackside ? '#0d3b66' : '#ffffff',
+                color: includeBackside ? '#ffffff' : '#334155',
+                borderRadius: '8px',
+                padding: '5px 10px'
+              }}
+              title="সামনের ৪টি প্রবেশপত্রের পর পরের পেজে উল্টো পিঠের ৪টি বিশেষ জ্ঞাতব্য যুক্ত করুন"
+            >
+              {includeBackside ? '✓ উল্টো পিঠ (জ্ঞাতব্য) সহ' : '+ উল্টো পিঠ (জ্ঞাতব্য) সহ'}
+            </button>
+          </div>
+
+          {/* Card Font Size Controls */}
+          <div className="admit-sec-group">
+            <span className="admit-sec-label">
+              <span>ফন্ট সাইজ:</span>
+            </span>
+            <div className="admit-pill-buttons">
+              <button
+                type="button"
+                onClick={() => setCardFontScale(s => Math.max(80, s - 5))}
+                className="admit-pill-btn"
+                title="ফন্ট ছোট করুন"
+              >
+                A-
+              </button>
+              <span style={{ padding: '4px 8px', fontSize: '11.5px', fontWeight: 700, color: '#0f172a' }}>
+                {cardFontScale}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setCardFontScale(s => Math.min(135, s + 5))}
+                className="admit-pill-btn"
+                title="ফন্ট বড় করুন"
+              >
+                A+
+              </button>
+              {cardFontScale !== 100 && (
+                <button
+                  type="button"
+                  onClick={() => setCardFontScale(100)}
+                  className="admit-pill-btn"
+                  title="ডিফল্ট ফন্ট সাইজ"
+                >
+                  রিসেট
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Common Room No Bar */}
           <div className="admit-sec-group">
             <span className="admit-sec-label">
@@ -659,13 +927,40 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               <p className="font-semibold text-sm text-slate-700">শিক্ষার্থীদের প্রবেশপত্র তৈরি হচ্ছে...</p>
             </div>
           ) : !selectedClassId ? (
-            <div className="admit-state-box border-dashed">
-              <FileText size={40} className="text-slate-400 mb-2" />
-              <h3 className="text-base font-bold text-slate-700">কোনো শ্রেণি নির্বাচন করা হয়নি</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                অনুগ্রহ করে উপরের ড্রপডাউন থেকে একটি শ্রেণি / জামাত সিলেক্ট করুন। সিলেক্ট করার সাথে সাথে ডেটাবেজ থেকে শিক্ষার্থীদের প্রবেশপত্র লাইভ তৈরি হয়ে প্রদর্শিত হবে।
-              </p>
-            </div>
+            <>
+              <div className="admit-state-box border-dashed">
+                <FileText size={40} className="text-slate-400 mb-2" />
+                <h3 className="text-base font-bold text-slate-700">কোনো শ্রেণি নির্বাচন করা হয়নি</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                  অনুগ্রহ করে উপরের ড্রপডাউন থেকে একটি শ্রেণি / জামাত সিলেক্ট করুন। সিলেক্ট করার সাথে সাথে ডেটাবেজ থেকে শিক্ষার্থীদের প্রবেশপত্র (A4 Landscape ২×২) তৈরি হয়ে প্রদর্শিত হবে।
+                </p>
+              </div>
+              {includeBackside && (
+                <div className="admit-preview-viewport" style={{ marginTop: '16px' }}>
+                  <div
+                    className="admit-preview-scale-wrapper"
+                    style={{
+                      transform: `scale(${previewZoom / 100})`,
+                      transformOrigin: 'top center'
+                    }}
+                  >
+                    <div className="admit-page-wrapper">
+                      <div className="admit-page-tag">
+                        <span className="admit-page-tag-pill" style={{ background: '#0d3b66' }}>
+                          উল্টো পিঠ প্রিভিউ — বিশেষ জ্ঞাতব্য
+                        </span>
+                        <span>(A4 Landscape • ২×২ = ৪টি কার্ড)</span>
+                      </div>
+                      <div className="a4-page-sheet a4-sheet-layout-4 a4-landscape a4-backside-sheet">
+                        {[0, 1, 2, 3].map((slotIdx) => (
+                          <AdmitCardBacksideCard key={`empty-back-${slotIdx}`} config={backsideConfig} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           ) : selectedStudentsList.length === 0 ? (
             <div className="admit-state-box">
               <p className="text-sm font-semibold text-slate-600">
@@ -679,18 +974,19 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                 style={{ transform: `scale(${previewZoom / 100})`, transformOrigin: 'top center' }}
               >
                 {studentPages.map((pageStudents, pageIdx) => (
-                  <div key={pageIdx} className="admit-page-wrapper">
-                    
-                    {/* Page Header Indicator */}
-                    <div className="admit-page-tag">
-                      <span className="admit-page-tag-pill">
-                        পেজ {pageIdx + 1} / {studentPages.length}
-                      </span>
-                      <span>(এই পেজে {pageStudents.length}টি কার্ড)</span>
-                    </div>
+                  <React.Fragment key={`preview-group-${pageIdx}`}>
+                    <div className="admit-page-wrapper">
+                      
+                      {/* Page Header Indicator */}
+                      <div className="admit-page-tag">
+                        <span className="admit-page-tag-pill">
+                          পেজ {pageIdx + 1} / {studentPages.length} {pageOrientation === 'landscape' ? '(Landscape)' : ''}
+                        </span>
+                        <span>(এই পেজে {pageStudents.length}টি কার্ড)</span>
+                      </div>
 
-                    {/* A4 Sheet Container */}
-                    <div className={`a4-page-sheet a4-sheet-layout-${cardsPerPage}`}>
+                      {/* A4 Sheet Container */}
+                      <div className={`a4-page-sheet a4-sheet-layout-${cardsPerPage} ${pageOrientation === 'landscape' ? 'a4-landscape' : ''}`}>
                       {pageStudents.map((student) => {
                         const sid = student._id || student.id;
                         const sName = getSafeStr(student.user?.name || student.name, 'MD. STUDENT');
@@ -865,6 +1161,24 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                       })}
                     </div>
                   </div>
+
+                    {/* Backside Preview Page (Duplex) */}
+                    {includeBackside && (
+                      <div className="admit-page-wrapper">
+                        <div className="admit-page-tag">
+                          <span className="admit-page-tag-pill" style={{ background: '#0d3b66' }}>
+                            পেজ {pageIdx + 1} (উল্টো পিঠ — বিশেষ জ্ঞাতব্য)
+                          </span>
+                          <span>(A4 Landscape • ২×২ = ৪টি কার্ড)</span>
+                        </div>
+                        <div className="a4-page-sheet a4-sheet-layout-4 a4-landscape a4-backside-sheet">
+                          {[0, 1, 2, 3].map((slotIdx) => (
+                            <AdmitCardBacksideCard key={`preview-back-${pageIdx}-${slotIdx}`} config={backsideConfig} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             </div>
@@ -1074,6 +1388,109 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             })}
           </div>
 
+          {/* Backside Instructions Customization Section */}
+          <div className="admit-settings-hdr" style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 className="admit-settings-title">
+                  <FileText size={18} className="text-emerald-600" />
+                  <span>উল্টো পিঠের বিশেষ জ্ঞাতব্য কাস্টমাইজেশন (Landscape Backside)</span>
+                </h3>
+                <p className="admit-settings-sub">
+                  এখান থেকে প্রবেশপত্রের উল্টো পিঠে প্রিন্ট হওয়া নিয়মাবলী ও তথ্য পরিবর্তন করতে পারবেন।
+                </p>
+              </div>
+              <button
+                type="button"
+                className="admit-pill-btn"
+                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 12px' }}
+                onClick={() => setBacksideConfig(DEFAULT_BACKSIDE_CONFIG)}
+              >
+                ডিফল্ট রিসেট
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginTop: '14px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>শিরোনাম</label>
+              <input
+                type="text"
+                className="admit-room-input"
+                style={{ width: '100%' }}
+                value={backsideConfig.title}
+                onChange={(e) => setBacksideConfig(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>বিশেষ দ্রষ্টব্য লেবেল</label>
+              <input
+                type="text"
+                className="admit-room-input"
+                style={{ width: '100%' }}
+                value={backsideConfig.noteLabel}
+                onChange={(e) => setBacksideConfig(prev => ({ ...prev, noteLabel: e.target.value }))}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>বিশেষ দ্রষ্টব্য (বি: দ্র:) লেখা</label>
+              <input
+                type="text"
+                className="admit-room-input"
+                style={{ width: '100%' }}
+                value={backsideConfig.noteText}
+                onChange={(e) => setBacksideConfig(prev => ({ ...prev, noteText: e.target.value }))}
+              />
+            </div>
+            {(backsideConfig.rules || []).map((rule, idx) => (
+              <div key={`rule-edit-${idx}`} style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>নিয়ম {idx + 1}</label>
+                <input
+                  type="text"
+                  className="admit-room-input"
+                  style={{ width: '100%' }}
+                  value={rule}
+                  onChange={(e) => {
+                    const nextRules = [...(backsideConfig.rules || [])];
+                    nextRules[idx] = e.target.value;
+                    setBacksideConfig(prev => ({ ...prev, rules: nextRules }));
+                  }}
+                />
+              </div>
+            ))}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>আদেশক্রমে (লাইন ১)</label>
+              <input
+                type="text"
+                className="admit-room-input"
+                style={{ width: '100%' }}
+                value={backsideConfig.authorityLine1}
+                onChange={(e) => setBacksideConfig(prev => ({ ...prev, authorityLine1: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>মাদরাসা কর্তৃপক্ষ (লাইন ২)</label>
+              <input
+                type="text"
+                className="admit-room-input"
+                style={{ width: '100%' }}
+                value={backsideConfig.authorityLine2}
+                onChange={(e) => setBacksideConfig(prev => ({ ...prev, authorityLine2: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>বাম নিচের ব্যাজ (ঐচ্ছিক, যেমন: বি: ১৪)</label>
+              <input
+                type="text"
+                className="admit-room-input"
+                style={{ width: '100%' }}
+                placeholder="খালি রাখলে দেখাবে না"
+                value={backsideConfig.footerLeftBadge || ''}
+                onChange={(e) => setBacksideConfig(prev => ({ ...prev, footerLeftBadge: e.target.value }))}
+              />
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -1083,9 +1500,17 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
           class "no-print" so it is hidden during print. This div
           does NOT have no-print, so it shows only when printing.
           ============================================================== */}
-      <div className="admit-print-only-container">
-        {selectedStudentsList.length > 0 && studentPages.map((pageStudents, pageIdx) => (
-          <div key={`print-page-${pageIdx}`} className={`a4-page-sheet a4-sheet-layout-${cardsPerPage}`}>
+      <div className="admit-print-only-container" ref={printContainerRef}>
+        {printMode === 'backside_only' ? (
+          <div className="a4-page-sheet a4-sheet-layout-4 a4-landscape a4-backside-sheet">
+            {[0, 1, 2, 3].map((slotIdx) => (
+              <AdmitCardBacksideCard key={`print-back-only-${slotIdx}`} config={backsideConfig} />
+            ))}
+          </div>
+        ) : (
+          selectedStudentsList.length > 0 && studentPages.map((pageStudents, pageIdx) => (
+            <React.Fragment key={`print-group-${pageIdx}`}>
+              <div className={`a4-page-sheet a4-sheet-layout-${cardsPerPage} ${pageOrientation === 'landscape' ? 'a4-landscape' : ''}`}>
             {pageStudents.map((student) => {
               const sid = student._id || student.id;
               const sName = getSafeStr(student.user?.name || student.name, 'MD. STUDENT');
@@ -1233,14 +1658,23 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                 </div>
               );
             })}
-          </div>
-        ))}
+              </div>
+              {includeBackside && (
+                <div className="a4-page-sheet a4-sheet-layout-4 a4-landscape a4-backside-sheet">
+                  {[0, 1, 2, 3].map((slotIdx) => (
+                    <AdmitCardBacksideCard key={`print-back-${pageIdx}-${slotIdx}`} config={backsideConfig} />
+                  ))}
+                </div>
+              )}
+            </React.Fragment>
+          ))
+        )}
       </div>
 
       {/* ==============================================================
           4. SCOPED PURE CSS STYLES FOR SCREEN & PRINT (ZERO TAILWIND DEPENDENCY)
           ============================================================== */}
-      <style>{`
+      <style ref={printStyleRef}>{`
         /* --- Print-Only Container: hidden on screen, visible on print --- */
         .admit-print-only-container {
           display: none;
@@ -1248,11 +1682,16 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
 
         /* --- Container Workspace --- */
         .admit-generator-wrapper {
+          --admit-font-scale: ${cardFontScale / 100};
           display: flex;
           flex-direction: column;
           gap: 18px;
           color: #0f172a;
-          font-family: inherit;
+          font-family: 'Noto Sans Bengali', inherit;
+        }
+        .admit-card,
+        .admit-card * {
+          font-family: 'Noto Sans Bengali', sans-serif !important;
         }
 
         /* --- 1. Header Card --- */
@@ -2401,14 +2840,235 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
         }
 
         /* ==============================================================
+           LANDSCAPE A4 SHEET & BACKSIDE INSTRUCTIONS CARD STYLES
+           ============================================================== */
+        .a4-page-sheet.a4-landscape {
+          width: 297mm;
+          min-height: 210mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 {
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: repeat(2, 1fr);
+          gap: 4mm 5mm;
+          padding: 4.5mm 5.5mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .admit-card {
+          min-height: 96mm;
+          padding: 2.5mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .admit-card-inner-frame {
+          padding: 2.5mm 3.5mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .card-logo {
+          width: 11mm;
+          height: 11mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .inst-name {
+          font-size: calc(15.5pt * var(--admit-font-scale, 1));
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .inst-sub {
+          font-size: calc(9pt * var(--admit-font-scale, 1));
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .admit-pill {
+          font-size: calc(11pt * var(--admit-font-scale, 1));
+          padding: 2px 14px;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .issue-date-label {
+          font-size: calc(9.5pt * var(--admit-font-scale, 1));
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .badge-date-row {
+          margin: 1.5mm 0 3.5mm 0;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .detail-row {
+          font-size: calc(10.5pt * var(--admit-font-scale, 1));
+          line-height: 1.26;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .detail-label {
+          width: 24mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .student-photo-box {
+          width: 19mm;
+          height: 23mm;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .permission-statement {
+          font-size: calc(10pt * var(--admit-font-scale, 1));
+          margin: 1mm 0;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .sig-title,
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .sig-name {
+          font-size: calc(9.5pt * var(--admit-font-scale, 1));
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .signature-svg {
+          width: 24mm;
+          height: 6.5mm;
+        }
+
+        /* Backside Card ("পরীক্ষার্থীদের জন্য বিশেষ জ্ঞাতব্য") */
+        .backside-card {
+          width: 100%;
+          height: 100%;
+          min-height: 96mm;
+          background: #ffffff;
+          box-sizing: border-box;
+          display: flex;
+          font-family: 'Noto Sans Bengali', 'Hind Siliguri', sans-serif;
+        }
+        .backside-outer-border {
+          width: 100%;
+          height: 100%;
+          border: 2.5px solid #0d3b66;
+          border-radius: 6px;
+          padding: 3px;
+          box-sizing: border-box;
+          background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #fefce8 100%);
+        }
+        .backside-inner-border {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          border: 1.5px solid #c89b3c;
+          border-radius: 4px;
+          padding: 7px 14px 6px 14px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          overflow: hidden;
+        }
+        .backside-header-wrap {
+          display: flex;
+          justify-content: center;
+          margin-top: 2px;
+          position: relative;
+          z-index: 4;
+        }
+        .backside-header-pill {
+          background: linear-gradient(90deg, #0a2e52 0%, #0d3b66 50%, #0a2e52 100%);
+          color: #ffffff;
+          border: 1.8px solid #d4a437;
+          border-radius: 999px;
+          padding: 3px 18px;
+          font-size: calc(14pt * var(--admit-font-scale, 1));
+          font-weight: 800;
+          letter-spacing: 0.2px;
+          box-shadow: 0 2px 5px rgba(13, 59, 102, 0.25);
+        }
+        .backside-rules-list {
+          list-style: none;
+          margin: 4px 0 2px 0;
+          padding: 0 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          position: relative;
+          z-index: 4;
+        }
+        .backside-rule-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 7px;
+          font-size: calc(11pt * var(--admit-font-scale, 1));
+          line-height: 1.26;
+          color: #111827;
+          font-weight: 600;
+        }
+        .backside-note-section {
+          position: relative;
+          z-index: 4;
+          margin-top: 2px;
+        }
+        .backside-divider-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .backside-note-pill {
+          background: #0d3b66;
+          color: #fef08a;
+          border: 1.2px solid #d4a437;
+          border-radius: 999px;
+          padding: 1px 11px;
+          font-size: calc(11pt * var(--admit-font-scale, 1));
+          font-weight: 800;
+          white-space: nowrap;
+        }
+        .backside-gold-line {
+          flex: 1;
+          height: 1.8px;
+          background: linear-gradient(90deg, #d4a437, #f3c65f, #d4a437);
+          position: relative;
+        }
+        .backside-gold-diamond {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 7px;
+          height: 7px;
+          background: #d4a437;
+          transform: translate(-50%, -50%) rotate(45deg);
+        }
+        .backside-note-text {
+          margin: 2px 0 0 20px;
+          font-size: calc(10.8pt * var(--admit-font-scale, 1));
+          line-height: 1.24;
+          font-weight: 700;
+          color: #1e293b;
+        }
+        .backside-footer-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          margin-top: 2px;
+          position: relative;
+          z-index: 4;
+        }
+        .backside-left-badge {
+          display: inline-block;
+          background: #0f172a;
+          color: #ffffff;
+          border-radius: 999px;
+          padding: 1.5px 10px;
+          font-size: calc(9.5pt * var(--admit-font-scale, 1));
+          font-weight: 700;
+        }
+        .backside-authority-box {
+          border: 1.5px solid #0d3b66;
+          background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%);
+          border-radius: 3px;
+          padding: 2px 12px;
+          text-align: center;
+          min-width: 96px;
+        }
+        .backside-auth-line1 {
+          font-size: calc(9.5pt * var(--admit-font-scale, 1));
+          font-weight: 700;
+          color: #0d3b66;
+          line-height: 1.15;
+        }
+        .backside-auth-line2 {
+          font-size: calc(10.5pt * var(--admit-font-scale, 1));
+          font-weight: 800;
+          color: #0a2e52;
+          line-height: 1.2;
+        }
+
+        /* ==============================================================
            EXACT @media print RULES (ZERO WEBSITE UI, ONLY CARDS ON A4)
            ============================================================== */
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 4mm;
-          }
+        @page {
+          size: A4 ${(printMode === 'backside_only' || pageOrientation === 'landscape') ? 'landscape' : 'portrait'};
+          margin: 4mm;
+        }
+        @page admit-landscape {
+          size: A4 landscape;
+          margin: 4mm;
+        }
+        @page admit-portrait {
+          size: A4 portrait;
+          margin: 4mm;
+        }
 
+        @media print {
           body {
             background: #ffffff !important;
             padding: 0 !important;
@@ -2442,6 +3102,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
           }
 
           .a4-page-sheet {
+            page: admit-portrait;
             width: 100% !important;
             height: 288mm !important;
             min-height: unset !important;
@@ -2452,18 +3113,23 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             break-after: page !important;
           }
 
-          .admit-card {
-            box-shadow: none !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+          .a4-page-sheet.a4-landscape {
+            page: admit-landscape;
+            width: 100% !important;
+            height: 201mm !important;
+            min-height: unset !important;
           }
 
-          .admit-pill {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
+          .admit-card,
+          .backside-card,
+          .backside-outer-border,
+          .backside-header-pill,
+          .backside-note-pill,
+          .backside-authority-box,
+          .backside-left-badge,
+          .admit-pill,
           .room-badge {
+            box-shadow: none !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
