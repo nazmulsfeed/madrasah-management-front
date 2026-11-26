@@ -192,6 +192,7 @@ export default function HomeworkPage() {
   const [hifzDateFilter, setHifzDateFilter] = useState('today');
   const [hifzCustomDate, setHifzCustomDate] = useState('');
   const [hifzCategoryFilter, setHifzCategoryFilter] = useState('all');
+  const [hifzBranchFilter, setHifzBranchFilter] = useState('');
   const [hifzStudentFilter, setHifzStudentFilter] = useState('');
   const [hifzSearchQuery, setHifzSearchQuery] = useState('');
   
@@ -203,6 +204,7 @@ export default function HomeworkPage() {
   const [hifzFormData, setHifzFormData] = useState(DEFAULT_HIFZ_FORM);
 
   // Student picker helper in Hifz modal
+  const [hifzModalBranchFilter, setHifzModalBranchFilter] = useState('');
   const [hifzModalClassFilter, setHifzModalClassFilter] = useState('');
   const [hifzModalStudentSearch, setHifzModalStudentSearch] = useState('');
 
@@ -509,6 +511,7 @@ export default function HomeworkPage() {
   const handleOpenHifzModal = () => {
     setIsHifzEditing(false);
     setEditingHifzId(null);
+    setHifzModalBranchFilter('');
     setHifzModalClassFilter('');
     setHifzModalStudentSearch('');
     setHifzFormData({
@@ -814,8 +817,29 @@ export default function HomeworkPage() {
     }
   };
 
+  // Shared branch filter matcher for Hifz/Nazera/Maktab (only admitted boys/girls branches)
+  const matchesHifzBranchFilter = (stu, branchFilter) => {
+    if (!branchFilter) return true;
+    let branchName = typeof stu?.branch === 'object' ? stu?.branch?.name : '';
+    if (!branchName && stu?._id) {
+      const matched = students.find(s => s._id === stu._id);
+      branchName = typeof matched?.branch === 'object' ? matched?.branch?.name : '';
+    }
+    const normalized = (branchName || '').trim();
+    if (branchFilter === 'boys') {
+      return normalized === 'বালক শাখা' || normalized === 'বালক শাখা + নুরানী' || normalized === 'বালক শাখা+নুরানী';
+    }
+    if (branchFilter === 'girls') {
+      return normalized === 'বালিকা শাখা' || normalized === 'বালিকা শাখা + নুরানী' || normalized === 'বালিকা শাখা+নুরানী';
+    }
+    return true;
+  };
+
   // Filter students for modal dropdown
   const filteredModalStudents = students.filter(s => {
+    if (hifzModalBranchFilter && !matchesHifzBranchFilter(s, hifzModalBranchFilter)) {
+      return false;
+    }
     if (hifzModalClassFilter) {
       const className = s.currentEnrollment?.classLevel?.name || s.classLevel?.name;
       if (className !== hifzModalClassFilter) return false;
@@ -1339,6 +1363,29 @@ export default function HomeworkPage() {
                   <option value="maktab">মক্তব বিভাগ</option>
                 </select>
 
+                {/* Branch Filter (Boys / Girls) */}
+                {!isStudentOrGuardian && (
+                  <select
+                    className="form-input form-select"
+                    value={hifzBranchFilter}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setHifzBranchFilter(val);
+                      if (hifzStudentFilter) {
+                        const selectedStu = students.find(s => s._id === hifzStudentFilter);
+                        if (selectedStu && !matchesHifzBranchFilter(selectedStu, val)) {
+                          setHifzStudentFilter('');
+                        }
+                      }
+                    }}
+                    style={{ width: '150px', padding: '8px 32px 8px 12px' }}
+                  >
+                    <option value="">সকল শাখা</option>
+                    <option value="boys">বালক শাখা</option>
+                    <option value="girls">বালিকা শাখা</option>
+                  </select>
+                )}
+
                 {/* If authority, filter by student */}
                 {!isStudentOrGuardian && (
                   <select
@@ -1348,7 +1395,7 @@ export default function HomeworkPage() {
                     style={{ minWidth: '220px', maxWidth: '320px', padding: '8px 32px 8px 12px' }}
                   >
                     <option value="">সকল শিক্ষার্থী</option>
-                    {students.map(s => (
+                    {students.filter(s => matchesHifzBranchFilter(s, hifzBranchFilter)).map(s => (
                       <option key={s._id} value={s._id}>
                         {getStudentDisplayName(s)}
                       </option>
@@ -1380,6 +1427,9 @@ export default function HomeworkPage() {
             </div>
           ) : (() => {
             const displayList = hifzList.filter(item => {
+              if (!isStudentOrGuardian && hifzBranchFilter && !matchesHifzBranchFilter(item.student, hifzBranchFilter)) {
+                return false;
+              }
               if (!hifzSearchQuery) return true;
               const q = hifzSearchQuery.toLowerCase();
               const stuName = (item.student?.user?.fullName || `${item.student?.user?.firstName || ''} ${item.student?.user?.lastName || ''}`).toLowerCase();
@@ -1795,7 +1845,7 @@ export default function HomeworkPage() {
               </div>
 
               {/* Student & Date Selection */}
-              <div className="grid grid-2 mb-20" style={{ gap: '16px' }}>
+              <div className="grid grid-3 mb-20" style={{ gap: '16px' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">তারিখ *</label>
                   <input
@@ -1805,6 +1855,28 @@ export default function HomeworkPage() {
                     value={hifzFormData.date}
                     onChange={(e) => setHifzFormData({ ...hifzFormData, date: e.target.value })}
                   />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">শাখা ফিল্টার (ঐচ্ছিক)</label>
+                  <select
+                    className="form-input form-select"
+                    value={hifzModalBranchFilter}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setHifzModalBranchFilter(val);
+                      if (hifzFormData.student) {
+                        const selectedStu = students.find(s => s._id === hifzFormData.student);
+                        if (selectedStu && !matchesHifzBranchFilter(selectedStu, val)) {
+                          setHifzFormData(prev => ({ ...prev, student: '' }));
+                        }
+                      }
+                    }}
+                  >
+                    <option value="">সকল শাখা</option>
+                    <option value="boys">বালক শাখা</option>
+                    <option value="girls">বালিকা শাখা</option>
+                  </select>
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
