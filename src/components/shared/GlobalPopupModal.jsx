@@ -512,25 +512,54 @@ export default function GlobalPopupModal() {
             gap: '12px',
           }}
         >
-          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}>
-            <input
-              type="checkbox"
-              checked={dontShowToday}
-              onChange={(e) => setDontShowToday(e.target.checked)}
+          <button
+            type="button"
+            onClick={() => setDontShowToday((v) => !v)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              cursor: 'pointer',
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              textAlign: 'left',
+              color: 'inherit',
+            }}
+          >
+            <span
               style={{
-                width: '38px',
-                height: '20px',
-                accentColor: '#0d9488',
-                cursor: 'pointer',
+                width: '42px',
+                height: '24px',
+                borderRadius: '999px',
+                background: dontShowToday ? '#0d9488' : '#64748b',
+                position: 'relative',
+                transition: 'background 0.2s',
+                flexShrink: 0,
               }}
-            />
+            >
+              <span
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  position: 'absolute',
+                  top: '3px',
+                  left: dontShowToday ? '21px' : '3px',
+                  transition: 'left 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                }}
+              />
+            </span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>আজ আর দেখতে চাই না</div>
+              <div style={{ fontWeight: 700, fontSize: '0.86rem' }}>আজ আর দেখতে চাই না</div>
               <div style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>
                 অন করে ক্রস (×) চাপলে ২৪ ঘণ্টা আসবে না
               </div>
             </div>
-          </label>
+          </button>
           <button type="button" className="btn btn-primary btn-sm" onClick={handleClose} style={{ background: '#0d9488', borderColor: '#0d9488' }}>
             বন্ধ করুন
           </button>
