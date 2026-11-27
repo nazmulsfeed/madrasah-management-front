@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Bell, X, Trash2, Edit, FileText } from 'lucide-react';
+import { Plus, Bell, X, Trash2, Edit, FileText, Sparkles, Megaphone } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import AuditBadge from '../../components/common/AuditBadge';
 import PhysicalNoticePad from '../../components/notices/PhysicalNoticePad';
+import NasihotPopupManager from '../../components/notices/NasihotPopupManager';
 import { getMadrasahInfo } from '../../utils/helpers';
 import { SECTION_OPTIONS } from '../../utils/constants';
 
@@ -73,8 +74,11 @@ export default function NoticesPage() {
   const { madrasahName, branchName } = getMadrasahInfo(user);
   const permissions = user?.permissions || {};
   const canManageNotice = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin' || permissions?.can_manage_notice;
+  const isSuperOrCoSuper = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin';
 
-  const [activeTab, setActiveTab] = useState('digital'); // 'digital' | 'physical'
+  const [activeTab, setActiveTab] = useState('digital'); // 'digital' | 'physical' | 'nasihot'
+  const [pushedNoticeIds, setPushedNoticeIds] = useState([]);
+  const [pushingNoticeId, setPushingNoticeId] = useState(null);
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -131,6 +135,35 @@ export default function NoticesPage() {
   useEffect(() => {
     fetchNotices();
   }, []);
+
+  useEffect(() => {
+    if (!isSuperOrCoSuper) return;
+    api.get('/popups/manage')
+      .then((res) => {
+        setPushedNoticeIds(res.data?.data?.pushedNoticeIds || []);
+      })
+      .catch(() => {});
+  }, [isSuperOrCoSuper]);
+
+  const handleTogglePopupPush = async (notice, e) => {
+    e.stopPropagation();
+    const id = String(notice._id || notice.id);
+    setPushingNoticeId(id);
+    try {
+      const res = await api.post(`/popups/push-notice/${id}`);
+      if (res.data?.success) {
+        const isInPopup = Boolean(res.data.data?.isInPopup);
+        setPushedNoticeIds((prev) =>
+          isInPopup ? [...new Set([...prev, id])] : prev.filter((x) => x !== id)
+        );
+        alert(res.data.message || (isInPopup ? 'নোটিশটি পপ-আপে যুক্ত হয়েছে' : 'পপ-আপ থেকে সরানো হয়েছে'));
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'পপ-আপে পাঠাতে সমস্যা হয়েছে');
+    } finally {
+      setPushingNoticeId(null);
+    }
+  };
 
   // 'বিস্তারিত পড়ুন' চাপলে নোটিশটি দেখা এবং ডাটাবেজে পড়া হয়েছে হিসেবে মার্ক করা
   const handleOpenNotice = (notice) => {
@@ -291,10 +324,28 @@ export default function NoticesPage() {
             <FileText size={16} />
             <span>ফিজিক্যাল নোটিশ প্যাড (প্রিন্ট) ({physicalNotices.length})</span>
           </button>
+          {isSuperOrCoSuper && (
+            <button
+              type="button"
+              className={`btn ${activeTab === 'nasihot' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('nasihot')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                ...(activeTab === 'nasihot' ? { background: '#0d9488', borderColor: '#0d9488' } : {}),
+              }}
+            >
+              <Sparkles size={16} />
+              <span>নসিহত ও পপ-আপ</span>
+            </button>
+          )}
         </div>
       )}
 
-      {activeTab === 'physical' && canManageNotice ? (
+      {activeTab === 'nasihot' && isSuperOrCoSuper ? (
+        <NasihotPopupManager onPopupListChange={(ids) => setPushedNoticeIds(ids)} />
+      ) : activeTab === 'physical' && canManageNotice ? (
         <PhysicalNoticePad physicalNotices={physicalNotices} onRefresh={fetchNotices} />
       ) : loading ? (
         <div className="flex-center" style={{ padding: '60px' }}>
@@ -332,6 +383,30 @@ export default function NoticesPage() {
                   <span className={`badge badge-active`}>
                     {formatAudienceBadge(notice.audience)}
                   </span>
+                  {isSuperOrCoSuper && (() => {
+                    const nid = String(notice._id || notice.id);
+                    const inPopup = pushedNoticeIds.includes(nid);
+                    return (
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${inPopup ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={(e) => handleTogglePopupPush(notice, e)}
+                        disabled={pushingNoticeId === nid}
+                        title={inPopup ? 'পপ-আপে চালু আছে — সরাতে ক্লিক করুন' : 'পপ-আপে পাঠান'}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '0.72rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          ...(inPopup ? { background: '#0d9488', borderColor: '#0d9488' } : {}),
+                        }}
+                      >
+                        <Megaphone size={13} />
+                        <span>{inPopup ? 'পপ-আপে আছে' : 'পপ-আপে দিন'}</span>
+                      </button>
+                    );
+                  })()}
                   {canManageNotice && (
                     <>
                       <button className="btn btn-ghost btn-icon btn-sm text-primary" onClick={(e) => handleEditClick(notice, e)} title="এডিট করুন">

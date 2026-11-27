@@ -30,6 +30,8 @@ export default function FeesPage() {
   const [pendingLoading, setPendingLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
+  const [autoDuePopupEnabled, setAutoDuePopupEnabled] = useState(true);
+  const [togglingDuePopup, setTogglingDuePopup] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Tabs: 'invoices' or 'pending' (pending tab is admin/staff only)
@@ -760,6 +762,33 @@ export default function FeesPage() {
     }
   };
 
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    api.get('/popups/due-setting')
+      .then((res) => {
+        if (res.data?.success && res.data.data?.autoDuePopupEnabled !== undefined) {
+          setAutoDuePopupEnabled(Boolean(res.data.data.autoDuePopupEnabled));
+        }
+      })
+      .catch(() => {});
+  }, [isSuperAdmin]);
+
+  const handleToggleAutoDuePopup = async () => {
+    setTogglingDuePopup(true);
+    try {
+      const nextVal = !autoDuePopupEnabled;
+      const res = await api.put('/popups/due-setting', { autoDuePopupEnabled: nextVal });
+      if (res.data?.success) {
+        setAutoDuePopupEnabled(nextVal);
+        setToast({ type: 'success', message: res.data.message });
+      }
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'অটো পপ-আপ সেটিংস পরিবর্তন ব্যর্থ হয়েছে' });
+    } finally {
+      setTogglingDuePopup(false);
+    }
+  };
+
   // Submit Unified Form (Creates Invoice and optionally creates Payment Request)
   const handleSubmitUnified = async (e) => {
     e.preventDefault();
@@ -1467,11 +1496,24 @@ export default function FeesPage() {
           <h1 className="page-title">ফি ও বেতন ব্যবস্থাপনা</h1>
           <p className="page-subtitle">প্রতি মাসের ৫ তারিখে স্বয়ংক্রিয় বেতন ইনভয়েস ও ৩ দিন পূর্বে বকেয়া তাগিদ নোটিফিকেশন সক্রিয়</p>
         </div>
-        <div className="flex gap-16">
+        <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
           {isSuperAdmin && (
-            <button className="btn btn-secondary flex-center gap-4" onClick={handleOpenClassFeeModal}>
-              <Settings size={16} /> শ্রেণি ফি নির্ধারণ
-            </button>
+            <>
+              <button
+                type="button"
+                className={`btn flex-center gap-4 ${autoDuePopupEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={handleToggleAutoDuePopup}
+                disabled={togglingDuePopup}
+                style={autoDuePopupEnabled ? { background: '#059669', borderColor: '#059669' } : undefined}
+                title="প্রতি মাসের ৪–১০ তারিখ বকেয়া ছাত্র ও অভিভাবক আইডিতে অটো পপ-আপ নোটিফিকেশন চালু/বন্ধ করুন"
+              >
+                <Bell size={16} />
+                <span>{autoDuePopupEnabled ? 'বকেয়া অটো পপ-আপ: চালু' : 'বকেয়া অটো পপ-আপ: বন্ধ'}</span>
+              </button>
+              <button className="btn btn-secondary flex-center gap-4" onClick={handleOpenClassFeeModal}>
+                <Settings size={16} /> শ্রেণি ফি নির্ধারণ
+              </button>
+            </>
           )}
           {canManage && (
             <>

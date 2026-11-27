@@ -21,6 +21,7 @@ import { getVisibleNavigation } from '../utils/navigationConfig';
 import NotificationDropdown from '../components/common/NotificationDropdown';
 import GlobalSearch from '../components/common/GlobalSearch';
 import PushNotificationPrompt from '../components/common/PushNotificationPrompt';
+import GlobalPopupModal from '../components/shared/GlobalPopupModal';
 import { autoRegisterPushNotification } from '../utils/pushNotificationService';
 
 export default function DashboardLayout() {
@@ -337,6 +338,9 @@ export default function DashboardLayout() {
 
       {/* মোবাইল ও ওয়েব পুশ নোটিফিকেশন প্রম্পট */}
       <PushNotificationPrompt />
+
+      {/* গ্লোবাল নসিহত, পুশ করা নোটিশ ও বকেয়া পপ-আপ */}
+      <GlobalPopupModal />
 
       {/* মোবাইল ড্রয়ার overlay (ডেস্কটপে সম্পূর্ণ লুকানো, মোবাইলে ক্লিক করলে ড্রয়ার বন্ধ হবে) */}
       {mobileOpen && (
