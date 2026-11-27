@@ -100,6 +100,38 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     } catch (_) {}
     return 100;
   });
+  const [teacherSigImg, setTeacherSigImg] = useState(() => {
+    try { return localStorage.getItem('admit_teacher_sig') || ''; } catch (_) { return ''; }
+  });
+  const [headSigImg, setHeadSigImg] = useState(() => {
+    try { return localStorage.getItem('admit_head_sig') || ''; } catch (_) { return ''; }
+  });
+
+  const handleSignatureUpload = (type, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result || '';
+      if (type === 'teacher') {
+        setTeacherSigImg(dataUrl);
+        try { localStorage.setItem('admit_teacher_sig', dataUrl); } catch (_) {}
+      } else {
+        setHeadSigImg(dataUrl);
+        try { localStorage.setItem('admit_head_sig', dataUrl); } catch (_) {}
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearSignature = (type) => {
+    if (type === 'teacher') {
+      setTeacherSigImg('');
+      try { localStorage.removeItem('admit_teacher_sig'); } catch (_) {}
+    } else {
+      setHeadSigImg('');
+      try { localStorage.removeItem('admit_head_sig'); } catch (_) {}
+    }
+  };
 
   useEffect(() => {
     try {
@@ -842,6 +874,95 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             />
           </div>
 
+          {/* Signature Upload Controls (Class Teacher & Head Teacher) */}
+          <div className="admit-sec-group" style={{ flexWrap: 'wrap' }}>
+            <span className="admit-sec-label">
+              <span>স্বাক্ষর আপলোড:</span>
+            </span>
+
+            {/* Class Teacher Signature Upload */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 9px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: teacherSigImg ? '#ecfdf5' : '#ffffff',
+                  color: teacherSigImg ? '#047857' : '#334155',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleSignatureUpload('teacher', f);
+                    e.target.value = '';
+                  }}
+                />
+                <span>{teacherSigImg ? '✓ Class Teacher' : '+ Class Teacher'}</span>
+              </label>
+              {teacherSigImg && (
+                <button
+                  type="button"
+                  onClick={() => handleClearSignature('teacher')}
+                  title="Class Teacher স্বাক্ষর মুছুন"
+                  style={{ border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* Head Teacher Signature Upload */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 9px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: headSigImg ? '#ecfdf5' : '#ffffff',
+                  color: headSigImg ? '#047857' : '#334155',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleSignatureUpload('head', f);
+                    e.target.value = '';
+                  }}
+                />
+                <span>{headSigImg ? '✓ Head Teacher' : '+ Head Teacher'}</span>
+              </label>
+              {headSigImg && (
+                <button
+                  type="button"
+                  onClick={() => handleClearSignature('head')}
+                  title="Head Teacher স্বাক্ষর মুছুন"
+                  style={{ border: 'none', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -1132,10 +1253,11 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                                 <div className="signatures-row">
                                   {fieldToggles.teacherSig ? (
                                     <div className="signature-block">
-                                      <svg className="signature-svg" viewBox="0 0 160 55" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M15 42C25 15 32 8 38 10C44 12 40 38 48 42C56 46 72 20 85 22C98 24 105 40 120 38C132 36 142 22 152 28" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M28 28C45 26 80 20 110 32" stroke="#111827" strokeWidth="1.8" strokeLinecap="round"/>
-                                      </svg>
+                                      {teacherSigImg ? (
+                                        <img src={teacherSigImg} alt="Class Teacher Signature" className="signature-img" />
+                                      ) : (
+                                        <div className="signature-spacer" />
+                                      )}
                                       <div className="sig-line"></div>
                                       <div className="sig-title">{langMode === 'bn' ? 'শ্রেণি শিক্ষক' : 'Class Teacher'}</div>
                                     </div>
@@ -1143,13 +1265,13 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
 
                                   {fieldToggles.principalSig ? (
                                     <div className="signature-block">
-                                      <svg className="signature-svg" viewBox="0 0 180 55" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M20 38C28 18 36 12 42 16C48 20 44 42 58 36C70 30 82 14 96 20C110 26 120 44 135 34C145 28 155 18 165 24" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M60 48C85 45 125 42 150 46" stroke="#111827" strokeWidth="1.5" strokeLinecap="round"/>
-                                      </svg>
+                                      {headSigImg ? (
+                                        <img src={headSigImg} alt="Head Teacher Signature" className="signature-img" />
+                                      ) : (
+                                        <div className="signature-spacer" />
+                                      )}
                                       <div className="sig-line"></div>
-                                      <div className="sig-name">MD. RAFIQUL ISLAM</div>
-                                      <div className="sig-title">{langMode === 'bn' ? 'মুহতামিম / প্রতিষ্ঠান প্রধান' : 'Head Teacher (In-charge)'}</div>
+                                      <div className="sig-title">{langMode === 'bn' ? 'মুহতামিম / প্রতিষ্ঠান প্রধান' : 'Head Teacher'}</div>
                                     </div>
                                   ) : <div></div>}
                                 </div>
@@ -1633,23 +1755,24 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                       <div className="signatures-row">
                         {fieldToggles.teacherSig ? (
                           <div className="signature-block">
-                            <svg className="signature-svg" viewBox="0 0 160 55" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M15 42C25 15 32 8 38 10C44 12 40 38 48 42C56 46 72 20 85 22C98 24 105 40 120 38C132 36 142 22 152 28" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M28 28C45 26 80 20 110 32" stroke="#111827" strokeWidth="1.8" strokeLinecap="round"/>
-                            </svg>
+                            {teacherSigImg ? (
+                              <img src={teacherSigImg} alt="Class Teacher Signature" className="signature-img" />
+                            ) : (
+                              <div className="signature-spacer" />
+                            )}
                             <div className="sig-line"></div>
                             <div className="sig-title">{langMode === 'bn' ? 'শ্রেণি শিক্ষক' : 'Class Teacher'}</div>
                           </div>
                         ) : <div></div>}
                         {fieldToggles.principalSig ? (
                           <div className="signature-block">
-                            <svg className="signature-svg" viewBox="0 0 180 55" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M20 38C28 18 36 12 42 16C48 20 44 42 58 36C70 30 82 14 96 20C110 26 120 44 135 34C145 28 155 18 165 24" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M60 48C85 45 125 42 150 46" stroke="#111827" strokeWidth="1.5" strokeLinecap="round"/>
-                            </svg>
+                            {headSigImg ? (
+                              <img src={headSigImg} alt="Head Teacher Signature" className="signature-img" />
+                            ) : (
+                              <div className="signature-spacer" />
+                            )}
                             <div className="sig-line"></div>
-                            <div className="sig-name">MD. RAFIQUL ISLAM</div>
-                            <div className="sig-title">{langMode === 'bn' ? 'মুহতামিম / প্রতিষ্ঠান প্রধান' : 'Head Teacher (In-charge)'}</div>
+                            <div className="sig-title">{langMode === 'bn' ? 'মুহতামিম / প্রতিষ্ঠান প্রধান' : 'Head Teacher'}</div>
                           </div>
                         ) : <div></div>}
                       </div>
@@ -2844,20 +2967,65 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
            ============================================================== */
         .a4-page-sheet.a4-landscape {
           width: 297mm;
+          height: 210mm;
           min-height: 210mm;
+          max-height: 210mm;
+          position: relative;
+          box-sizing: border-box;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 {
-          grid-template-columns: repeat(2, 1fr);
-          grid-template-rows: repeat(2, 1fr);
-          gap: 4mm 5mm;
-          padding: 4.5mm 5.5mm;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-rows: repeat(2, minmax(0, 1fr));
+          gap: 5mm 6mm;
+          padding: 4mm 5mm;
+          position: relative;
+        }
+        /* Center Dashed Cut Lines on both Front & Back Landscape Sheets */
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: 2mm;
+          bottom: 2mm;
+          width: 0;
+          border-left: 1px dashed #94a3b8;
+          transform: translateX(-0.5px);
+          pointer-events: none;
+          z-index: 10;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 2mm;
+          right: 2mm;
+          height: 0;
+          border-top: 1px dashed #94a3b8;
+          transform: translateY(-0.5px);
+          pointer-events: none;
+          z-index: 10;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .admit-card {
-          min-height: 96mm;
-          padding: 2.5mm;
+          width: 100%;
+          height: 100%;
+          min-height: 0 !important;
+          max-height: 100%;
+          padding: 2mm;
+          box-sizing: border-box;
+          overflow: hidden;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .admit-card-inner-frame {
-          padding: 2.5mm 3.5mm;
+          height: 100%;
+          box-sizing: border-box;
+          padding: 2mm 3.5mm;
+          display: flex;
+          flex-direction: column;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .card-content {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .card-logo {
           width: 11mm;
@@ -2877,11 +3045,11 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
           font-size: calc(9.5pt * var(--admit-font-scale, 1));
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .badge-date-row {
-          margin: 1.5mm 0 3.5mm 0;
+          margin: 1mm 0 2.5mm 0;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .detail-row {
           font-size: calc(10.5pt * var(--admit-font-scale, 1));
-          line-height: 1.26;
+          line-height: 1.24;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .detail-label {
           width: 24mm;
@@ -2892,25 +3060,48 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .permission-statement {
           font-size: calc(10pt * var(--admit-font-scale, 1));
-          margin: 1mm 0;
+          margin: 0.5mm 0;
+        }
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .signature-block {
+          width: auto;
+          min-width: 44mm;
+          white-space: nowrap;
         }
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .sig-title,
         .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .sig-name {
-          font-size: calc(9.5pt * var(--admit-font-scale, 1));
+          font-size: calc(9.2pt * var(--admit-font-scale, 1));
+          white-space: nowrap;
         }
-        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .signature-svg {
-          width: 24mm;
-          height: 6.5mm;
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .signature-svg,
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .signature-img,
+        .a4-page-sheet.a4-landscape.a4-sheet-layout-4 .signature-spacer {
+          width: 26mm;
+          height: 7mm;
+          object-fit: contain;
+          display: block;
+          margin: 0 auto 1px;
+        }
+        .signature-img {
+          max-width: 30mm;
+          height: 9mm;
+          object-fit: contain;
+          display: block;
+          margin: 0 auto 1px;
+        }
+        .signature-spacer {
+          height: 9mm;
         }
 
         /* Backside Card ("পরীক্ষার্থীদের জন্য বিশেষ জ্ঞাতব্য") */
         .backside-card {
           width: 100%;
           height: 100%;
-          min-height: 96mm;
+          min-height: 0 !important;
+          max-height: 100%;
           background: #ffffff;
           box-sizing: border-box;
           display: flex;
+          overflow: hidden;
           font-family: 'Noto Sans Bengali', 'Hind Siliguri', sans-serif;
         }
         .backside-outer-border {
@@ -3118,6 +3309,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
             width: 100% !important;
             height: 201mm !important;
             min-height: unset !important;
+            max-height: 201mm !important;
           }
 
           .admit-card,

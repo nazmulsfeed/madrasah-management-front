@@ -69,12 +69,25 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
   const [showWatermark, setShowWatermark] = useState(true);
 
   // Cards per page and print layout
-  const [cardsPerPage, setCardsPerPage] = useState(12); // default 12 (3x4)
-  const [isCustomCards, setIsCustomCards] = useState(false);
-  const [customCardsInput, setCustomCardsInput] = useState('12');
+  const [cardsPerPage, setCardsPerPage] = useState(10); // default custom 10 (2x5)
+  const [isCustomCards, setIsCustomCards] = useState(true);
+  const [customCardsInput, setCustomCardsInput] = useState('10');
   const [selectedTheme, setSelectedTheme] = useState('theme-classic'); // 'theme-classic' | 'theme-emerald' | 'theme-navy'
   const [headerSwap, setHeaderSwap] = useState('logo-left'); // 'logo-left' | 'photo-left'
   const [isEnglish, setIsEnglish] = useState(false);
+  const [cardFontScale, setCardFontScale] = useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem('seat_plan_font_scale'), 10);
+      if (!isNaN(saved) && saved >= 80 && saved <= 140) return saved;
+    } catch (_) {}
+    return 100;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('seat_plan_font_scale', String(cardFontScale));
+    } catch (_) {}
+  }, [cardFontScale]);
 
   // Batch room inputs
   const [commonRoomInput, setCommonRoomInput] = useState('১০১');
@@ -335,30 +348,32 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
       {/* ==============================================================
           1. CONTROL PANEL & TOOLBAR (HIDDEN ON PRINT)
           ============================================================== */}
-      <div className="card mb-20 no-print" style={{ border: '1px solid #cbd5e1', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+      <div className="card no-print sp-toolbar-card">
         {/* Header Bar */}
-        <div className="flex justify-between items-center pb-14 border-b border-slate-200 flex-wrap gap-12">
+        <div className="sp-header-row">
           <div>
-            <h2 className="text-lg font-bold text-emerald-800 flex items-center gap-8 m-0">
-              <LayoutGrid size={22} className="text-emerald-600" />
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <LayoutGrid size={20} style={{ color: '#059669' }} />
               <span>পরীক্ষার সিট প্ল্যান কার্ড জেনারেটর (Exam Seat Plan Generator)</span>
             </h2>
-            <p className="text-xs text-slate-500 mt-2 m-0">
+            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0 0' }}>
               ডাটাবেজের শিক্ষার্থী নির্বাচন করে এ৪ পেজে ব্যাচ সিট প্ল্যান তৈরি ও নিখুঁত প্রিন্ট করুন
             </p>
           </div>
 
-          <div className="flex gap-8 flex-wrap">
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button 
               type="button" 
-              className="btn btn-secondary text-xs flex items-center gap-6"
+              className="btn btn-secondary"
+              style={{ fontSize: '0.78rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               onClick={() => setIsEnglish(!isEnglish)}
             >
               🌐 {isEnglish ? 'বাংলা সংস্করণ' : 'English Mode'}
             </button>
             <button 
               type="button" 
-              className="btn btn-secondary text-xs flex items-center gap-6"
+              className="btn btn-secondary"
+              style={{ fontSize: '0.78rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               onClick={fetchStudents}
               disabled={loadingStudents}
             >
@@ -367,38 +382,45 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
             </button>
             <button 
               type="button" 
-              className="btn btn-primary text-xs font-bold flex items-center gap-6"
-              style={{ background: '#059669', borderColor: '#059669', padding: '8px 18px' }}
+              className="btn btn-primary"
+              style={{ background: '#059669', borderColor: '#059669', fontSize: '0.8rem', fontWeight: 700, padding: '7px 16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               onClick={() => window.print()}
             >
-              <Printer size={16} />
+              <Printer size={15} />
               <span>প্রিন্ট করুন (Print A4)</span>
             </button>
           </div>
         </div>
 
         {/* Filters Section (Exam, Class, Section, Department) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 pt-14 pb-14 border-b border-slate-200">
+        <div className="sp-filters-grid">
           <div>
-            <label className="form-label text-xs font-semibold text-slate-700">পরীক্ষা নির্বাচন (Exam):</label>
+            <label className="sp-filter-lbl">পরীক্ষা নির্বাচন (Exam):</label>
             <select 
-              className="form-input text-xs" 
+              className="form-input"
+              style={{ fontSize: '0.8rem', padding: '6px 10px' }}
               value={activeExamId}
               onChange={(e) => setActiveExamId(e.target.value)}
             >
               <option value="">-- পরীক্ষা নির্বাচন করুন --</option>
-              {(Array.isArray(examsList) ? examsList : []).map(ex => (
-                <option key={ex._id} value={ex._id}>
-                  {ex.name} ({ex.academicYear || '২০২৬'})
-                </option>
-              ))}
+              {(Array.isArray(examsList) ? examsList : []).map(ex => {
+                const yr = ex.academicYear && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(ex.academicYear))
+                  ? ex.academicYear
+                  : new Date().getFullYear();
+                return (
+                  <option key={ex._id} value={ex._id}>
+                    {ex.name} ({yr})
+                  </option>
+                );
+              })}
             </select>
           </div>
 
           <div>
-            <label className="form-label text-xs font-semibold text-slate-700">শ্রেণি (Class Level):</label>
+            <label className="sp-filter-lbl">শ্রেণি (Class Level):</label>
             <select 
-              className="form-input text-xs" 
+              className="form-input"
+              style={{ fontSize: '0.8rem', padding: '6px 10px' }}
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
             >
@@ -410,9 +432,10 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           </div>
 
           <div>
-            <label className="form-label text-xs font-semibold text-slate-700">শাখা (Section):</label>
+            <label className="sp-filter-lbl">শাখা (Section):</label>
             <select 
-              className="form-input text-xs" 
+              className="form-input"
+              style={{ fontSize: '0.8rem', padding: '6px 10px' }}
               value={selectedSection}
               onChange={(e) => setSelectedSection(e.target.value)}
             >
@@ -426,9 +449,10 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           </div>
 
           <div>
-            <label className="form-label text-xs font-semibold text-slate-700">বিভাগ / গ্রুপ (Department):</label>
+            <label className="sp-filter-lbl">বিভাগ / গ্রুপ (Department):</label>
             <select 
-              className="form-input text-xs" 
+              className="form-input"
+              style={{ fontSize: '0.8rem', padding: '6px 10px' }}
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
             >
@@ -441,195 +465,188 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           </div>
         </div>
 
-        {/* Custom Field Toggles (Tick-boxes) */}
-        <div className="py-12 border-b border-slate-200">
-          <div className="flex items-center gap-6 mb-8 text-xs font-bold text-slate-700 uppercase tracking-wide">
-            <Sliders size={14} className="text-emerald-600" />
-            <span>কার্ডে কোন কোন তথ্য প্রদর্শন করতে চান? (ফিল্ড নির্বাচন করুন):</span>
+        {/* Custom Field Toggles (Compact Pills) */}
+        <div className="sp-toggles-section">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '7px', fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+            <Sliders size={13} style={{ color: '#059669' }} />
+            <span>কার্ডে প্রদর্শিত তথ্য (ফিল্ড নির্বাচন):</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8 text-xs">
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showRoom} onChange={e => setShowRoom(e.target.checked)} className="accent-emerald-600" />
-              <span>কক্ষ নম্বর (Room)</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showExamName} onChange={e => setShowExamName(e.target.checked)} className="accent-emerald-600" />
-              <span>পরীক্ষার নাম</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showDepartment} onChange={e => setShowDepartment(e.target.checked)} className="accent-emerald-600" />
-              <span>বিভাগ / গ্রুপ</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showPhoto} onChange={e => setShowPhoto(e.target.checked)} className="accent-emerald-600" />
-              <span>শিক্ষার্থীর ছবি</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showStudentId} onChange={e => setShowStudentId(e.target.checked)} className="accent-emerald-600" />
-              <span>আইডি নম্বর</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showClass} onChange={e => setShowClass(e.target.checked)} className="accent-emerald-600" />
-              <span>শ্রেণি (Class)</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showSection} onChange={e => setShowSection(e.target.checked)} className="accent-emerald-600" />
-              <span>শাখা (Section)</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showSession} onChange={e => setShowSession(e.target.checked)} className="accent-emerald-600" />
-              <span>সেশন / শিক্ষাবর্ষ</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showRollBox} onChange={e => setShowRollBox(e.target.checked)} className="accent-emerald-600" />
-              <span>বড় রোল বক্স</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showCutLines} onChange={e => setShowCutLines(e.target.checked)} className="accent-emerald-600" />
-              <span>কাটিং দাগ (✂)</span>
-            </label>
-
-            <label className="flex items-center gap-6 cursor-pointer bg-slate-50 hover:bg-slate-100 p-6 rounded border border-slate-200">
-              <input type="checkbox" checked={showWatermark} onChange={e => setShowWatermark(e.target.checked)} className="accent-emerald-600" />
-              <span>লোগো ওয়াটারমার্ক</span>
-            </label>
+          <div className="sp-toggles-wrap">
+            {[
+              { checked: showRoom, onChange: setShowRoom, label: 'কক্ষ নম্বর' },
+              { checked: showExamName, onChange: setShowExamName, label: 'পরীক্ষার নাম' },
+              { checked: showDepartment, onChange: setShowDepartment, label: 'বিভাগ / গ্রুপ' },
+              { checked: showPhoto, onChange: setShowPhoto, label: 'শিক্ষার্থীর ছবি' },
+              { checked: showStudentId, onChange: setShowStudentId, label: 'আইডি নম্বর' },
+              { checked: showClass, onChange: setShowClass, label: 'শ্রেণি' },
+              { checked: showSection, onChange: setShowSection, label: 'শাখা' },
+              { checked: showSession, onChange: setShowSession, label: 'সেশন' },
+              { checked: showRollBox, onChange: setShowRollBox, label: 'বড় রোল বক্স' },
+              { checked: showCutLines, onChange: setShowCutLines, label: 'কাটিং দাগ (✂)' },
+              { checked: showWatermark, onChange: setShowWatermark, label: 'লোগো ওয়াটারমার্ক' }
+            ].map((item, idx) => (
+              <label key={idx} className={`sp-toggle-pill ${item.checked ? 'active' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={item.checked}
+                  onChange={e => item.onChange(e.target.checked)}
+                  style={{ accentColor: '#059669', margin: 0 }}
+                />
+                <span>{item.label}</span>
+              </label>
+            ))}
           </div>
         </div>
 
         {/* Room Assignment & Layout Engine */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-12">
+        <div className="sp-controls-grid">
           {/* Left: Room Assignment */}
-          <div className="p-10 bg-slate-50 rounded-lg border border-slate-200 text-xs">
-            <div className="font-bold text-slate-800 mb-8 flex items-center justify-between">
-              <span className="flex items-center gap-6">
-                <Building2 size={16} className="text-emerald-600" />
-                কক্ষ নম্বর নির্ধারণ (Room Assignment)
+          <div className="sp-sub-box">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#1e293b', fontSize: '0.8rem' }}>
+                <Building2 size={15} style={{ color: '#059669' }} />
+                কক্ষ নম্বর নির্ধারণ (Room)
               </span>
               <button 
                 type="button" 
-                className="text-emerald-700 underline font-semibold hover:text-emerald-800"
+                style={{ background: 'none', border: 'none', color: '#047857', textDecoration: 'underline', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
                 onClick={() => setShowRangeRoomModal(true)}
               >
                 রোল রেঞ্জ অনুযায়ী ভাগ করুন ➔
               </button>
             </div>
 
-            <div className="flex gap-8 items-center">
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input 
                 type="text" 
-                className="form-input text-xs w-36" 
+                className="form-input"
+                style={{ width: '90px', fontSize: '0.8rem', padding: '5px 8px', textAlign: 'center', fontWeight: 700 }}
                 value={commonRoomInput} 
                 onChange={e => setCommonRoomInput(e.target.value)}
                 placeholder="যেমন: ১০১" 
               />
               <button 
                 type="button" 
-                className="btn btn-secondary text-xs"
+                className="btn btn-secondary"
+                style={{ fontSize: '0.78rem', padding: '6px 12px' }}
                 onClick={applyCommonRoom}
               >
                 সবার জন্য এই রুম সেট করুন
               </button>
             </div>
-            <p className="text-[11px] text-slate-500 mt-6 m-0">
-              টিপস: নিচে শিক্ষার্থীর নামের পাশের ঘরে সরাসরি হাত দিয়েও আলাদা আলাদা রুম পরিবর্তন করতে পারবেন।
+            <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '6px 0 0 0' }}>
+              টিপস: প্রতিটি কার্ডের কক্ষ নম্বরে সরাসরি লিখেও আলাদা রুম পরিবর্তন করা যাবে।
             </p>
           </div>
 
-          {/* Right: Cards per page & Theme */}
-          <div className="p-10 bg-slate-50 rounded-lg border border-slate-200 text-xs">
-            <div className="font-bold text-slate-800 mb-8 flex items-center gap-6">
-              <LayoutGrid size={16} className="text-emerald-600" />
-              A4 পেজে কার্ড সংখ্যা ও ডিজাইন থিম:
+          {/* Right: Cards per page, Font Size & Theme */}
+          <div className="sp-sub-box">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#1e293b', fontSize: '0.8rem' }}>
+                <LayoutGrid size={15} style={{ color: '#059669' }} />
+                A4 পেজে কার্ড ও ফন্ট সাইজ:
+              </span>
+
+              {/* Font Size Controls */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '2px 6px' }}>
+                <span style={{ color: '#475569', fontWeight: 600, fontSize: '0.74rem', marginRight: '2px' }}>ফন্ট:</span>
+                <button
+                  type="button"
+                  onClick={() => setCardFontScale(s => Math.max(80, s - 5))}
+                  style={{ padding: '2px 7px', borderRadius: '4px', border: 'none', background: '#f1f5f9', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: '#334155' }}
+                  title="ফন্ট ছোট করুন"
+                >
+                  A-
+                </button>
+                <span style={{ fontWeight: 700, color: '#047857', minWidth: '36px', textAlign: 'center', fontSize: '0.75rem' }}>{cardFontScale}%</span>
+                <button
+                  type="button"
+                  onClick={() => setCardFontScale(s => Math.min(140, s + 5))}
+                  style={{ padding: '2px 7px', borderRadius: '4px', border: 'none', background: '#f1f5f9', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', color: '#334155' }}
+                  title="ফন্ট বড় করুন"
+                >
+                  A+
+                </button>
+                {cardFontScale !== 100 && (
+                  <button
+                    type="button"
+                    onClick={() => setCardFontScale(100)}
+                    style={{ padding: '2px 7px', borderRadius: '4px', border: 'none', background: '#ecfdf5', fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer', color: '#047857' }}
+                    title="ডিফল্ট ফন্ট সাইজ"
+                  >
+                    রিসেট
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-8 flex-wrap mb-8">
-              <span className="text-slate-600 font-semibold">প্রিসেট:</span>
-              <button 
-                type="button" 
-                className={`btn text-xs ${cardsPerPage === 12 && !isCustomCards ? 'btn-primary' : 'btn-secondary'}`}
-                style={cardsPerPage === 12 && !isCustomCards ? { background: '#059669', borderColor: '#059669' } : {}}
-                onClick={() => handleCardsPreset(12)}
-              >
-                ১২টি / পেজ (৩×৪)
-              </button>
-              <button 
-                type="button" 
-                className={`btn text-xs ${cardsPerPage === 8 && !isCustomCards ? 'btn-primary' : 'btn-secondary'}`}
-                style={cardsPerPage === 8 && !isCustomCards ? { background: '#059669', borderColor: '#059669' } : {}}
-                onClick={() => handleCardsPreset(8)}
-              >
-                ৮টি / পেজ (২×৪)
-              </button>
-              <button 
-                type="button" 
-                className={`btn text-xs ${cardsPerPage === 6 && !isCustomCards ? 'btn-primary' : 'btn-secondary'}`}
-                style={cardsPerPage === 6 && !isCustomCards ? { background: '#059669', borderColor: '#059669' } : {}}
-                onClick={() => handleCardsPreset(6)}
-              >
-                ৬টি / পেজ (২×৩)
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+              <span style={{ color: '#475569', fontWeight: 600, fontSize: '0.75rem' }}>প্রিসেট:</span>
+              {[
+                { val: 10, label: '১০টি (২×৫)' },
+                { val: 12, label: '১২টি (৩×৪)' },
+                { val: 8, label: '৮টি (২×৪)' },
+                { val: 6, label: '৬টি (২×৩)' }
+              ].map(p => {
+                const active = cardsPerPage === p.val && !isCustomCards;
+                return (
+                  <button
+                    key={p.val}
+                    type="button"
+                    className={`btn ${active ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      fontSize: '0.74rem',
+                      padding: '4px 9px',
+                      ...(active ? { background: '#059669', borderColor: '#059669' } : {})
+                    }}
+                    onClick={() => handleCardsPreset(p.val)}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
 
-              <div className="flex items-center gap-4 ml-auto">
-                <span className="text-slate-600 font-semibold">কাস্টম সংখ্যা:</span>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+                <span style={{ color: '#475569', fontWeight: 600, fontSize: '0.75rem' }}>কাস্টম:</span>
                 <input 
                   type="number" 
                   min="1" 
                   max="24"
                   value={customCardsInput}
                   onChange={e => handleCustomCardsChange(e.target.value)}
-                  className="form-input text-xs w-16 text-center font-bold"
+                  className="form-input"
+                  style={{ width: '54px', fontSize: '0.78rem', padding: '4px 6px', textAlign: 'center', fontWeight: 700 }}
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-12">
-              <span className="text-slate-600 font-semibold">কালার থিম:</span>
-              <div className="flex gap-8">
-                <label className="flex items-center gap-4 cursor-pointer">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', paddingTop: '6px', borderTop: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ color: '#475569', fontWeight: 600 }}>থিম:</span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                   <input type="radio" name="sp_theme" checked={selectedTheme === 'theme-classic'} onChange={() => setSelectedTheme('theme-classic')} />
-                  <span>ক্লাসিক ব্ল্যাক</span>
+                  <span>ক্লাসিক</span>
                 </label>
-                <label className="flex items-center gap-4 cursor-pointer">
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#047857', fontWeight: 600 }}>
                   <input type="radio" name="sp_theme" checked={selectedTheme === 'theme-emerald'} onChange={() => setSelectedTheme('theme-emerald')} />
-                  <span className="text-emerald-700 font-semibold">রয়্যাল গ্রিন</span>
+                  <span>গ্রিন</span>
                 </label>
-                <label className="flex items-center gap-4 cursor-pointer">
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#1e40af', fontWeight: 600 }}>
                   <input type="radio" name="sp_theme" checked={selectedTheme === 'theme-navy'} onChange={() => setSelectedTheme('theme-navy')} />
-                  <span className="text-blue-800 font-semibold">নেভি ব্লু</span>
+                  <span>নেভি</span>
                 </label>
               </div>
-            </div>
 
-            <div className="flex items-center gap-12 mt-8 pt-8 border-t border-slate-200">
-              <span className="text-slate-600 font-semibold">হেডার বিন্যাস:</span>
-              <div className="flex gap-8">
-                <label className="flex items-center gap-4 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="sp_header_swap" 
-                    checked={headerSwap === 'logo-left'} 
-                    onChange={() => setHeaderSwap('logo-left')} 
-                  />
-                  <span className="font-bold text-emerald-700">বামে লোগো, ডানে ছবি (ডিফল্ট)</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ color: '#475569', fontWeight: 600 }}>বিন্যাস:</span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                  <input type="radio" name="sp_header_swap" checked={headerSwap === 'logo-left'} onChange={() => setHeaderSwap('logo-left')} />
+                  <span style={{ color: '#047857', fontWeight: 600 }}>বামে লোগো</span>
                 </label>
-                <label className="flex items-center gap-4 cursor-pointer">
-                  <input 
-                    type="radio" 
-                    name="sp_header_swap" 
-                    checked={headerSwap === 'photo-left'} 
-                    onChange={() => setHeaderSwap('photo-left')} 
-                  />
-                  <span>বামে ছবি, ডানে লোগো</span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                  <input type="radio" name="sp_header_swap" checked={headerSwap === 'photo-left'} onChange={() => setHeaderSwap('photo-left')} />
+                  <span>বামে ছবি</span>
                 </label>
               </div>
             </div>
@@ -637,38 +654,38 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
         </div>
 
         {/* Student Checklist Summary */}
-        <div className="mt-14 pt-12 border-t border-slate-200 flex justify-between items-center flex-wrap gap-8 text-xs">
-          <div className="flex items-center gap-12">
+        <div className="sp-summary-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button 
               type="button" 
-              className="btn btn-secondary text-xs flex items-center gap-4"
+              className="btn btn-secondary"
+              style={{ fontSize: '0.78rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               onClick={handleSelectAll}
             >
               {selectedStudentIds.size === allStudents.length ? <CheckSquare size={14} /> : <Square size={14} />}
               <span>{selectedStudentIds.size === allStudents.length ? 'সকল নির্বাচন বাতিল' : 'সবাইকে নির্বাচন করুন'}</span>
             </button>
-            <span className="font-semibold text-slate-700">
-              মোট শিক্ষার্থী: <strong className="text-emerald-700">{allStudents.length}</strong> জন | 
-              নির্বাচিত: <strong className="text-emerald-700">{selectedStudentIds.size}</strong> জন
+            <span style={{ fontWeight: 600, color: '#334155', fontSize: '0.8rem' }}>
+              মোট শিক্ষার্থী: <strong style={{ color: '#047857' }}>{allStudents.length}</strong> জন | 
+              নির্বাচিত: <strong style={{ color: '#047857' }}>{selectedStudentIds.size}</strong> জন
               {filteredStudents.length > 0 && (
-                <span className="ml-4 text-slate-500">
+                <span style={{ marginLeft: '6px', color: '#64748b' }}>
                   (মোট <strong>{printPages.length}</strong> টি A4 পাতা প্রিন্ট হবে)
                 </span>
               )}
             </span>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="রোল বা নাম খুঁজুন..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="form-input text-xs pl-24 pr-8 py-4"
-              />
-              <Search size={14} className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
+          <div style={{ position: 'relative', minWidth: '210px' }}>
+            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input 
+              type="text" 
+              placeholder="রোল বা নাম খুঁজুন..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="form-input"
+              style={{ fontSize: '0.8rem', padding: '5px 10px 5px 30px', width: '100%' }}
+            />
           </div>
         </div>
       </div>
@@ -783,7 +800,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
                               {isEnglish ? 'Shahibag, Chapainawabganj' : (madrasahInfo.address || 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ')}
                             </div>
                             <div className="sp-badge">
-                              Exam Seat Plan
+                              {isEnglish ? 'Exam Seat Plan' : 'পরীক্ষার আসন বিন্যাস'}
                             </div>
                           </div>
 
@@ -824,7 +841,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
                               {isEnglish ? 'Shahibag, Chapainawabganj' : (madrasahInfo.address || 'শাহীবাগ জামে মসজিদ সংলগ্ন, চাঁপাইনবাবগঞ্জ')}
                             </div>
                             <div className="sp-badge">
-                              Exam Seat Plan
+                              {isEnglish ? 'Exam Seat Plan' : 'পরীক্ষার আসন বিন্যাস'}
                             </div>
                           </div>
 
@@ -910,7 +927,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
                         <div className="sp-roll-wrapper">
                           <div className="sp-roll-box">
                             <div className="sp-roll-hdr">
-                              {isEnglish ? 'Roll' : 'রোল / Roll'}
+                              {isEnglish ? 'Roll' : 'রোল'}
                             </div>
                             <div className="sp-roll-num">
                               {roll}
@@ -947,6 +964,91 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           ============================================================== */}
       <style>{`
         /* --- Screen Styles --- */
+        .seat-plan-workspace {
+          --sp-font-scale: ${cardFontScale / 100};
+        }
+
+        .sp-toolbar-card {
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+          padding: 16px 20px;
+          margin-bottom: 18px;
+          border-radius: 12px;
+        }
+        .sp-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .sp-filters-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+          gap: 10px;
+          padding: 12px 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .sp-filter-lbl {
+          display: block;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #334155;
+          margin-bottom: 4px;
+        }
+        .sp-toggles-section {
+          padding: 10px 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .sp-toggles-wrap {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .sp-toggle-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          border: 1px solid #cbd5e1;
+          background: #f8fafc;
+          color: #334155;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          user-select: none;
+        }
+        .sp-toggle-pill.active {
+          background: #ecfdf5;
+          border-color: #10b981;
+          color: #065f46;
+          font-weight: 600;
+        }
+        .sp-controls-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+          gap: 12px;
+          padding: 12px 0;
+        }
+        .sp-sub-box {
+          padding: 10px 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+        }
+        .sp-summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding-top: 10px;
+          border-top: 1px solid #e2e8f0;
+        }
+
         .seat-plan-print-container {
           display: flex;
           flex-direction: column;
@@ -969,16 +1071,20 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
 
         .seat-plan-card {
           position: relative;
-          background: #ffffff;
-          border: 1.2px solid #0f172a;
-          border-radius: 4px;
-          padding: 5px 7px;
+          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+          border: 1.5px solid #0f172a;
+          border-radius: 6px;
+          padding: 6px 9px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           overflow: hidden;
           box-sizing: border-box;
           min-height: 0;
+          font-family: 'Noto Sans Bengali', sans-serif !important;
+        }
+        .seat-plan-card * {
+          font-family: 'Noto Sans Bengali', sans-serif !important;
         }
 
         .has-cutlines .seat-plan-card {
@@ -1056,10 +1162,10 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
         }
 
         .sp-photo-wrapper {
-          width: 42px;
-          height: 48px;
-          border: 1px solid #64748b;
-          border-radius: 3px;
+          width: 44px;
+          height: 50px;
+          border: 1.2px solid #64748b;
+          border-radius: 4px;
           background: #f8fafc;
           display: flex;
           align-items: center;
@@ -1080,12 +1186,11 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 0 2px;
+          padding: 0 3px;
         }
 
         .sp-madrasah-title {
-          font-family: 'Noto Serif Bengali', serif;
-          font-size: 11px;
+          font-size: calc(14.5px * var(--sp-font-scale, 1));
           font-weight: 800;
           color: #0f172a;
           line-height: 1.15;
@@ -1094,30 +1199,30 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
         }
 
         .sp-madrasah-sub {
-          font-size: 7.5px;
+          font-size: calc(10px * var(--sp-font-scale, 1));
           color: #475569;
-          line-height: 1.1;
+          line-height: 1.15;
           margin-top: 1px;
           white-space: nowrap;
         }
 
         .sp-badge {
           display: inline-block;
-          font-size: 8px;
+          font-size: calc(10.5px * var(--sp-font-scale, 1));
           font-weight: 700;
           color: #0f172a;
           background: #ffffff;
           border: 1px solid #0f172a;
           border-radius: 9999px;
-          padding: 0.5px 7px;
+          padding: 1px 10px;
           margin-top: 2px;
           line-height: 1.25;
           letter-spacing: 0.2px;
         }
 
         .sp-logo-wrapper {
-          width: 38px;
-          height: 38px;
+          width: 40px;
+          height: 40px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
@@ -1137,15 +1242,15 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           display: flex;
           justify-content: space-between;
           align-items: stretch;
-          gap: 6px;
+          gap: 8px;
           flex-grow: 1;
         }
 
         .sp-info-table {
           flex-grow: 1;
           border-collapse: collapse;
-          font-size: 9.5px;
-          line-height: 1.35;
+          font-size: calc(12.8px * var(--sp-font-scale, 1));
+          line-height: 1.3;
         }
         .sp-info-table td {
           padding: 0.5px 0;
@@ -1156,11 +1261,11 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           font-weight: 600;
           color: #334155;
           white-space: nowrap;
-          width: 38px;
+          width: 48px;
         }
 
         .sp-colon {
-          width: 6px;
+          width: 8px;
           text-align: center;
           color: #64748b;
           font-weight: 600;
@@ -1172,7 +1277,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 90px;
+          max-width: 145px;
         }
 
         /* Roll Box (Right) */
@@ -1184,9 +1289,9 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
         }
 
         .sp-roll-box {
-          border: 1.2px solid #0f172a;
-          border-radius: 4px;
-          width: 48px;
+          border: 1.5px solid #0f172a;
+          border-radius: 5px;
+          width: 62px;
           text-align: center;
           overflow: hidden;
           background: #ffffff;
@@ -1194,39 +1299,37 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
 
         .sp-roll-hdr {
           background: #f1f5f9;
-          font-size: 8px;
-          font-weight: 700;
+          font-size: calc(10.5px * var(--sp-font-scale, 1));
+          font-weight: 800;
           color: #0f172a;
-          padding: 1px 0;
+          padding: 2px 0;
           border-bottom: 1px solid #0f172a;
-          letter-spacing: 0.4px;
-          text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
         .sp-roll-num {
-          font-size: 16px;
+          font-size: calc(21.5px * var(--sp-font-scale, 1));
           font-weight: 900;
           color: #0f172a;
-          line-height: 1.2;
-          padding: 2px 0 1px 0;
-          font-family: monospace, sans-serif;
+          line-height: 1.18;
+          padding: 3px 0 2px 0;
         }
 
         /* Card Footer */
         .sp-card-footer {
           position: relative;
           z-index: 2;
-          margin-top: 2.5px;
+          margin-top: 2px;
           padding-top: 2px;
-          border-top: 1px dotted #e2e8f0;
+          border-top: 1px dotted #cbd5e1;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 7.5px;
-          color: #64748b;
+          font-size: calc(10px * var(--sp-font-scale, 1));
+          color: #475569;
           overflow: hidden;
           white-space: nowrap;
-          max-height: 16px;
+          max-height: 18px;
           flex-shrink: 0;
         }
 
