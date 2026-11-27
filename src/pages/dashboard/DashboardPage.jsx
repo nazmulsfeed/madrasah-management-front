@@ -17,6 +17,7 @@ import {
 import useAuthStore from '../../store/authStore';
 import api from '../../api/axios';
 import { getVisibleNavigation } from '../../utils/navigationConfig';
+import DomainHostingTimerWidget from '../../components/dashboard/DomainHostingTimerWidget';
 import usePermissions from '../../hooks/usePermissions';
 
 export default function DashboardPage() {
@@ -139,6 +140,11 @@ export default function DashboardPage() {
         </p>
 
       </div>
+
+      {/* ডোমেইন ও হোস্টিং লাইভ কাউন্টডাউন টাইমার (শুধুমাত্র Super Admin ও Co-Super Admin) */}
+      {(user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin') && (
+        <DomainHostingTimerWidget />
+      )}
 
       {/* ভূমিকা অনুযায়ী নেভিগেশন মডিউলসমূহ (Quick Module Access Hub) */}
       {allModules.length > 0 && (
