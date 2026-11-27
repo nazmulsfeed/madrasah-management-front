@@ -66,6 +66,7 @@ const CustomReportsPage = lazy(() => import('./pages/finance/CustomReportsPage')
 const BackupRestorePage = lazy(() => import('./pages/finance/BackupRestorePage'));
 const MadrasahFundsPage = lazy(() => import('./pages/finance/MadrasahFundsPage'));
 const QurbaniSkinsPage = lazy(() => import('./pages/finance/QurbaniSkinsPage'));
+const ManualFeeChecklistPage = lazy(() => import('./pages/finance/ManualFeeChecklistPage'));
 
 // ── অন্যান্য অ্যাডমিন ও ব্যবস্থাপনা পেজসমূহ (Lazy Loaded) ──
 const MessagingPage = lazy(() => import('./pages/messaging/MessagingPage'));
@@ -158,6 +159,7 @@ export default function App() {
               <Route path="/finance/backup-restore" element={<RoleRoute><BackupRestorePage /></RoleRoute>} />
               <Route path="/madrasah-funds" element={<RoleRoute><MadrasahFundsPage /></RoleRoute>} />
               <Route path="/qurbani-skins" element={<RoleRoute><QurbaniSkinsPage /></RoleRoute>} />
+              <Route path="/manual-fee-checklist" element={<RoleRoute><ManualFeeChecklistPage /></RoleRoute>} />
 
               {/* অন্যান্য অ্যাডমিন ও ব্যবস্থাপনা রুটসমূহ */}
               <Route path="/messaging" element={<RoleRoute><MessagingPage /></RoleRoute>} />

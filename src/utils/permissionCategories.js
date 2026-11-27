@@ -117,7 +117,8 @@ export const permissionCategories = [
       { key: 'payment.cancel', label: 'Cancel Payment (বাতিল করুন)' },
       { key: 'payment.approve', label: 'Approve Payment (অনুমোদন করুন)' },
       { key: 'payment.export', label: 'Export Payments (এক্সপোর্ট করুন)' },
-      { key: 'payment.print_receipt', label: 'Print Receipt (রশিদ প্রিন্ট)' }
+      { key: 'payment.print_receipt', label: 'Print Receipt (রশিদ প্রিন্ট)' },
+      { key: 'finance.manual_fee_checklist', label: 'Manual Fee Checklist [Director Request] (ম্যানুয়াল বেতন চেকলিস্ট)' }
     ]
   },
   {

@@ -6,6 +6,7 @@ import {
   BookOpen,
   BookOpenCheck,
   ClipboardCheck,
+  CheckSquare,
   FileText,
   CreditCard,
   Wallet,
@@ -66,6 +67,7 @@ export const RAW_MENU_GROUPS = [
     items: [
       { path: '/my-payments', label: 'আমার পেমেন্ট', icon: CreditCard, color: '#0284c7' },
       { path: '/fees', label: 'ফি / বেতন', icon: CreditCard, color: '#0d9488' },
+      { path: '/manual-fee-checklist', label: 'ম্যানুয়াল বেতন চেকলিস্ট', icon: CheckSquare, color: '#059669' },
       { path: '/bank-wallets', label: 'ব্যাংক ও ওয়ালেট', icon: Wallet, color: '#2563eb' },
       { path: '/daily-transactions', label: 'দৈনিক লেনদেন (Cash Book)', icon: Activity, color: '#16a34a' },
       { path: '/income-categories', label: 'আয়ের খাত', icon: List, color: '#059669' },
@@ -183,6 +185,13 @@ export function getVisibleNavigation(user, permissions = {}) {
 
       if (item.path === '/my-payments') {
         return isGuardianOrStudent;
+      }
+
+      if (item.path === '/manual-fee-checklist') {
+        return (
+          user?.userType === 'super_admin' ||
+          Boolean(permissions?.['finance.manual_fee_checklist'] || permissions?.finance?.manual_fee_checklist)
+        );
       }
 
       const financePaths = [
