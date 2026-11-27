@@ -1,10 +1,71 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Bell, X, Trash2, Edit } from 'lucide-react';
+import { Plus, Bell, X, Trash2, Edit, FileText } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import AuditBadge from '../../components/common/AuditBadge';
+import PhysicalNoticePad from '../../components/notices/PhysicalNoticePad';
 import { getMadrasahInfo } from '../../utils/helpers';
+import { SECTION_OPTIONS } from '../../utils/constants';
+
+const DEFAULT_FILTERS = {
+  classLevel: '',
+  section: '',
+  branch: '',
+  department: '',
+  residentialStatus: ''
+};
+
+const DEPARTMENT_OPTIONS = [
+  'মক্তব বিভাগ',
+  'নাজেরা বিভাগ',
+  'হিফজ বিভাগ',
+  'নুরানী বিভাগ',
+  'উর্দু জামাত',
+  'তাইসীর জামাত',
+  'মিযান মুনশায়িব জামাত'
+];
+
+const RESIDENTIAL_LABELS = {
+  residential: 'আবাসিক',
+  'non-residential': 'অনাবাসিক',
+  day_care: 'ডে-কেয়ার'
+};
+
+function parseAudienceData(rawAudience) {
+  let parsed = rawAudience;
+  if (typeof parsed === 'string') {
+    try { parsed = JSON.parse(parsed); } catch { parsed = [parsed]; }
+  }
+  if (Array.isArray(parsed)) {
+    return { roles: parsed.length ? parsed : ['all'], filters: { ...DEFAULT_FILTERS } };
+  }
+  if (parsed && typeof parsed === 'object') {
+    const roles = Array.isArray(parsed.roles) ? parsed.roles : ['student'];
+    const filters = { ...DEFAULT_FILTERS, ...(parsed.filters || {}) };
+    return { roles, filters };
+  }
+  return { roles: ['all'], filters: { ...DEFAULT_FILTERS } };
+}
+
+function formatAudienceBadge(rawAudience) {
+  const { roles, filters } = parseAudienceData(rawAudience);
+  let roleLabel = 'সকলের জন্য';
+  if (roles.includes('all')) roleLabel = 'সকলের জন্য';
+  else if (roles.includes('student') && roles.includes('guardian')) roleLabel = 'ছাত্র ও অভিভাবক';
+  else if (roles.includes('student')) roleLabel = 'শুধু ছাত্র/ছাত্রী';
+  else if (roles.includes('guardian')) roleLabel = 'শুধু অভিভাবক';
+  else if (roles.includes('teacher')) roleLabel = 'শুধু শিক্ষক';
+  else roleLabel = roles.join(', ');
+
+  const parts = [roleLabel];
+  if (filters.className) parts.push(filters.className);
+  if (filters.section) parts.push(`সেকশন: ${filters.section}`);
+  if (filters.branchName) parts.push(filters.branchName);
+  if (filters.department) parts.push(filters.department);
+  if (filters.residentialStatus) parts.push(RESIDENTIAL_LABELS[filters.residentialStatus] || filters.residentialStatus);
+  return parts.join(' • ');
+}
 
 export default function NoticesPage() {
   const { user } = useAuthStore();
@@ -13,6 +74,7 @@ export default function NoticesPage() {
   const permissions = user?.permissions || {};
   const canManageNotice = user?.userType === 'super_admin' || user?.userType === 'co_super_admin' || user?.adminRole === 'co_super_admin' || permissions?.can_manage_notice;
 
+  const [activeTab, setActiveTab] = useState('digital'); // 'digital' | 'physical'
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -21,16 +83,41 @@ export default function NoticesPage() {
   const [selectedNotice, setSelectedNotice] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [classes, setClasses] = useState([]);
+  const [branches, setBranches] = useState([]);
+
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     audience: 'all',
-    priority: 'normal'
+    priority: 'normal',
+    filters: { ...DEFAULT_FILTERS }
   });
+
+  useEffect(() => {
+    if (!canManageNotice) return;
+    const fetchFilterOptions = async () => {
+      try {
+        const [resClasses, resBranches] = await Promise.all([
+          api.get('/students/classes').catch(() => ({ data: {} })),
+          api.get('/students/branches').catch(() => ({ data: {} }))
+        ]);
+        if (resClasses.data?.success) {
+          setClasses(resClasses.data.data?.classes || resClasses.data.data || []);
+        }
+        if (resBranches.data?.success) {
+          setBranches(resBranches.data.data?.branches || resBranches.data.data || []);
+        }
+      } catch (err) {
+        console.error('Error loading notice filter options:', err);
+      }
+    };
+    fetchFilterOptions();
+  }, [canManageNotice]);
 
   const fetchNotices = async () => {
     try {
-      const res = await api.get('/notices');
+      const res = await api.get('/notices', { params: { includePhysical: 'true' } });
       if (res.data.success) {
         setNotices(res.data.data.notices);
       }
@@ -75,9 +162,38 @@ export default function NoticesPage() {
     setSubmitting(true);
     try {
       let res;
+      const roles = formData.audience === 'student_guardian'
+        ? ['student', 'guardian']
+        : [formData.audience];
+
+      const isStudentTarget = ['student', 'guardian', 'student_guardian'].includes(formData.audience);
+      const rawFilters = formData.filters || {};
+      const hasFilters = isStudentTarget && Object.values(rawFilters).some(v => v && String(v).trim() !== '');
+
+      let audiencePayload = roles;
+      if (hasFilters) {
+        const cleanFilters = {};
+        if (rawFilters.classLevel) {
+          cleanFilters.classLevel = rawFilters.classLevel;
+          const clsObj = classes.find(c => String(c._id) === String(rawFilters.classLevel));
+          if (clsObj?.name) cleanFilters.className = clsObj.name;
+        }
+        if (rawFilters.section) cleanFilters.section = rawFilters.section;
+        if (rawFilters.branch) {
+          cleanFilters.branch = rawFilters.branch;
+          const brObj = branches.find(b => String(b._id) === String(rawFilters.branch));
+          if (brObj?.name) cleanFilters.branchName = brObj.name;
+        }
+        if (rawFilters.department) cleanFilters.department = rawFilters.department;
+        if (rawFilters.residentialStatus) cleanFilters.residentialStatus = rawFilters.residentialStatus;
+        audiencePayload = { roles, filters: cleanFilters };
+      }
+
       const payload = {
-        ...formData,
-        audience: [formData.audience]
+        title: formData.title,
+        content: formData.content,
+        priority: formData.priority,
+        audience: audiencePayload
       };
       
       if (isEditing && editId) {
@@ -88,7 +204,7 @@ export default function NoticesPage() {
       
       if (res.data.success) {
         setShowModal(false);
-        setFormData({ title: '', content: '', audience: 'all', priority: 'normal' });
+        setFormData({ title: '', content: '', audience: 'all', priority: 'normal', filters: { ...DEFAULT_FILTERS } });
         setIsEditing(false);
         setEditId(null);
         fetchNotices();
@@ -103,11 +219,17 @@ export default function NoticesPage() {
 
   const handleEditClick = (notice, e) => {
     e.stopPropagation();
+    const { roles, filters } = parseAudienceData(notice.audience);
+    let audienceVal = 'all';
+    if (roles.includes('student') && roles.includes('guardian')) audienceVal = 'student_guardian';
+    else if (roles[0]) audienceVal = roles[0];
+
     setFormData({
       title: notice.title,
       content: notice.content,
-      audience: (Array.isArray(notice.audience) && notice.audience[0]) ? notice.audience[0] : 'all',
-      priority: notice.priority
+      audience: audienceVal,
+      priority: notice.priority,
+      filters: { ...DEFAULT_FILTERS, ...filters }
     });
     setEditId(notice._id);
     setIsEditing(true);
@@ -127,6 +249,9 @@ export default function NoticesPage() {
     }
   };
 
+  const digitalNotices = notices.filter(n => !parseAudienceData(n.audience).roles.includes('physical_board'));
+  const physicalNotices = notices.filter(n => parseAudienceData(n.audience).roles.includes('physical_board'));
+
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -134,9 +259,9 @@ export default function NoticesPage() {
           <h1 className="page-title">নোটিশ বোর্ড</h1>
           <p className="page-subtitle">শাখা: {branchName} • মাদ্রাসার সমস্ত ঘোষণা এবং নোটিশ</p>
         </div>
-        {canManageNotice && (
+        {canManageNotice && activeTab === 'digital' && (
           <button className="btn btn-primary" onClick={() => {
-            setFormData({ title: '', content: '', audience: 'all', priority: 'normal' });
+            setFormData({ title: '', content: '', audience: 'all', priority: 'normal', filters: { ...DEFAULT_FILTERS } });
             setIsEditing(false);
             setEditId(null);
             setShowModal(true);
@@ -146,18 +271,43 @@ export default function NoticesPage() {
         )}
       </div>
 
-      {loading ? (
+      {canManageNotice && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={`btn ${activeTab === 'digital' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('digital')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Bell size={16} />
+            <span>ডিজিটাল নোটিশ বোর্ড ({digitalNotices.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`btn ${activeTab === 'physical' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('physical')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <FileText size={16} />
+            <span>ফিজিক্যাল নোটিশ প্যাড (প্রিন্ট) ({physicalNotices.length})</span>
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'physical' && canManageNotice ? (
+        <PhysicalNoticePad physicalNotices={physicalNotices} onRefresh={fetchNotices} />
+      ) : loading ? (
         <div className="flex-center" style={{ padding: '60px' }}>
           <div className="spinner"></div>
         </div>
-      ) : notices.length === 0 ? (
+      ) : digitalNotices.length === 0 ? (
         <div className="card empty-state">
           <Bell size={48} style={{ opacity: 0.3 }} />
           <div className="empty-state-title mt-16">কোনো নোটিশ পাওয়া যায়নি</div>
         </div>
       ) : (
         <div className="grid grid-2">
-          {notices.map((notice) => (
+          {digitalNotices.map((notice) => (
             <div key={notice._id} className="card animate-slide-up" style={{ borderLeft: `4px solid ${notice.priority === 'urgent' ? 'var(--danger)' : notice.priority === 'high' ? 'var(--warning)' : 'var(--primary)'}` }}>
               <div className="flex-between mb-16">
                 <span className="text-sm text-muted">
@@ -180,7 +330,7 @@ export default function NoticesPage() {
                     </span>
                   )}
                   <span className={`badge badge-active`}>
-                    {Array.isArray(notice.audience) && notice.audience.includes('all') ? 'সকলের জন্য' : Array.isArray(notice.audience) ? notice.audience.join(', ') : notice.audience}
+                    {formatAudienceBadge(notice.audience)}
                   </span>
                   {canManageNotice && (
                     <>
@@ -217,7 +367,7 @@ export default function NoticesPage() {
       {/* নতুন নোটিশ তৈরি মোডাল */}
       {showModal && (
         <div className="modal-backdrop">
-          <div className="modal-content card" style={{ maxWidth: '550px', width: '90%' }}>
+          <div className="modal-content card" style={{ maxWidth: '640px', width: '92%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex-between mb-20">
               <h2>{isEditing ? 'নোটিশ এডিট করুন' : 'নতুন নোটিশ পোস্ট করুন'}</h2>
               <button className="btn btn-ghost btn-icon" onClick={() => setShowModal(false)}>
@@ -249,6 +399,7 @@ export default function NoticesPage() {
                     <option value="teacher">শুধু শিক্ষক</option>
                     <option value="student">শুধু ছাত্র/ছাত্রী</option>
                     <option value="guardian">শুধু অভিভাবক</option>
+                    <option value="student_guardian">ছাত্র ও অভিভাবক উভয়</option>
                   </select>
                 </div>
 
@@ -265,6 +416,83 @@ export default function NoticesPage() {
                   </select>
                 </div>
               </div>
+
+              {['student', 'guardian', 'student_guardian'].includes(formData.audience) && (
+                <div
+                  className="mb-16"
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-tertiary, rgba(148, 163, 184, 0.08))'
+                  }}
+                >
+                  <label className="form-label" style={{ fontWeight: 700, marginBottom: '8px', display: 'block', fontSize: '0.85rem' }}>
+                    নির্দিষ্ট শিক্ষার্থী ফিল্টার (ঐচ্ছিক — খালি রাখলে সবার জন্য যাবে)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '8px' }}>
+                    <select
+                      className="form-input form-select"
+                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                      value={formData.filters?.classLevel || ''}
+                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, classLevel: e.target.value } })}
+                    >
+                      <option value="">সকল শ্রেণি</option>
+                      {classes.map(c => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="form-input form-select"
+                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                      value={formData.filters?.section || ''}
+                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, section: e.target.value } })}
+                    >
+                      <option value="">সকল সেকশন</option>
+                      {SECTION_OPTIONS.map((sec, idx) => (
+                        <option key={idx} value={sec}>{sec}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="form-input form-select"
+                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                      value={formData.filters?.branch || ''}
+                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, branch: e.target.value } })}
+                    >
+                      <option value="">সকল শাখা</option>
+                      {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
+                        <option key={b._id} value={b._id}>{b.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="form-input form-select"
+                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                      value={formData.filters?.department || ''}
+                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, department: e.target.value } })}
+                    >
+                      <option value="">সকল বিভাগ</option>
+                      {DEPARTMENT_OPTIONS.map(dep => (
+                        <option key={dep} value={dep}>{dep}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="form-input form-select"
+                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                      value={formData.filters?.residentialStatus || ''}
+                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, residentialStatus: e.target.value } })}
+                    >
+                      <option value="">সকল আবাসন</option>
+                      <option value="residential">আবাসিক</option>
+                      <option value="non-residential">অনাবাসিক</option>
+                      <option value="day_care">ডে-কেয়ার</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="form-group mb-24">
                 <label className="form-label">নোটিশের বিবরণ *</label>

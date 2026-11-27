@@ -4389,10 +4389,10 @@ export default function ExamPage({ initialViewMode }) {
       ) : (
         // EXAMS LIST
         <div>
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">পরীক্ষা ও ফলাফল</h1>
-              <p className="page-subtitle">
+          <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
+            <div style={{ minWidth: '220px' }}>
+              <h1 className="page-title" style={{ marginBottom: '4px' }}>পরীক্ষা ও ফলাফল</h1>
+              <p className="page-subtitle" style={{ margin: 0 }}>
                 {isStudent 
                   ? 'আপনার শ্রেণির সমস্ত পরীক্ষা এবং ফলাফল বিবরণী' 
                   : isGuardian 
@@ -4400,11 +4400,11 @@ export default function ExamPage({ initialViewMode }) {
                     : `শাখা: ${branchName} • মাদ্রাসার সমস্ত পরীক্ষা এবং পরীক্ষার ফলাফল পরিচালনা`}
               </p>
             </div>
-            <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#2563eb', color: '#1d4ed8', background: 'rgba(37, 99, 235, 0.08)' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: '#2563eb', color: '#1d4ed8', background: 'rgba(37, 99, 235, 0.08)' }}
                 onClick={() => {
                   setExamViewMode('routine');
                   if (isStudentOrGuardian) {
@@ -4414,35 +4414,35 @@ export default function ExamPage({ initialViewMode }) {
                   }
                 }}
               >
-                <Calendar size={16} style={{ color: '#2563eb' }} />
-                <span>📅 পরীক্ষার রুটিন</span>
+                <Calendar size={15} style={{ color: '#2563eb' }} />
+                <span>পরীক্ষার রুটিন</span>
               </button>
               {!isStudentOrGuardian && (
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#059669', color: '#047857', background: 'rgba(5, 150, 105, 0.08)' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: '#059669', color: '#047857', background: 'rgba(5, 150, 105, 0.08)' }}
                   onClick={() => setExamViewMode('seat_plan')}
                 >
-                  <LayoutGrid size={16} style={{ color: '#059669' }} />
-                  <span>🪑 সিট প্ল্যান</span>
+                  <LayoutGrid size={15} style={{ color: '#059669' }} />
+                  <span>সিট প্ল্যান</span>
                 </button>
               )}
               {!isStudentOrGuardian && (
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#0284c7', color: '#0369a1', background: 'rgba(2, 132, 199, 0.08)' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: '#0284c7', color: '#0369a1', background: 'rgba(2, 132, 199, 0.08)' }}
                   onClick={() => setExamViewMode('admit_card')}
                 >
-                  <FileText size={16} style={{ color: '#0284c7' }} />
-                  <span>🎫 প্রবেশপত্র (Admit Card)</span>
+                  <FileText size={15} style={{ color: '#0284c7' }} />
+                  <span>প্রবেশপত্র</span>
                 </button>
               )}
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: '#f59e0b', color: '#b45309', background: 'rgba(245, 158, 11, 0.08)' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: '#f59e0b', color: '#b45309', background: 'rgba(245, 158, 11, 0.08)' }}
                 onClick={() => {
                   setExamViewMode('annual_combined');
                   let cid = annualSelectedClass;
@@ -4459,12 +4459,17 @@ export default function ExamPage({ initialViewMode }) {
                   }
                 }}
               >
-                <Trophy size={16} style={{ color: '#d97706' }} />
-                <span>🏆 বার্ষিক সমন্বিত মেধা তালিকা</span>
+                <Trophy size={15} style={{ color: '#d97706' }} />
+                <span>সমন্বিত মেধা তালিকা</span>
               </button>
               {['super_admin', 'admin', 'principal', 'teacher'].includes(user?.userType) && (
-                <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-                  <Plus size={16} /> নতুন পরীক্ষা তৈরি
+                <button
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  <Plus size={15} />
+                  <span>নতুন পরীক্ষা</span>
                 </button>
               )}
             </div>
@@ -4596,25 +4601,27 @@ export default function ExamPage({ initialViewMode }) {
                   <div className="flex gap-8" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: 'auto', flexWrap: 'wrap' }}>
                     <button 
                       className="btn btn-primary" 
-                      style={{ flex: 1, minWidth: '100px', fontSize: '0.85rem', padding: '8px 10px' }}
+                      style={{ flex: 1, minWidth: '100px', fontSize: '0.85rem', padding: '8px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                       onClick={() => {
                         setExamViewMode('marks');
                         handleMarkEntryStart(exam);
                       }}
                     >
-                      {isStudentOrGuardian ? 'ফলাফল দেখুন' : '📝 নম্বর এন্ট্রি'}
+                      <FileText size={14} />
+                      <span>{isStudentOrGuardian ? 'ফলাফল দেখুন' : 'নম্বর এন্ট্রি'}</span>
                     </button>
                     {!isStudentOrGuardian && (
                       <button 
                         className="btn btn-secondary" 
-                        style={{ flex: 1, minWidth: '110px', fontSize: '0.85rem', padding: '8px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                        style={{ flex: 1, minWidth: '110px', fontSize: '0.85rem', padding: '8px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                         onClick={() => {
                           setExamViewMode('merit');
                           handleMarkEntryStart(exam);
                           loadMeritListData('all', exam);
                         }}
                       >
-                        <Trophy size={14} style={{ color: '#d97706' }} /> 🏆 মেধা তালিকা
+                        <Trophy size={14} style={{ color: '#d97706' }} />
+                        <span>মেধা তালিকা</span>
                       </button>
                     )}
                     {['super_admin', 'admin', 'principal', 'teacher'].includes(user?.userType) && (

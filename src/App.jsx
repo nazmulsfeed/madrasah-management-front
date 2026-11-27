@@ -84,10 +84,6 @@ export default function App() {
             {/* পাবলিক */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/public-homework" element={<PublicHomeworkPage />} />
-            <Route path="/routine" element={<PublicTimetablePage />} />
-            <Route path="/timetable" element={<PublicTimetablePage />} />
-            <Route path="/calendar" element={<PublicCalendarPage />} />
-            <Route path="/academic-calendar" element={<PublicCalendarPage />} />
 
             {/* ড্যাশবোর্ড (প্রোটেক্টেড) */}
             <Route
@@ -99,6 +95,10 @@ export default function App() {
             >
               {/* সবার জন্য উন্মুক্ত রুট (রোল অনুযায়ী ফিল্টার করা তথ্য দেখায়) */}
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/routine" element={<PublicTimetablePage />} />
+              <Route path="/timetable" element={<PublicTimetablePage />} />
+              <Route path="/calendar" element={<PublicCalendarPage />} />
+              <Route path="/academic-calendar" element={<PublicCalendarPage />} />
               <Route path="/notices" element={<NoticesPage />} />
               <Route path="/homework" element={<HomeworkPage />} />
               <Route path="/attendance" element={<AttendancePage />} />
