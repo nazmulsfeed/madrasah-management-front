@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BookOpen, Plus, Clock, Calendar, Edit, Trash2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { BookOpen, Plus, Clock, Calendar, Edit, Trash2, X, CheckCircle, AlertCircle, LayoutGrid, Printer } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import { getMadrasahInfo } from '../../utils/helpers';
+import MatrixClassRoutineBuilder, { MatrixClassRoutinePreviewTable, printMatrixClassRoutine } from '../../components/academics/MatrixClassRoutineBuilder';
 
 export default function AcademicsPage() {
   const { user } = useAuthStore();
@@ -53,6 +55,8 @@ export default function AcademicsPage() {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [timetable, setTimetable] = useState({});
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
+  const [showMatrixClassBuilder, setShowMatrixClassBuilder] = useState(false);
+  const [editingMatrixClass, setEditingMatrixClass] = useState(null);
   const [editTimetableIndex, setEditTimetableIndex] = useState(null);
   const [timetableForm, setTimetableForm] = useState({
     time: '',
@@ -626,9 +630,28 @@ export default function AcademicsPage() {
           </button>
         )}
         {activeTab === 'timetable' && canManageAcademics && (
-          <button className="btn btn-primary" onClick={() => setIsTimetableModalOpen(true)}>
-            <Plus size={16} /> নতুন রুটিন স্লট
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <a
+              href="/routine"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Clock size={16} /> উন্মুক্ত প্রিন্ট ভিউ
+            </a>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingMatrixClass(null);
+                setShowMatrixClassBuilder((v) => !v);
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={16} /> নতুন ক্লাস রুটিন (Matrix)
+            </button>
+          </div>
         )}
         {activeTab === 'calendar' && canManageAcademics && (
           <button className="btn btn-primary" onClick={() => setIsCalendarModalOpen(true)}>
@@ -721,107 +744,104 @@ export default function AcademicsPage() {
       )}
 
       {activeTab === 'timetable' && (
-        <div className="card table-container">
-          <div className="flex-between mb-16" style={{ flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0 }}>ক্লাস রুটিন — {classes.find(c => c._id === selectedClassId)?.name || 'লোডিং...'}</h3>
-              <select 
-                className="form-input" 
-                style={{ width: 'auto', marginBottom: 0 }}
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-              >
-                {classes.map(c => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
-                ))}
-              </select>
+        <>
+          {canManageAcademics && showMatrixClassBuilder && (
+            <div className="mb-20">
+              <MatrixClassRoutineBuilder
+                key={editingMatrixClass?.id || 'new-class-matrix'}
+                initialMatrix={editingMatrixClass}
+                classes={classes}
+                subjects={subjects}
+                madrasahName={getMadrasahInfo(user).madrasahName}
+                onSave={async (matrixPayload) => {
+                  const existingList = Array.isArray(timetable.__matrixRoutines) ? timetable.__matrixRoutines : [];
+                  const exists = existingList.some((m) => m.id === matrixPayload.id);
+                  const nextList = exists
+                    ? existingList.map((m) => (m.id === matrixPayload.id ? matrixPayload : m))
+                    : [matrixPayload, ...existingList];
+                  await saveTimetableToLocalStorage({ ...timetable, __matrixRoutines: nextList });
+                  setShowMatrixClassBuilder(false);
+                  setEditingMatrixClass(null);
+                }}
+                onClose={() => {
+                  setShowMatrixClassBuilder(false);
+                  setEditingMatrixClass(null);
+                }}
+              />
             </div>
-            <a
-              href="/routine"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <Clock size={15} /> উন্মুক্ত প্রিন্ট ভিউ
-            </a>
-          </div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>সময়</th>
-                <th>শনি</th>
-                <th>রবি</th>
-                <th>সোম</th>
-                <th>মঙ্গল</th>
-                <th>বুধ</th>
-                <th>বৃহ</th>
-                {canManageAcademics && (
-                  <th style={{ width: '150px', textAlign: 'center' }}>অ্যাকশন</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {getCurrentTimetable().length === 0 ? (
-                <tr>
-                  <td colSpan={canManageAcademics ? 8 : 7} style={{ textAlign: 'center', padding: '36px 16px', color: '#64748b' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                      এই শ্রেণির জন্য এখনো কোনো ক্লাস রুটিন বা বিরতি স্লট তৈরি করা হয়নি।
-                    </div>
-                    <div style={{ fontSize: '13px' }}>
-                      রুটিন তৈরি করতে উপরের "+ নতুন রুটিন স্লট" বাটনে ক্লিক করুন।
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                getCurrentTimetable().map((row, i) => (
-                  row.isBreak ? (
-                    <tr key={i} style={{ backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 600 }}>
-                      <td className="font-semibold" style={{ color: '#b45309' }}>{row.time}</td>
-                      <td colSpan={6} style={{ textAlign: 'center', letterSpacing: '0.5px', padding: '10px' }}>
-                        ☕ {row.label || 'টিফিন ও নাস্তা বিরতি'}
-                      </td>
+          )}
+
+          {Array.isArray(timetable.__matrixRoutines) && timetable.__matrixRoutines.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+              {timetable.__matrixRoutines.map((m) => (
+                <div key={m.id} className="card" style={{ padding: '18px 20px', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid var(--border-color)' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>{m.title}</h3>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => printMatrixClassRoutine(m, getMadrasahInfo(user).madrasahName)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <Printer size={14} /> প্রিন্ট
+                      </button>
                       {canManageAcademics && (
-                        <td>
-                          <div className="flex-center gap-8">
-                            <button className="btn btn-ghost btn-sm" onClick={() => handleEditTimetable(i, row)} title="সম্পাদনা">
-                              <Edit size={14} />
-                            </button>
-                            <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleDeleteTimetable(i)} title="মুছে ফেলুন">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              setEditingMatrixClass(m);
+                              setShowMatrixClassBuilder(true);
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#2563eb' }}
+                          >
+                            <Edit size={14} /> সম্পাদনা
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={async () => {
+                              const nextList = (timetable.__matrixRoutines || []).filter((item) => item.id !== m.id);
+                              await saveTimetableToLocalStorage({ ...timetable, __matrixRoutines: nextList });
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626' }}
+                          >
+                            <Trash2 size={14} /> মুছুন
+                          </button>
+                        </>
                       )}
-                    </tr>
-                  ) : (
-                    <tr key={i}>
-                      <td className="font-semibold text-primary">{row.time}</td>
-                      <td>{renderTimetableCell(row.sat)}</td>
-                      <td>{renderTimetableCell(row.sun)}</td>
-                      <td>{renderTimetableCell(row.mon)}</td>
-                      <td>{renderTimetableCell(row.tue)}</td>
-                      <td>{renderTimetableCell(row.wed)}</td>
-                      <td>{renderTimetableCell(row.thu)}</td>
-                      {canManageAcademics && (
-                        <td>
-                          <div className="flex-center gap-8">
-                            <button className="btn btn-ghost btn-sm" onClick={() => handleEditTimetable(i, row)} title="সম্পাদনা">
-                              <Edit size={14} />
-                            </button>
-                            <button className="btn btn-ghost btn-sm text-danger" onClick={() => handleDeleteTimetable(i)} title="মুছে ফেলুন">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  )
-                ))
+                    </div>
+                  </div>
+                  <MatrixClassRoutinePreviewTable matrix={m} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(!Array.isArray(timetable.__matrixRoutines) || timetable.__matrixRoutines.length === 0) && !showMatrixClassBuilder && (
+            <div className="card" style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+              <LayoutGrid size={40} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+                এখনো কোনো সম্মিলিত ক্লাস রুটিন (Matrix) তৈরি করা হয়নি।
+              </div>
+              {canManageAcademics && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setEditingMatrixClass(null);
+                    setShowMatrixClassBuilder(true);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Plus size={16} /> নতুন ক্লাস রুটিন তৈরি করুন
+                </button>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       {activeTab === 'calendar' && (

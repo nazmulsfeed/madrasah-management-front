@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Trash2, Printer, Save, X, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
 import { toBnNumber } from '../../utils/helpers';
@@ -249,6 +249,7 @@ export function MatrixRoutinePreviewTable({ routine }) {
 export default function MatrixExamRoutineBuilder({
   initialRoutine = null,
   classes = [],
+  subjects = [],
   exams = [],
   selectedExam = null,
   madrasahName = 'আন্-নুর ইসলামিক একাডেমি',
@@ -256,6 +257,23 @@ export default function MatrixExamRoutineBuilder({
   onClose,
 }) {
   const existingMatrix = initialRoutine?.schedule?.kind === 'matrix' ? initialRoutine.schedule : null;
+
+  const [fetchedSubjects, setFetchedSubjects] = useState([]);
+  useEffect(() => {
+    if (subjects.length > 0) return;
+    api.get('/students/subjects').then((res) => {
+      if (res.data?.success) setFetchedSubjects(res.data.data?.subjects || []);
+    }).catch(() => {});
+  }, [subjects.length]);
+
+  const subjectNames = useMemo(() => {
+    const src = subjects.length > 0 ? subjects : fetchedSubjects;
+    const names = src
+      .map((s) => (typeof s === 'string' ? s : s?.name))
+      .map((n) => String(n || '').trim())
+      .filter((n) => n && n !== '-');
+    return [...new Set(names)];
+  }, [subjects, fetchedSubjects]);
 
   const sortedClasses = useMemo(() => {
     return [...classes].sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999));
@@ -709,6 +727,36 @@ export default function MatrixExamRoutineBuilder({
                   </td>
                   {dates.map((d) => (
                     <td key={d.id} style={{ border: '1px solid #94a3b8', padding: '5px', verticalAlign: 'middle' }}>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const picked = e.target.value;
+                          if (!picked) return;
+                          if (picked === '__CLEAR__') {
+                            handleCellChange(row.id, d.id, '');
+                            return;
+                          }
+                          const curr = String((row.cells && row.cells[d.id]) || '').trim();
+                          const next = !curr || curr === '-' ? picked : `${curr} + ${picked}`;
+                          handleCellChange(row.id, d.id, next);
+                        }}
+                        style={{
+                          width: '100%',
+                          fontSize: '0.78rem',
+                          padding: '3px 4px',
+                          borderRadius: '4px',
+                          border: '1px solid #94a3b8',
+                          marginBottom: '4px',
+                          background: '#f8fafc',
+                          color: '#0f172a',
+                        }}
+                      >
+                        <option value="">+ বিষয় বাছুন...</option>
+                        <option value="__CLEAR__">— খালি করুন (-)</option>
+                        {subjectNames.map((subName) => (
+                          <option key={subName} value={subName}>{subName}</option>
+                        ))}
+                      </select>
                       <textarea
                         rows={2}
                         value={(row.cells && row.cells[d.id]) || ''}

@@ -2635,6 +2635,7 @@ export default function ExamPage({ initialViewMode }) {
       user?.permissions?.includes?.('exam.manage');
 
     const filteredRoutines = routines.filter(r => {
+      if (r.schedule?.kind !== 'matrix') return false;
       if (isInsideSelectedExam && selectedExam) {
         if (r.exam && r.exam !== selectedExam._id) return false;
       } else if (routineExamFilter !== 'all') {
@@ -2705,27 +2706,17 @@ export default function ExamPage({ initialViewMode }) {
               <RefreshCw size={14} className={routinesLoading ? 'animate-spin' : ''} /> <span>রিফ্রেশ</span>
             </button>
             {canManageRoutine && (
-              <>
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => {
-                    setEditingMatrixRoutine(null);
-                    setShowMatrixBuilder((v) => !v);
-                  }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'var(--primary)', color: 'var(--primary)' }}
-                >
-                  <LayoutGrid size={16} /> <span>সম্মিলিত রুটিন (Matrix)</span>
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
-                  onClick={() => handleOpenRoutineModal()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Plus size={16} /> <span>নতুন রুটিন তৈরি</span>
-                </button>
-              </>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={() => {
+                  setEditingMatrixRoutine(null);
+                  setShowMatrixBuilder((v) => !v);
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={16} /> <span>নতুন পরীক্ষার রুটিন (Matrix)</span>
+              </button>
             )}
           </div>
         </div>
@@ -2815,6 +2806,7 @@ export default function ExamPage({ initialViewMode }) {
               key={editingMatrixRoutine?._id || 'new-matrix'}
               initialRoutine={editingMatrixRoutine}
               classes={classes}
+              subjects={subjects}
               exams={exams}
               selectedExam={selectedExam}
               madrasahName={madrasahName}
@@ -2850,10 +2842,13 @@ export default function ExamPage({ initialViewMode }) {
               <button 
                 type="button" 
                 className="btn btn-primary" 
-                onClick={() => handleOpenRoutineModal()}
+                onClick={() => {
+                  setEditingMatrixRoutine(null);
+                  setShowMatrixBuilder(true);
+                }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                <Plus size={16} /> <span>নতুন রুটিন তৈরি করুন</span>
+                <Plus size={16} /> <span>নতুন পরীক্ষার রুটিন তৈরি করুন</span>
               </button>
             )}
           </div>

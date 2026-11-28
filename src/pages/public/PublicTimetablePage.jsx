@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Clock, Printer, ArrowLeft, Calendar, Loader2 } from 'lucide-react';
+import { BookOpen, Clock, Printer, ArrowLeft, Calendar, Loader2, LayoutGrid, Edit, Trash2, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import { getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 import { getMadrasahPrintStyles } from '../../utils/madrasahPrintUtils';
+import MatrixClassRoutineBuilder, { MatrixClassRoutinePreviewTable, printMatrixClassRoutine } from '../../components/academics/MatrixClassRoutineBuilder';
 
 const UNCONFIGURED_EMPTY_PERIODS = [
   { period: 'পিরিয়ড ১', time: '০৮:০০ - ০৮:৪৫' },
@@ -22,6 +24,8 @@ export default function PublicTimetablePage() {
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [timetable, setTimetable] = useState({});
+  const [showMatrixBuilder, setShowMatrixBuilder] = useState(false);
+  const [editingMatrix, setEditingMatrix] = useState(null);
   const [orientation, setOrientation] = useState('landscape');
   const [selectedRoles, setSelectedRoles] = useState(DEFAULT_SIGNATURE_ROLES);
 
@@ -92,7 +96,22 @@ export default function PublicTimetablePage() {
     (currentClassObj ? timetable[currentClassObj.name] : null)
   )) || [];
 
+  const canManageMatrix = ['super_admin', 'co_super_admin', 'admin', 'principal', 'teacher'].includes(user?.userType) ||
+    ['co_super_admin', 'admin'].includes(user?.adminRole);
+  const matrixRoutines = Array.isArray(timetable.__matrixRoutines) ? timetable.__matrixRoutines : [];
+
+  const saveMatrixList = async (nextList) => {
+    const updatedTimetable = { ...timetable, __matrixRoutines: nextList };
+    setTimetable(updatedTimetable);
+    localStorage.setItem('timetable_data', JSON.stringify(updatedTimetable));
+    await api.put('/academics/timetable', { timetable: updatedTimetable });
+  };
+
   const handlePrint = () => {
+    if (viewMode === 'matrix' && matrixRoutines.length > 0) {
+      printMatrixClassRoutine(matrixRoutines[0], getMadrasahInfo(user).madrasahName);
+      return;
+    }
     window.print();
   };
 
@@ -421,181 +440,126 @@ export default function PublicTimetablePage() {
         </div>
       </div>
 
-      {/* Class Selector Bar (Hidden on print) */}
-      <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '860px' : '1100px', margin: '20px auto 0', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        <label style={{ fontWeight: 600, fontSize: '14px', color: '#334155' }}>শ্রেণি নির্বাচন করুন:</label>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {classes.map(c => (
-            <button
-              key={c._id}
-              onClick={() => setSelectedClassId(c._id)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 600,
-                border: '1.5px solid',
-                borderColor: selectedClassId === c._id ? '#059669' : '#cbd5e1',
-                background: selectedClassId === c._id ? '#059669' : '#fff',
-                color: selectedClassId === c._id ? '#fff' : '#334155',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {c.name}
-            </button>
-          ))}
+      {/* Matrix Routine Header Bar (Hidden on print) */}
+      <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '860px' : '1100px', margin: '20px auto 0', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <LayoutGrid size={18} style={{ color: '#059669' }} />
+          <span style={{ fontWeight: 700, fontSize: '15px', color: '#0f172a' }}>
+            সম্মিলিত ক্লাস রুটিন ({matrixRoutines.length})
+          </span>
         </div>
+        {canManageMatrix && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingMatrix(null);
+              setShowMatrixBuilder((v) => !v);
+            }}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 700,
+              border: 'none',
+              background: '#059669',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Plus size={15} /> সম্মিলিত রুটিন তৈরি
+          </button>
+        )}
       </div>
 
-      {/* Signature Role Selector Controls (Hidden on print) */}
-      {!(user?.userType === 'student' || user?.userType === 'guardian') && (
-        <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '860px' : '1100px', margin: '12px auto 0', padding: '0 16px' }}>
-          <PrintSignatureRoleSelector
-            selectedRoles={selectedRoles}
-            onChange={setSelectedRoles}
-          />
-        </div>
-      )}
+      {/* Matrix Builder & Saved Matrix Routines View */}
+      <div className="no-print" style={{ maxWidth: orientation === 'portrait' ? '860px' : '1100px', margin: '16px auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {canManageMatrix && showMatrixBuilder && (
+            <MatrixClassRoutineBuilder
+              key={editingMatrix?.id || 'public-new-matrix'}
+              initialMatrix={editingMatrix}
+              classes={classes}
+              madrasahName={getMadrasahInfo(user).madrasahName}
+              onSave={async (matrixPayload) => {
+                const exists = matrixRoutines.some((m) => m.id === matrixPayload.id);
+                const nextList = exists
+                  ? matrixRoutines.map((m) => (m.id === matrixPayload.id ? matrixPayload : m))
+                  : [matrixPayload, ...matrixRoutines];
+                await saveMatrixList(nextList);
+                setShowMatrixBuilder(false);
+                setEditingMatrix(null);
+              }}
+              onClose={() => {
+                setShowMatrixBuilder(false);
+                setEditingMatrix(null);
+              }}
+            />
+          )}
 
-      {/* Printable Sheet Scroll Outer */}
-      <div className="sheet-scroll-outer">
-        <div style={{ textAlign: 'center' }}>
-          <div className="mobile-scroll-hint no-print">
-            👈 সম্পূর্ণ পৃষ্ঠা দেখতে ডানে-বামে স্ক্রোল করুন 👉
-          </div>
-        </div>
-
-        {/* Printable Sheet Wrapper */}
-        <div
-          className="print-container"
-          style={{
-            maxWidth: orientation === 'portrait' ? '860px' : '1100px',
-            margin: '16px auto',
-            background: '#fff',
-            padding: orientation === 'landscape' ? '18px 22px' : '24px',
-            borderRadius: '12px',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-            border: '1px solid #e2e8f0',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            position: 'relative',
-            overflow: 'visible'
-          }}
-        >
-          {/* Background Watermark for Print & Screen */}
-          <img
-            src="/images/madrasah_logo.png"
-            className="print-watermark"
-            alt="ওয়াটারমার্ক"
-            onError={(e) => { e.currentTarget.src = '/madrasah_logo.png'; }}
-          />
-
-        <div className="print-top-section">
-          {/* Official Letterhead */}
-          <MadrasahLetterhead
-            documentTitle="দৈনিক ক্লাস রুটিন ও সময়সূচী"
-            compact={orientation === 'landscape'}
-            metaLeft={<span><strong>শ্রেণি:</strong> {currentClassName}</span>}
-            metaRight={<span><strong>শিক্ষাবর্ষ:</strong> ২০২৬ ইং</span>}
-          />
-
-          {loading ? (
-            <div style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>
-              <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 12px', color: '#059669' }} />
-              <p>ক্লাস রুটিন লোড হচ্ছে...</p>
-            </div>
+          {matrixRoutines.length === 0 ? (
+            !showMatrixBuilder && (
+              <div style={{ background: '#fff', padding: '40px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#64748b' }}>
+                <LayoutGrid size={40} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  এখনো কোনো সম্মিলিত ক্লাস রুটিন (Matrix) তৈরি করা হয়নি
+                </div>
+                {canManageMatrix && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingMatrix(null);
+                      setShowMatrixBuilder(true);
+                    }}
+                    style={{ marginTop: '10px', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#059669', color: '#fff', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={16} /> নতুন সম্মিলিত ক্লাস রুটিন তৈরি করুন
+                  </button>
+                )}
+              </div>
+            )
           ) : (
-            <div className="timetable-scroll-wrapper">
-              <table className="timetable-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '130px' }}>সময় ও পিরিয়ড</th>
-                    <th>শনিবার</th>
-                    <th>রবিবার</th>
-                    <th>সোমবার</th>
-                    <th>মঙ্গলবার</th>
-                    <th>বুধবার</th>
-                    <th>বৃহস্পতিবার</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentSchedule.length === 0 ? (
-                    UNCONFIGURED_EMPTY_PERIODS.map((slot, idx) => (
-                      <tr key={idx}>
-                        <td style={{ fontWeight: 700, color: '#047857' }}>
-                          <div>{slot.period}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{slot.time}</div>
-                        </td>
-                        <td style={{ color: '#94a3b8' }}>-</td>
-                        <td style={{ color: '#94a3b8' }}>-</td>
-                        <td style={{ color: '#94a3b8' }}>-</td>
-                        <td style={{ color: '#94a3b8' }}>-</td>
-                        <td style={{ color: '#94a3b8' }}>-</td>
-                        <td style={{ color: '#94a3b8' }}>-</td>
-                      </tr>
-                    ))
-                  ) : (
-                    currentSchedule.map((row, idx) => {
-                      if (row.isBreak) {
-                        return (
-                          <tr key={idx} className="break-row">
-                            <td style={{ fontWeight: 700 }}>{row.time}</td>
-                            <td colSpan={6} style={{ textAlign: 'center', padding: '6px', fontSize: '13px' }}>
-                              ☕ {row.label || 'বিরতি ও নাস্তা'}
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      const renderCell = (cell) => {
-                        if (!cell) return <span style={{ color: '#94a3b8' }}>-</span>;
-                        if (typeof cell === 'string') {
-                          const trimmed = cell.trim();
-                          return (trimmed && trimmed !== '-') ? trimmed : <span style={{ color: '#94a3b8' }}>-</span>;
-                        }
-                        if (!cell.subject || !cell.subject.trim() || cell.subject.trim() === '-') {
-                          return <span style={{ color: '#94a3b8' }}>-</span>;
-                        }
-                        return (
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{cell.subject}</div>
-                            {cell.teacher && cell.teacher.trim() && cell.teacher.trim() !== '-' && (
-                              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>({cell.teacher})</div>
-                            )}
-                          </div>
-                        );
-                      };
-
-                      return (
-                        <tr key={idx}>
-                          <td style={{ fontWeight: 700, color: '#047857' }}>
-                            <div>পিরিয়ড {idx + 1}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{row.time}</div>
-                          </td>
-                          <td>{renderCell(row.sat)}</td>
-                          <td>{renderCell(row.sun)}</td>
-                          <td>{renderCell(row.mon)}</td>
-                          <td>{renderCell(row.tue)}</td>
-                          <td>{renderCell(row.wed)}</td>
-                          <td>{renderCell(row.thu)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+            matrixRoutines.map((m) => (
+              <div key={m.id} style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{m.title}</h3>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => printMatrixClassRoutine(m, getMadrasahInfo(user).madrasahName)}
+                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}
+                    >
+                      <Printer size={14} /> প্রিন্ট
+                    </button>
+                    {canManageMatrix && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMatrix(m);
+                            setShowMatrixBuilder(true);
+                          }}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#eff6ff', color: '#2563eb', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+                        >
+                          <Edit size={14} /> সম্পাদনা
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => saveMatrixList(matrixRoutines.filter((item) => item.id !== m.id))}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', background: '#fef2f2', color: '#dc2626', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}
+                        >
+                          <Trash2 size={14} /> মুছুন
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <MatrixClassRoutinePreviewTable matrix={m} />
+              </div>
+            ))
           )}
         </div>
-
-        {/* Official Footer Signatures */}
-        <div className="print-footer-wrapper" style={{ marginTop: 'auto', paddingTop: orientation === 'landscape' ? '14px' : '20px' }}>
-          <PrintFooterSignatures roles={selectedRoles} style={{ paddingTop: '10px' }} />
-        </div>
-      </div>
-    </div>
   </div>
 );
 }
