@@ -46,6 +46,22 @@ const getSafeStr = (val, fallback = '—') => {
   return str || fallback;
 };
 
+const getStudentDisplayName = (student, fallback = '—') => {
+  if (!student) return fallback;
+  const userFull = `${student.user?.firstName || ''} ${student.user?.lastName || ''}`.trim();
+  const directFull = `${student.firstName || ''} ${student.lastName || ''}`.trim();
+  return getSafeStr(
+    student.user?.fullName ||
+      userFull ||
+      student.user?.name ||
+      student.fullName ||
+      directFull ||
+      student.name ||
+      student.banglaName,
+    fallback
+  );
+};
+
 export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const { user } = useAuthStore();
   const madrasah = useMemo(() => getMadrasahInfo(user), [user]);
@@ -296,7 +312,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
     if (!searchQuery.trim()) return students;
     const q = searchQuery.toLowerCase();
     return students.filter(s => {
-      const name = getSafeStr(s.user?.name || s.name, '').toLowerCase();
+      const name = getStudentDisplayName(s, '').toLowerCase();
       const roll = getSafeStr(s.currentEnrollment?.rollNumber || s.rollNumber || s.roll, '').toLowerCase();
       const sid = getSafeStr(s.studentId || s.admissionNumber, '').toLowerCase();
       return name.includes(q) || roll.includes(q) || sid.includes(q);
@@ -1110,13 +1126,13 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                       <div className={`a4-page-sheet a4-sheet-layout-${cardsPerPage} ${pageOrientation === 'landscape' ? 'a4-landscape' : ''}`}>
                       {pageStudents.map((student) => {
                         const sid = student._id || student.id;
-                        const sName = getSafeStr(student.user?.name || student.name, 'MD. STUDENT');
+                        const sName = getStudentDisplayName(student, 'MD. STUDENT');
                         const sRoll = getSafeStr(student.currentEnrollment?.rollNumber || student.rollNumber || student.roll, '—');
                         const sId = getSafeStr(student.studentId || student.admissionNumber, '—');
                         const sSection = getSafeStr(student.currentEnrollment?.section || student.section || (selectedSection !== 'all' ? selectedSection : '—'), '—');
                         const sGroup = getSafeStr(student.department || student.currentEnrollment?.department || student.stream, 'All');
                         const sRoom = getSafeStr(studentRooms[sid] || commonRoomNo, '১০২');
-                        const sPhoto = student.photo || boyAvatarSvg;
+                        const sPhoto = student.photo || student.user?.photo || boyAvatarSvg;
                         const examTitle = getSafeStr(currentExam?.name || currentExam?.title, 'Annual Examination 2026');
                         const className = getSafeStr(currentClass?.name || currentClass?.banglaName || currentClass?.code, '');
 
@@ -1394,12 +1410,12 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                     const sid = s._id || s.id;
                     const isChecked = selectedStudentIds.has(sid);
                     const roll = getSafeStr(s.currentEnrollment?.rollNumber || s.rollNumber || s.roll, '—');
-                    const name = getSafeStr(s.user?.name || s.name, '—');
+                    const name = getStudentDisplayName(s, '—');
                     const stId = getSafeStr(s.studentId || s.admissionNumber, '—');
                     const section = getSafeStr(s.currentEnrollment?.section || s.section || (selectedSection !== 'all' ? selectedSection : '—'), '—');
                     const stream = getSafeStr(s.department || s.currentEnrollment?.department || s.stream, 'সাধারণ');
                     const room = getSafeStr(studentRooms[sid] || commonRoomNo, '১০২');
-                    const photo = s.photo || boyAvatarSvg;
+                    const photo = s.photo || s.user?.photo || boyAvatarSvg;
 
                     return (
                       <tr 
@@ -1635,13 +1651,13 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
               <div className={`a4-page-sheet a4-sheet-layout-${cardsPerPage} ${pageOrientation === 'landscape' ? 'a4-landscape' : ''}`}>
             {pageStudents.map((student) => {
               const sid = student._id || student.id;
-              const sName = getSafeStr(student.user?.name || student.name, 'MD. STUDENT');
+              const sName = getStudentDisplayName(student, 'MD. STUDENT');
               const sRoll = getSafeStr(student.currentEnrollment?.rollNumber || student.rollNumber || student.roll, '—');
               const sId = getSafeStr(student.studentId || student.admissionNumber, '—');
               const sSection = getSafeStr(student.currentEnrollment?.section || student.section || (selectedSection !== 'all' ? selectedSection : '—'), '—');
               const sGroup = getSafeStr(student.department || student.currentEnrollment?.department || student.stream, 'All');
               const sRoom = getSafeStr(studentRooms[sid] || commonRoomNo, '১০২');
-              const sPhoto = student.photo || boyAvatarSvg;
+              const sPhoto = student.photo || student.user?.photo || boyAvatarSvg;
               const examTitle = getSafeStr(currentExam?.name || currentExam?.title, 'Annual Examination 2026');
               const className = getSafeStr(currentClass?.name || currentClass?.banglaName || currentClass?.code, '');
 
