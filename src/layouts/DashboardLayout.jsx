@@ -277,7 +277,7 @@ export default function DashboardLayout() {
 
           <div className="topbar-breadcrumb">
             <Building2 size={16} />
-            {(typeof user?.institution === 'object' ? user?.institution?.name : user?.institution) || 'আন্-নুর-ইসলামিক একাডেমি'}
+            {(typeof user?.institution === 'object' ? user?.institution?.name : user?.institution) || 'আন্-নূর ইসলামিক একাডেমি'}
             <ChevronLeft size={14} style={{ opacity: 0.4 }} />
             <span>{getPageTitle()}</span>
           </div>

@@ -283,7 +283,7 @@ export default function TestimonialPage() {
       regNo: saved.regNo ?? (s.studentId || ''),
       characterNote: saved.characterNote ?? 'ভালো',
       sigTitle: saved.sigTitle ?? 'অধ্যক্ষ / প্রধান শিক্ষক',
-      sigInst: saved.sigInst ?? 'আন-নুর-ইসলামিক একাডেমি',
+      sigInst: saved.sigInst ?? 'আন্-নূর ইসলামিক একাডেমি',
     };
   }, [selectedStudent, nextSerial]);
 

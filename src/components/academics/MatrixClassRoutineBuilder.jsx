@@ -10,7 +10,7 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-export function printMatrixClassRoutine(matrix, defaultOrgName = 'আন্-নুর ইসলামিক একাডেমি') {
+export function printMatrixClassRoutine(matrix, defaultOrgName = 'আন্-নূর ইসলামিক একাডেমি') {
   if (!matrix || !Array.isArray(matrix.columns) || !Array.isArray(matrix.rows)) return;
 
   const title = matrix.title || 'সম্মিলিত ক্লাস রুটিন';
@@ -231,7 +231,7 @@ export default function MatrixClassRoutineBuilder({
   initialMatrix = null,
   classes = [],
   subjects = [],
-  madrasahName = 'আন্-নুর ইসলামিক একাডেমি',
+  madrasahName = 'আন্-নূর ইসলামিক একাডেমি',
   onSave,
   onClose,
 }) {

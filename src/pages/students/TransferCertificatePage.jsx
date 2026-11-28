@@ -305,7 +305,7 @@ export default function TransferCertificatePage() {
       dueYr: saved.dueYr ?? (tc?.duePaidYear || bn(String(now.getFullYear()))),
       regNo: saved.regNo ?? (s.studentId || ''),
       sigTitle: saved.sigTitle ?? 'অধ্যক্ষ / প্রধান শিক্ষক',
-      sigInst: saved.sigInst ?? 'আন-নুর-ইসলামিক একাডেমি',
+      sigInst: saved.sigInst ?? 'আন্-নূর ইসলামিক একাডেমি',
     };
   }, [selectedStudent, nextSerial]);
 

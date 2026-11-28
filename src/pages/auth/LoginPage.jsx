@@ -252,7 +252,7 @@ export default function LoginPage() {
       <div className="login-hero">
         <div className="login-hero-content animate-fade-in">
           <div className="login-hero-icon">📖</div>
-          <h1>আন্-নুর-ইসলামিক একাডেমি</h1>
+          <h1>আন্-নূর ইসলামিক একাডেমি</h1>
           <p>
             আপনার প্রতিষ্ঠানের সম্পূর্ণ পরিচালনা একটি মাত্র প্ল্যাটফর্মে।
             ছাত্র ভর্তি থেকে ফলাফল প্রকাশ, ফি ব্যবস্থাপনা থেকে হিফজ অগ্রগতি —
