@@ -1538,20 +1538,18 @@ export default function ExamPage({ initialViewMode }) {
         return a.roll - b.roll;
       });
 
-      // Assign Shared Bangla Ordinal Merit Rank (🥇 ১ম, 🥈 ২য়, 🥉 ৩য়, ৪র্থ...)
-      let currentRank = 1;
+      // Assign Shared Bangla Ordinal Merit Rank using Dense Ranking (১ম, ২য়, ৩য়, ৪র্থ, ৫ম (যৌথ), ৬ষ্ঠ...)
+      let currentRank = 0;
       let prevScore = null;
-      let studentsCountWithMarks = 0;
 
       const ranked = calculated.map((item) => {
         if (item.subjectsCountWithMarks === 0) {
           return { ...item, rankText: 'অনুপস্থিত / পরীক্ষা দেয়নি', rankNum: null };
         }
-        studentsCountWithMarks += 1;
         if (prevScore !== null && item.totalObtained === prevScore) {
           // Keep same rankNum for tied score (Shared Rank)
         } else {
-          currentRank = studentsCountWithMarks;
+          currentRank += 1;
           prevScore = item.totalObtained;
         }
         const rankNum = currentRank;
