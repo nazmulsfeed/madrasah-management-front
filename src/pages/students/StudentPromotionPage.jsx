@@ -5,7 +5,7 @@ import {
   Search, Award, ShieldAlert, Star, TrendingUp, CheckSquare, Square 
 } from 'lucide-react';
 import api from '../../api/axios';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { matchesSearchQuery } from '../../utils/searchUtils';
 import WholeWordToggle from '../../components/common/WholeWordToggle';
 
@@ -27,6 +27,7 @@ export default function StudentPromotionPage() {
   const [sourceSection, setSourceSection] = useState('');
   const [sourceBranch, setSourceBranch] = useState('');
   const [sourceDepartment, setSourceDepartment] = useState('');
+  const [sourceMaktabSubBranch, setSourceMaktabSubBranch] = useState('');
   const [sourceResidential, setSourceResidential] = useState('');
   const [selectedTermExamId, setSelectedTermExamId] = useState('');
 
@@ -36,6 +37,7 @@ export default function StudentPromotionPage() {
   const [destSection, setDestSection] = useState('');
   const [destBranch, setDestBranch] = useState('');
   const [destDepartment, setDestDepartment] = useState('');
+  const [destMaktabSubBranch, setDestMaktabSubBranch] = useState('');
   const [destResidential, setDestResidential] = useState('');
 
   // Candidates
@@ -105,6 +107,7 @@ export default function StudentPromotionPage() {
       if (sourceSection) params.section = sourceSection;
       if (sourceBranch) params.branch = sourceBranch;
       if (sourceDepartment) params.department = sourceDepartment;
+      if (sourceMaktabSubBranch) params.maktabSubBranch = sourceMaktabSubBranch;
       if (sourceResidential) params.residentialStatus = sourceResidential;
       if (selectedTermExamId) params.examId = selectedTermExamId;
 
@@ -294,6 +297,7 @@ export default function StudentPromotionPage() {
         destAcademicYearId: destYear,
         destBranchId: destBranch || undefined,
         destDepartment: destDepartment || undefined,
+        destMaktabSubBranch: destMaktabSubBranch || undefined,
         destResidentialStatus: destResidential || undefined
       };
 
@@ -427,7 +431,16 @@ export default function StudentPromotionPage() {
 
               <div>
                 <label className="form-label">উৎস বিভাগ</label>
-                <select className="form-select form-input" value={sourceDepartment} onChange={e => setSourceDepartment(e.target.value)}>
+                <select
+                  className="form-select form-input"
+                  value={sourceDepartment}
+                  onChange={e => {
+                    const nextDept = e.target.value;
+                    const srcClsName = classLevels.find(c => String(c._id) === String(sourceClass))?.name || '';
+                    if (!(isMaktabName(nextDept) || isMaktabName(srcClsName))) setSourceMaktabSubBranch('');
+                    setSourceDepartment(nextDept);
+                  }}
+                >
                   <option value="">সকল বিভাগ</option>
                   <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
                   <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
@@ -441,13 +454,34 @@ export default function StudentPromotionPage() {
 
               <div>
                 <label className="form-label">উৎস শ্রেণি *</label>
-                <select className="form-select form-input" value={sourceClass} onChange={e => setSourceClass(e.target.value)}>
+                <select
+                  className="form-select form-input"
+                  value={sourceClass}
+                  onChange={e => {
+                    const nextCls = e.target.value;
+                    const nextName = classLevels.find(c => String(c._id) === String(nextCls))?.name || '';
+                    if (!(isMaktabName(sourceDepartment) || isMaktabName(nextName))) setSourceMaktabSubBranch('');
+                    setSourceClass(nextCls);
+                  }}
+                >
                   <option value="">-- শ্রেণি নির্বাচন করুন --</option>
                   {classLevels.map(c => (
                     <option key={c._id} value={c._id}>{c.name}</option>
                   ))}
                 </select>
               </div>
+
+              {(isMaktabName(sourceDepartment) || isMaktabName(classLevels.find(c => String(c._id) === String(sourceClass))?.name)) && (
+                <div>
+                  <label className="form-label" style={{ color: '#047857' }}>উৎস মক্তব উপ-শাখা</label>
+                  <select className="form-select form-input" value={sourceMaktabSubBranch} onChange={e => setSourceMaktabSubBranch(e.target.value)} style={{ borderColor: '#10b981' }}>
+                    <option value="">সকল উপ-শাখা</option>
+                    {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                      <option key={idx} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="form-label">উৎস সেকশন</label>
@@ -527,7 +561,16 @@ export default function StudentPromotionPage() {
 
                   <div>
                     <label className="form-label">গন্তব্য বিভাগ</label>
-                    <select className="form-select form-input" value={destDepartment} onChange={e => setDestDepartment(e.target.value)}>
+                    <select
+                      className="form-select form-input"
+                      value={destDepartment}
+                      onChange={e => {
+                        const nextDept = e.target.value;
+                        const destClsName = classLevels.find(c => String(c._id) === String(destClass))?.name || '';
+                        if (!(isMaktabName(nextDept) || isMaktabName(destClsName))) setDestMaktabSubBranch('');
+                        setDestDepartment(nextDept);
+                      }}
+                    >
                       <option value="">উৎস বিভাগের অনুরূপ (ডিফল্ট)</option>
                       <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
                       <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
@@ -541,13 +584,34 @@ export default function StudentPromotionPage() {
 
                   <div>
                     <label className="form-label">গন্তব্য শ্রেণি *</label>
-                    <select className="form-select form-input" value={destClass} onChange={e => setDestClass(e.target.value)}>
+                    <select
+                      className="form-select form-input"
+                      value={destClass}
+                      onChange={e => {
+                        const nextCls = e.target.value;
+                        const nextName = classLevels.find(c => String(c._id) === String(nextCls))?.name || '';
+                        if (!(isMaktabName(destDepartment) || isMaktabName(nextName))) setDestMaktabSubBranch('');
+                        setDestClass(nextCls);
+                      }}
+                    >
                       <option value="">-- শ্রেণি নির্বাচন করুন --</option>
                       {classLevels.map(c => (
                         <option key={c._id} value={c._id}>{c.name}</option>
                       ))}
                     </select>
                   </div>
+
+                  {(isMaktabName(destDepartment) || isMaktabName(classLevels.find(c => String(c._id) === String(destClass))?.name)) && (
+                    <div>
+                      <label className="form-label" style={{ color: '#047857' }}>গন্তব্য মক্তব উপ-শাখা</label>
+                      <select className="form-select form-input" value={destMaktabSubBranch} onChange={e => setDestMaktabSubBranch(e.target.value)} style={{ borderColor: '#10b981' }}>
+                        <option value="">-- উপ-শাখা নির্বাচন করুন --</option>
+                        {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                          <option key={idx} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="form-label">গন্তব্য সেকশন *</label>

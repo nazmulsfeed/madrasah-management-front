@@ -8,7 +8,7 @@ import {
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { getMadrasahInfo } from '../../utils/helpers';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import PrintSignatureRoleSelector from '../../components/common/PrintSignatureRoleSelector';
 
@@ -144,6 +144,7 @@ export default function AssemblyAttendancePage() {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedSection, setSelectedSection] = useState('all');
+  const [selectedMaktabSubBranch, setSelectedMaktabSubBranch] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('roll');
@@ -314,7 +315,12 @@ export default function AssemblyAttendancePage() {
     fetchMetadata();
   }, []);
 
-  // Combine standard SECTION_OPTIONS with database sections for reliable section filtering
+  const isMaktabSelected = useMemo(() => {
+    const clsObj = classes.find(c => String(c._id) === String(selectedClass));
+    return isMaktabName(selectedDepartment) || isMaktabName(clsObj?.name);
+  }, [selectedDepartment, selectedClass, classes]);
+
+  // Combine standard SECTION_OPTIONS with database sections (without MAKTAB_SUB_BRANCHES)
   const availableSectionOptions = useMemo(() => {
     const options = [{ value: 'all', label: 'সকল সেকশন' }];
     SECTION_OPTIONS.forEach(sec => {
@@ -322,7 +328,7 @@ export default function AssemblyAttendancePage() {
     });
     dbSections.forEach(s => {
       const sName = (s.name || '').trim();
-      if (sName && !options.some(o => o.value === s._id || o.value === sName)) {
+      if (sName && !MAKTAB_SUB_BRANCHES.includes(sName) && !options.some(o => o.value === s._id || o.value === sName)) {
         options.push({ value: s._id, label: sName });
       }
     });
@@ -336,6 +342,7 @@ export default function AssemblyAttendancePage() {
       const params = { date };
       if (selectedBranch !== 'all') params.branch = selectedBranch;
       if (selectedDepartment !== 'all') params.department = selectedDepartment;
+      if (isMaktabSelected && selectedMaktabSubBranch !== 'all') params.maktabSubBranch = selectedMaktabSubBranch;
       if (selectedClass !== 'all') params.classLevel = selectedClass;
       if (selectedSection !== 'all') params.section = selectedSection;
 
@@ -352,7 +359,7 @@ export default function AssemblyAttendancePage() {
 
   useEffect(() => {
     fetchAttendance();
-  }, [date, selectedBranch, selectedDepartment, selectedClass, selectedSection]);
+  }, [date, selectedBranch, selectedDepartment, selectedMaktabSubBranch, selectedClass, selectedSection]);
 
   // Recalculate stats: Present, Absent, Reset/Unmarked
   const currentStats = useMemo(() => {
@@ -1239,7 +1246,13 @@ export default function AssemblyAttendancePage() {
           <div style={{ flexShrink: 0, width: '130px' }} title="বিভাগ ফিল্টার">
             <select
               value={selectedDepartment}
-              onChange={e => setSelectedDepartment(e.target.value)}
+              onChange={e => {
+                const nextDept = e.target.value;
+                const clsObj = classes.find(c => String(c._id) === String(selectedClass));
+                const nextIsMaktab = isMaktabName(nextDept) || isMaktabName(clsObj?.name);
+                setSelectedDepartment(nextDept);
+                if (!nextIsMaktab) setSelectedMaktabSubBranch('all');
+              }}
               className="form-input"
               style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
             >
@@ -1249,11 +1262,34 @@ export default function AssemblyAttendancePage() {
             </select>
           </div>
 
+          {/* 3b. Maktab Sub-Branch (শুধু মক্তব হলে বিভাগের ঠিক পাশে) */}
+          {isMaktabSelected && (
+            <div style={{ flexShrink: 0, width: '125px' }} title="মক্তব উপ-শাখা (আমপারা / কায়দা)">
+              <select
+                value={selectedMaktabSubBranch}
+                onChange={e => setSelectedMaktabSubBranch(e.target.value)}
+                className="form-input"
+                style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 600, borderColor: '#10b981' }}
+              >
+                <option value="all">সকল উপ-শাখা</option>
+                {MAKTAB_SUB_BRANCHES.map(sub => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* 4. Class Filter (শ্রেণি - শুধু একাডেমিক শ্রেণি) */}
           <div style={{ flexShrink: 0, width: '120px' }} title="শ্রেণি ফিল্টার (একাডেমিক)">
             <select
               value={selectedClass}
-              onChange={e => setSelectedClass(e.target.value)}
+              onChange={e => {
+                const nextCls = e.target.value;
+                const clsObj = classes.find(c => String(c._id) === String(nextCls));
+                const nextIsMaktab = isMaktabName(selectedDepartment) || isMaktabName(clsObj?.name);
+                setSelectedClass(nextCls);
+                if (!nextIsMaktab) setSelectedMaktabSubBranch('all');
+              }}
               className="form-input"
               style={{ height: '34px', fontSize: '0.82rem', padding: '0 8px', marginBottom: 0, fontWeight: 500 }}
             >
@@ -1264,7 +1300,7 @@ export default function AssemblyAttendancePage() {
             </select>
           </div>
 
-          {/* 5. Section Filter (সেকশন) */}
+          {/* 5. Section Filter (সেকশন সবসময় আলাদা থাকবে) */}
           <div style={{ flexShrink: 0, width: '115px' }} title="সেকশন ফিল্টার">
             <select
               value={selectedSection}

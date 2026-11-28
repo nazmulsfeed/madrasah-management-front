@@ -8,7 +8,7 @@ import {
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { getNextWorkingDay, formatDateDDMMYYYY } from '../../utils/helpers';
 
 // 30 Paras for Dropdowns
@@ -162,6 +162,7 @@ export default function HomeworkPage() {
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
+  const [maktabSubBranchFilter, setMaktabSubBranchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [filterOptions, setFilterOptions] = useState({ classes: [], sections: [], subjects: [] });
   const [dateFilter, setDateFilter] = useState('today');
@@ -297,7 +298,7 @@ export default function HomeworkPage() {
           limit: 10, 
           search,
           classLevel: classFilter,
-          section: sectionFilter,
+          section: (isMaktabName(classFilter) && maktabSubBranchFilter) ? maktabSubBranchFilter : sectionFilter,
           subject: subjectFilter,
           status: statusFilter,
           dateFilter: dateFilter === 'custom' ? customDate : dateFilter
@@ -378,7 +379,7 @@ export default function HomeworkPage() {
     if (activeTab === 'noorani') {
       fetchHomeworks();
     }
-  }, [activeTab, page, classFilter, sectionFilter, subjectFilter, statusFilter, dateFilter, customDate]);
+  }, [activeTab, page, classFilter, sectionFilter, maktabSubBranchFilter, subjectFilter, statusFilter, dateFilter, customDate]);
 
   // -------------------------------------------------------------
   // FETCH HIFZ / NAZERA / MAKTAB HOMEWORK
@@ -1154,7 +1155,12 @@ export default function HomeworkPage() {
                 <select
                   className="form-input form-select"
                   value={classFilter}
-                  onChange={(e) => { setClassFilter(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    const nextCls = e.target.value;
+                    if (!isMaktabName(nextCls)) setMaktabSubBranchFilter('');
+                    setClassFilter(nextCls);
+                    setPage(1);
+                  }}
                   style={{ width: '120px', padding: '8px 32px 8px 12px' }}
                 >
                   <option value="">সকল শ্রেণি</option>
@@ -1163,16 +1169,33 @@ export default function HomeworkPage() {
                   ))}
                 </select>
 
+                {isMaktabName(classFilter) && (
+                  <select
+                    className="form-input form-select"
+                    value={maktabSubBranchFilter}
+                    onChange={(e) => { setMaktabSubBranchFilter(e.target.value); setPage(1); }}
+                    style={{ width: '130px', padding: '8px 32px 8px 12px', borderColor: '#10b981' }}
+                    title="মক্তব উপ-শাখা"
+                  >
+                    <option value="">সকল উপ-শাখা</option>
+                    {MAKTAB_SUB_BRANCHES.map(sub => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                )}
+
                 <select
                   className="form-input form-select"
                   value={sectionFilter}
                   onChange={(e) => { setSectionFilter(e.target.value); setPage(1); }}
-                  style={{ width: '110px', padding: '8px 32px 8px 12px' }}
+                  style={{ width: '120px', padding: '8px 32px 8px 12px' }}
                 >
                   <option value="">সকল সেকশন</option>
-                  {filterOptions.sections.map(sec => (
-                    <option key={sec} value={sec}>{sec}</option>
-                  ))}
+                  {filterOptions.sections
+                    .filter(sec => !MAKTAB_SUB_BRANCHES.includes(sec))
+                    .map(sec => (
+                      <option key={sec} value={sec}>{sec}</option>
+                    ))}
                 </select>
 
                 <select
@@ -1707,6 +1730,24 @@ export default function HomeworkPage() {
                     ))}
                   </select>
                 </div>
+                {isMaktabName(formData.classLevel) && (
+                  <div className="form-group">
+                    <label className="form-label" style={{ color: '#047857' }}>মক্তব উপ-শাখা (ঐচ্ছিক)</label>
+                    <select
+                      className="form-input form-select"
+                      value={MAKTAB_SUB_BRANCHES.includes(formData.section) ? formData.section : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) setFormData(prev => ({ ...prev, section: val }));
+                      }}
+                    >
+                      <option value="">-- উপ-শাখা নির্বাচন করুন --</option>
+                      {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                        <option key={idx} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">জমা দেওয়ার শেষ তারিখ * <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(দিন-মাস-বছর / DD-MM-YYYY)</span></label>
                   <input type="date" name="dueDate" className="form-input" required value={formData.dueDate} onChange={handleChange} />

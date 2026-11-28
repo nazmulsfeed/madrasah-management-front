@@ -9,7 +9,7 @@ import {
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector from '../../components/common/PrintSignatureRoleSelector';
@@ -50,6 +50,7 @@ export default function AttendancePage() {
   const [selectedClass, setSelectedClass] = useState('all'); // 'all' or class ID
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedSection, setSelectedSection] = useState('all'); // 'all' or section name/id
+  const [selectedMaktabSubBranch, setSelectedMaktabSubBranch] = useState('all'); // 'all' | 'আমপারা' | 'কায়দা'
 
   // In-sheet local filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -356,7 +357,10 @@ export default function AttendancePage() {
     }
   };
 
-  // Combined Section Options
+  // Combined Section Options (keeps SECTION_OPTIONS strictly separate from Maktab sub-branch)
+  const selectedClassObj = useMemo(() => classes.find(c => String(c._id) === String(selectedClass)), [classes, selectedClass]);
+  const isMaktabClassSelected = isMaktabName(selectedClassObj?.name);
+
   const availableSectionOptions = useMemo(() => {
     const options = [
       { value: 'all', label: 'সকল সেকশন (All Sections)' }
@@ -368,7 +372,7 @@ export default function AttendancePage() {
 
     dbSections.forEach(s => {
       const sName = (s.name || '').trim();
-      if (sName && !SECTION_OPTIONS.includes(sName) && !options.some(o => o.value === s._id || o.label === sName)) {
+      if (sName && !MAKTAB_SUB_BRANCHES.includes(sName) && !SECTION_OPTIONS.includes(sName) && !options.some(o => o.value === s._id || o.label === sName)) {
         options.push({ value: s._id, label: sName });
       }
     });
@@ -394,7 +398,6 @@ export default function AttendancePage() {
   }, [dateMode, startDate, endDate]);
 
   // Display Name Helpers for Titles & Print
-  const selectedClassObj = useMemo(() => classes.find(c => String(c._id) === String(selectedClass)), [classes, selectedClass]);
   const classDisplayName = selectedClass === 'all' ? 'সকল শ্রেণি' : (selectedClassObj?.name || 'শ্রেণি');
   const selectedBranchObj = useMemo(() => branches.find(b => String(b._id) === String(selectedBranch)), [branches, selectedBranch]);
   const branchDisplayName = selectedBranchObj ? selectedBranchObj.name : '';
@@ -453,6 +456,9 @@ export default function AttendancePage() {
       if (selectedBranch) studentParams.branch = selectedBranch;
       if (selectedSection && selectedSection !== 'all') {
         studentParams.section = selectedSection;
+      }
+      if (isMaktabClassSelected && selectedMaktabSubBranch && selectedMaktabSubBranch !== 'all') {
+        studentParams.maktabSubBranch = selectedMaktabSubBranch;
       }
 
       // 2. Fetch students
@@ -639,7 +645,7 @@ export default function AttendancePage() {
       setCurrentPage(1);
       loadAttendanceData();
     }
-  }, [date, selectedClass, selectedBranch, selectedSection, dateMode]);
+  }, [date, selectedClass, selectedBranch, selectedSection, selectedMaktabSubBranch, dateMode]);
 
   // Real-time attendance polling every 30 seconds (single day only)
   useEffect(() => {
@@ -1749,7 +1755,14 @@ export default function AttendancePage() {
                   <select 
                     className="form-input form-select" 
                     value={selectedClass} 
-                    onChange={(e) => setSelectedClass(e.target.value)}
+                    onChange={(e) => {
+                      const nextCls = e.target.value;
+                      const nextClsObj = classes.find(c => String(c._id) === String(nextCls));
+                      if (!isMaktabName(nextClsObj?.name)) {
+                        setSelectedMaktabSubBranch('all');
+                      }
+                      setSelectedClass(nextCls);
+                    }}
                     style={{ height: '36px', fontSize: '0.84rem', fontWeight: 600 }}
                   >
                     <option value="all">সকল শ্রেণি (All Classes)</option>
@@ -1759,7 +1772,25 @@ export default function AttendancePage() {
                   </select>
                 </div>
 
-                {/* ৪. সেকশন ফিল্টার */}
+                {/* ৩খ. মক্তব উপ-শাখা (শুধু মক্তব শ্রেণি সিলেক্ট হলেই পাশে দেখাবে) */}
+                {isMaktabClassSelected && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.82rem', color: '#047857' }}>মক্তব উপ-শাখা</label>
+                    <select
+                      className="form-input form-select"
+                      value={selectedMaktabSubBranch}
+                      onChange={(e) => setSelectedMaktabSubBranch(e.target.value)}
+                      style={{ height: '36px', fontSize: '0.84rem', borderColor: '#10b981' }}
+                    >
+                      <option value="all">সকল উপ-শাখা</option>
+                      {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                        <option key={idx} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* ৪. সেকশন ফিল্টার (সবসময় আলাদা থাকবে) */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.82rem' }}>সেকশন (Section)</label>
                   <select 

@@ -23,6 +23,8 @@ const MONTH_LABELS = {
 
 export default function StudentResultView({ studentId }) {
   const [results, setResults] = useState([]);
+  const [hifzResults, setHifzResults] = useState([]);
+  const [selectedHifzId, setSelectedHifzId] = useState('');
   const [studentInfo, setStudentInfo] = useState(null);
   const [annualCumulative, setAnnualCumulative] = useState(null);
   const [selectedExamId, setSelectedExamId] = useState('all');
@@ -37,13 +39,30 @@ export default function StudentResultView({ studentId }) {
       const url = studentId 
         ? `/exams/student-results/${studentId}`
         : `/exams/student-results`;
-      const res = await api.get(url);
-      if (res.data.success) {
+      const hifzUrl = studentId
+        ? `/hifz-results/student-results/${studentId}`
+        : `/hifz-results/student-results`;
+
+      const [res, hifzRes] = await Promise.all([
+        api.get(url).catch(() => ({ data: { success: false } })),
+        api.get(hifzUrl).catch(() => ({ data: { success: false } })),
+      ]);
+
+      if (res.data?.success) {
         setResults(res.data.data.results || []);
         setStudentInfo(res.data.data.student || null);
         setAnnualCumulative(res.data.data.annualCumulative || null);
         if (res.data.data.results && res.data.data.results.length > 0) {
           setSelectedExamId(res.data.data.results[0].examId);
+        }
+      }
+      if (hifzRes.data?.success) {
+        const hList = hifzRes.data.data.results || [];
+        setHifzResults(hList);
+        if (hList.length > 0) {
+          setSelectedHifzId(prev => (hList.some(x => String(x._id) === String(prev)) ? prev : hList[0]._id));
+        } else {
+          setSelectedHifzId('');
         }
       }
     } catch (err) {
@@ -81,6 +100,12 @@ export default function StudentResultView({ studentId }) {
     const posBn = toBn(pos);
     const suffix = pos === 1 ? 'ম' : pos === 2 ? 'য়' : pos === 3 ? 'য়' : 'র্থ';
     return `${posBn}${suffix} স্থান ${total ? `(মোট ${toBn(total)} জনের মধ্যে)` : ''}`;
+  };
+
+  const activeHifzResult = hifzResults.find(r => String(r._id) === String(selectedHifzId)) || hifzResults[0] || null;
+  const toBnNum = (val) => {
+    const bn = { '0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯' };
+    return String(val ?? '').replace(/[0-9]/g, d => bn[d]);
   };
 
   return (
@@ -131,7 +156,7 @@ export default function StudentResultView({ studentId }) {
           <AlertCircle size={36} style={{ margin: '0 auto 10px', opacity: 0.8 }} />
           <div>{error}</div>
         </div>
-      ) : results.length === 0 ? (
+      ) : results.length === 0 && hifzResults.length === 0 ? (
         <div className="card empty-state text-center" style={{ padding: '50px 20px' }}>
           <Award size={48} style={{ opacity: 0.25, margin: '0 auto 12px' }} />
           <h4 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>এখনও কোনো পরীক্ষার ফলাফল প্রকাশ করা হয়নি</h4>
@@ -139,8 +164,114 @@ export default function StudentResultView({ studentId }) {
         </div>
       ) : (
         <>
+          {/* Hifz / Najera / Maktab Student Result Section (কোনো গ্রেড/জিপিএ/গড় ছাড়া) */}
+          {hifzResults.length > 0 && activeHifzResult && (
+            <div style={{
+              marginBottom: results.length > 0 ? '26px' : '0',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(5, 150, 105, 0.09) 100%)',
+              border: '1.5px solid rgba(16, 185, 129, 0.28)',
+              borderRadius: '16px',
+              padding: '18px 20px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '10px',
+                    background: '#059669', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <BookOpen size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {activeHifzResult.departmentLabel} ফলাফল ({activeHifzResult.subBranch})
+                    </h4>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {activeHifzResult.branchLabel} • শিক্ষাবর্ষ {toBnNum(activeHifzResult.academicYear)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ minWidth: '220px' }}>
+                  <select
+                    className="form-input form-select"
+                    style={{ marginBottom: 0, fontSize: '0.85rem', padding: '6px 28px 6px 10px' }}
+                    value={activeHifzResult._id}
+                    onChange={(e) => setSelectedHifzId(e.target.value)}
+                  >
+                    {hifzResults.map((hr) => (
+                      <option key={hr._id} value={hr._id}>
+                        {hr.examName} ({hr.departmentLabel} - {hr.subBranch}, {toBnNum(hr.academicYear)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Summary Cards (মোট নম্বর, মেধা স্থান/তারতীব, পড়ার পরিমান) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                <div className="card" style={{ padding: '14px 16px', borderRadius: '12px', borderLeft: '4px solid #059669', background: 'var(--bg-card)' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>মোট প্রাপ্ত নম্বর / পূর্ণমান</div>
+                  <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#059669' }}>
+                    {toBnNum(activeHifzResult.totalObtained)} <span style={{ fontSize: '0.92rem', color: 'var(--text-muted)' }}>/ {toBnNum(activeHifzResult.totalMax)}</span>
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '14px 16px', borderRadius: '12px', borderLeft: '4px solid #f59e0b', background: 'var(--bg-card)' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                    <Star size={13} /> মেধা স্থান (তারতীব)
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#d97706' }}>
+                    {getRankBadge(activeHifzResult.rank, activeHifzResult.totalStudents)}
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '14px 16px', borderRadius: '12px', borderLeft: '4px solid #0284c7', background: 'var(--bg-card)' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>পড়ার পরিমান</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0369a1' }}>
+                    {activeHifzResult.readingAmount || '—'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Subject Breakdown Table (হুবহু রেফারেন্স বিষয়ের কলাম অনুযায়ী) */}
+              <div className="card" style={{ padding: 0, overflow: 'hidden', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div className="table-responsive">
+                  <table className="table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-secondary, #f1f5f9)', borderBottom: '1px solid var(--border-color)' }}>
+                        <th style={{ padding: '10px 14px', width: '50px', textAlign: 'center' }}>নং</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left' }}>বিষয়</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center' }}>পূর্ণমান</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center' }}>প্রাপ্ত নম্বর</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeHifzResult.subjects.map((sub, idx) => (
+                        <tr key={sub.key} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '10px 14px', textAlign: 'center', color: 'var(--text-muted)' }}>{toBnNum(idx + 1)}</td>
+                          <td style={{ padding: '10px 14px', fontWeight: 600 }}>{sub.subjectName}</td>
+                          <td style={{ padding: '10px 14px', textAlign: 'center' }}>{toBnNum(sub.totalMarks)}</td>
+                          <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700, color: '#059669' }}>
+                            {sub.marksObtained !== '' ? toBnNum(sub.marksObtained) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: 'var(--bg-secondary, #f8fafc)', fontWeight: 800, borderTop: '2px solid var(--border-color)' }}>
+                        <td colSpan={2} style={{ padding: '10px 14px', textAlign: 'right' }}>সর্বমোট:</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>{toBnNum(activeHifzResult.totalMax)}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', color: '#059669', fontSize: '1rem' }}>{toBnNum(activeHifzResult.totalObtained)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Annual Cumulative Summary Card */}
-          {annualCumulative && (
+          {results.length > 0 && annualCumulative && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.12) 100%)',
               border: '2px solid rgba(245, 158, 11, 0.3)',
@@ -201,7 +332,9 @@ export default function StudentResultView({ studentId }) {
             </div>
           )}
 
-          {/* Filter Bar & Exam Selector */}
+          {/* Filter Bar & Exam Selector (Alia / Nurani) */}
+          {results.length > 0 && (
+          <>
           <div style={{
             display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
             marginBottom: '20px', background: 'var(--bg-card)', padding: '12px 16px',
@@ -429,6 +562,8 @@ export default function StudentResultView({ studentId }) {
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
         </>
       )}

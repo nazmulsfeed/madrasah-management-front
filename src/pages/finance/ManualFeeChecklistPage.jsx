@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { toBnNumber, getNumericRoll } from '../../utils/helpers';
 import { matchesSearchQuery } from '../../utils/searchUtils';
 import WholeWordToggle from '../../components/common/WholeWordToggle';
@@ -212,6 +212,7 @@ export default function ManualFeeChecklistPage() {
   const [sectionFilter, setSectionFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [maktabSubBranchFilter, setMaktabSubBranchFilter] = useState('');
   const [residentialFilter, setResidentialFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'paid' | 'unpaid'
   const [searchQuery, setSearchQuery] = useState('');
@@ -312,11 +313,13 @@ export default function ManualFeeChecklistPage() {
       const sid = String(s._id || s.id);
       const clsId = s.currentEnrollment?.classLevel?._id || s.currentEnrollment?.classLevel || s.classLevel?._id || s.classLevel || '';
       const secName = (s.currentEnrollment?.section?.name || s.currentEnrollment?.section || s.section || '').trim();
+      const subBranchName = (s.maktabSubBranch || '').trim();
       const deptName = (s.department || s.currentEnrollment?.department || '').trim();
       const resStatus = (s.residentialStatus || '').trim();
 
       if (classFilter && String(clsId) !== String(classFilter)) return false;
       if (sectionFilter && secName !== sectionFilter) return false;
+      if (maktabSubBranchFilter && subBranchName !== maktabSubBranchFilter && secName !== maktabSubBranchFilter) return false;
       if (branchFilter && !matchesBranch(s, branchFilter)) return false;
       if (departmentFilter && deptName !== departmentFilter && !deptName.includes(departmentFilter.replace(' বিভাগ', ''))) return false;
       if (residentialFilter && resStatus !== residentialFilter) return false;
@@ -340,7 +343,7 @@ export default function ManualFeeChecklistPage() {
       const rB = getNumericRoll(b.currentEnrollment?.rollNumber || b.roll);
       return rA - rB;
     });
-  }, [students, classFilter, sectionFilter, branchFilter, departmentFilter, residentialFilter, statusFilter, searchQuery, wholeWords, checklistMap, branches]);
+  }, [students, classFilter, sectionFilter, maktabSubBranchFilter, branchFilter, departmentFilter, residentialFilter, statusFilter, searchQuery, wholeWords, checklistMap, branches]);
 
   const stats = useMemo(() => {
     const total = filteredStudents.length;
@@ -633,25 +636,63 @@ export default function ManualFeeChecklistPage() {
             ))}
           </select>
 
-          <select className="form-input form-select" value={classFilter} onChange={e => setClassFilter(e.target.value)}>
-            <option value="">সকল শ্রেণি</option>
-            {classes.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-          </select>
+          {(() => {
+            const clsName = classes.find(c => String(c._id) === String(classFilter))?.name || '';
+            const isMaktab = isMaktabName(departmentFilter) || isMaktabName(clsName);
+            return (
+              <>
+                <select
+                  className="form-input form-select"
+                  value={classFilter}
+                  onChange={e => {
+                    const nextClsId = e.target.value;
+                    const nextClsName = classes.find(c => String(c._id) === String(nextClsId))?.name || '';
+                    if (!(isMaktabName(departmentFilter) || isMaktabName(nextClsName))) setMaktabSubBranchFilter('');
+                    setClassFilter(nextClsId);
+                  }}
+                >
+                  <option value="">সকল শ্রেণি</option>
+                  {classes.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
 
-          <select className="form-input form-select" value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
-            <option value="">সকল সেকশন</option>
-            {SECTION_OPTIONS.map((sec, i) => <option key={i} value={sec}>{sec}</option>)}
-          </select>
+                <select className="form-input form-select" value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
+                  <option value="">সকল সেকশন</option>
+                  {SECTION_OPTIONS.map((sec, i) => <option key={i} value={sec}>{sec}</option>)}
+                </select>
 
-          <select className="form-input form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
-            <option value="">সকল শাখা</option>
-            {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-          </select>
+                <select className="form-input form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                  <option value="">সকল শাখা</option>
+                  {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                </select>
 
-          <select className="form-input form-select" value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)}>
-            <option value="">সকল বিভাগ</option>
-            {DEPARTMENT_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+                <select
+                  className="form-input form-select"
+                  value={departmentFilter}
+                  onChange={e => {
+                    const nextDept = e.target.value;
+                    if (!(isMaktabName(nextDept) || isMaktabName(clsName))) setMaktabSubBranchFilter('');
+                    setDepartmentFilter(nextDept);
+                  }}
+                >
+                  <option value="">সকল বিভাগ</option>
+                  {DEPARTMENT_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+
+                {isMaktab && (
+                  <select
+                    className="form-input form-select"
+                    value={maktabSubBranchFilter}
+                    onChange={e => setMaktabSubBranchFilter(e.target.value)}
+                    style={{ borderColor: '#10b981' }}
+                    title="মক্তব উপ-শাখা"
+                  >
+                    <option value="">সকল উপ-শাখা</option>
+                    {MAKTAB_SUB_BRANCHES.map((sub, i) => <option key={i} value={sub}>{sub}</option>)}
+                  </select>
+                )}
+              </>
+            );
+          })()}
 
           <select className="form-input form-select" value={residentialFilter} onChange={e => setResidentialFilter(e.target.value)}>
             <option value="">সকল আবাসন</option>

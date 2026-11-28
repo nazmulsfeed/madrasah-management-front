@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Key, Camera, Trash2, Clock, Award, Utensils, Send, FileText
 } from 'lucide-react';
 import api from '../../api/axios';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { MAKTAB_SUB_BRANCHES, SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import usePermissions from '../../hooks/usePermissions';
 import ImageCropModal from '../../components/common/ImageCropModal';
@@ -115,6 +115,8 @@ export default function StudentDetailPage() {
     bloodGroup: '',
     status: 'active',
     branchId: '',
+    department: '',
+    maktabSubBranch: '',
     residentialStatus: 'non-residential',
     academicYearId: '',
     classLevelId: '',
@@ -251,6 +253,8 @@ export default function StudentDetailPage() {
       bloodGroup: student.bloodGroup || '',
       status: student.status || 'active',
       branchId: student.branch?._id || student.branch || '',
+      department: student.department || '',
+      maktabSubBranch: student.maktabSubBranch || '',
       residentialStatus: student.residentialStatus || 'non-residential',
       academicYearId: curEnr?.academicYear?._id || curEnr?.academicYear || '',
       classLevelId: curEnr?.classLevel?._id || curEnr?.classLevel || '',
@@ -943,6 +947,12 @@ export default function StudentDetailPage() {
                   <div className="font-semibold">{student.department}</div>
                 </div>
               )}
+              {student.maktabSubBranch && (
+                <div>
+                  <div className="text-sm text-muted mb-4">মক্তব উপ-শাখা</div>
+                  <div className="font-semibold">{student.maktabSubBranch}</div>
+                </div>
+              )}
               {student.hifzProgramType && (
                 <div>
                   <div className="text-sm text-muted mb-4">হিফজ প্রোগ্রাম</div>
@@ -1600,7 +1610,20 @@ export default function StudentDetailPage() {
                     <select 
                       className="form-select form-input" 
                       value={editFormData.classLevelId} 
-                      onChange={e => setEditFormData({ ...editFormData, classLevelId: e.target.value })}
+                      onChange={e => {
+                        const nextClassId = e.target.value;
+                        const nextCls = classLevels.find(c => c._id === nextClassId);
+                        const nextName = nextCls?.name || '';
+                        const isNextMaktab = nextName.includes('মক্তব');
+                        setEditFormData({
+                          ...editFormData,
+                          classLevelId: nextClassId,
+                          department: isNextMaktab
+                            ? 'মক্তব বিভাগ'
+                            : (nextName.includes('নাজেরা') ? 'নাজেরা বিভাগ' : (nextName.includes('হিফজ') ? 'হিফজ বিভাগ' : editFormData.department)),
+                          maktabSubBranch: isNextMaktab ? editFormData.maktabSubBranch : '',
+                        });
+                      }}
                     >
                       <option value="">-- শ্রেণি নির্বাচন করুন --</option>
                       {classLevels.map(c => (
@@ -1608,6 +1631,51 @@ export default function StudentDetailPage() {
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className="form-label">বিভাগ (ঐচ্ছিক)</label>
+                    <select
+                      className="form-select form-input"
+                      value={editFormData.department || ''}
+                      onChange={e => {
+                        const nextDept = e.target.value;
+                        const selectedCls = classLevels.find(c => c._id === editFormData.classLevelId);
+                        const isNextMaktab = nextDept.includes('মক্তব') || String(selectedCls?.name || '').includes('মক্তব');
+                        setEditFormData({
+                          ...editFormData,
+                          department: nextDept,
+                          maktabSubBranch: isNextMaktab ? editFormData.maktabSubBranch : '',
+                        });
+                      }}
+                    >
+                      <option value="">-- বিভাগ নির্বাচন করুন --</option>
+                      <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
+                      <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
+                      <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+                      <option value="নুরানী বিভাগ">নুরানী বিভাগ</option>
+                      <option value="উর্দু জামাত">উর্দু জামাত</option>
+                      <option value="তাইসীর জামাত">তাইসীর জামাত</option>
+                      <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
+                    </select>
+                  </div>
+                  {(String(editFormData.department || '').includes('মক্তব') ||
+                    String(classLevels.find(c => c._id === editFormData.classLevelId)?.name || '').includes('মক্তব')) && (
+                    <div>
+                      <label className="form-label">মক্তব উপ-শাখা (আমপারা / কায়দা)</label>
+                      <select
+                        className="form-select form-input"
+                        value={editFormData.maktabSubBranch || ''}
+                        onChange={e => setEditFormData({
+                          ...editFormData,
+                          maktabSubBranch: e.target.value,
+                        })}
+                      >
+                        <option value="">-- মক্তব উপ-শাখা নির্বাচন করুন --</option>
+                        {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                          <option key={idx} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="form-label">সেকশন</label>
                     <select 

@@ -7,13 +7,14 @@ import AuditBadge from '../../components/common/AuditBadge';
 import PhysicalNoticePad from '../../components/notices/PhysicalNoticePad';
 import NasihotPopupManager from '../../components/notices/NasihotPopupManager';
 import { getMadrasahInfo } from '../../utils/helpers';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 
 const DEFAULT_FILTERS = {
   classLevel: '',
   section: '',
   branch: '',
   department: '',
+  maktabSubBranch: '',
   residentialStatus: ''
 };
 
@@ -506,53 +507,98 @@ export default function NoticesPage() {
                     নির্দিষ্ট শিক্ষার্থী ফিল্টার (ঐচ্ছিক — খালি রাখলে সবার জন্য যাবে)
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '8px' }}>
-                    <select
-                      className="form-input form-select"
-                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
-                      value={formData.filters?.classLevel || ''}
-                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, classLevel: e.target.value } })}
-                    >
-                      <option value="">সকল শ্রেণি</option>
-                      {classes.map(c => (
-                        <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const clsName = classes.find(c => String(c._id) === String(formData.filters?.classLevel))?.name || '';
+                      const isMaktabNotice = isMaktabName(formData.filters?.department) || isMaktabName(clsName);
+                      return (
+                        <>
+                          <select
+                            className="form-input form-select"
+                            style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                            value={formData.filters?.classLevel || ''}
+                            onChange={(e) => {
+                              const nextClsId = e.target.value;
+                              const nextClsName = classes.find(c => String(c._id) === String(nextClsId))?.name || '';
+                              const nextIsMaktab = isMaktabName(formData.filters?.department) || isMaktabName(nextClsName);
+                              setFormData({
+                                ...formData,
+                                filters: {
+                                  ...formData.filters,
+                                  classLevel: nextClsId,
+                                  maktabSubBranch: nextIsMaktab ? (formData.filters?.maktabSubBranch || '') : ''
+                                }
+                              });
+                            }}
+                          >
+                            <option value="">সকল শ্রেণি</option>
+                            {classes.map(c => (
+                              <option key={c._id} value={c._id}>{c.name}</option>
+                            ))}
+                          </select>
 
-                    <select
-                      className="form-input form-select"
-                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
-                      value={formData.filters?.section || ''}
-                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, section: e.target.value } })}
-                    >
-                      <option value="">সকল সেকশন</option>
-                      {SECTION_OPTIONS.map((sec, idx) => (
-                        <option key={idx} value={sec}>{sec}</option>
-                      ))}
-                    </select>
+                          <select
+                            className="form-input form-select"
+                            style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                            value={formData.filters?.section || ''}
+                            onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, section: e.target.value } })}
+                          >
+                            <option value="">সকল সেকশন</option>
+                            {SECTION_OPTIONS.map((sec, idx) => (
+                              <option key={idx} value={sec}>{sec}</option>
+                            ))}
+                          </select>
 
-                    <select
-                      className="form-input form-select"
-                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
-                      value={formData.filters?.branch || ''}
-                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, branch: e.target.value } })}
-                    >
-                      <option value="">সকল শাখা</option>
-                      {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
-                        <option key={b._id} value={b._id}>{b.name}</option>
-                      ))}
-                    </select>
+                          <select
+                            className="form-input form-select"
+                            style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                            value={formData.filters?.branch || ''}
+                            onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, branch: e.target.value } })}
+                          >
+                            <option value="">সকল শাখা</option>
+                            {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
+                              <option key={b._id} value={b._id}>{b.name}</option>
+                            ))}
+                          </select>
 
-                    <select
-                      className="form-input form-select"
-                      style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
-                      value={formData.filters?.department || ''}
-                      onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, department: e.target.value } })}
-                    >
-                      <option value="">সকল বিভাগ</option>
-                      {DEPARTMENT_OPTIONS.map(dep => (
-                        <option key={dep} value={dep}>{dep}</option>
-                      ))}
-                    </select>
+                          <select
+                            className="form-input form-select"
+                            style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px' }}
+                            value={formData.filters?.department || ''}
+                            onChange={(e) => {
+                              const nextDept = e.target.value;
+                              const nextIsMaktab = isMaktabName(nextDept) || isMaktabName(clsName);
+                              setFormData({
+                                ...formData,
+                                filters: {
+                                  ...formData.filters,
+                                  department: nextDept,
+                                  maktabSubBranch: nextIsMaktab ? (formData.filters?.maktabSubBranch || '') : ''
+                                }
+                              });
+                            }}
+                          >
+                            <option value="">সকল বিভাগ</option>
+                            {DEPARTMENT_OPTIONS.map(dep => (
+                              <option key={dep} value={dep}>{dep}</option>
+                            ))}
+                          </select>
+
+                          {isMaktabNotice && (
+                            <select
+                              className="form-input form-select"
+                              style={{ fontSize: '0.82rem', padding: '6px 28px 6px 10px', borderColor: '#10b981' }}
+                              value={formData.filters?.maktabSubBranch || ''}
+                              onChange={(e) => setFormData({ ...formData, filters: { ...formData.filters, maktabSubBranch: e.target.value } })}
+                            >
+                              <option value="">সকল উপ-শাখা</option>
+                              {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                                <option key={idx} value={sub}>{sub}</option>
+                              ))}
+                            </select>
+                          )}
+                        </>
+                      );
+                    })()}
 
                     <select
                       className="form-input form-select"

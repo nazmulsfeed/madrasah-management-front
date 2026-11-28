@@ -19,7 +19,7 @@ import {
   FileText,
 } from 'lucide-react';
 import api from '../../api/axios';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import usePermissions from '../../hooks/usePermissions';
 import StudentExportModal from '../../components/students/StudentExportModal';
@@ -84,7 +84,14 @@ export default function StudentListPage() {
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [residentialStatusFilter, setResidentialStatusFilter] = useState('');
   const [selectedSectionName, setSelectedSectionName] = useState('');
+  const [maktabSubBranchFilter, setMaktabSubBranchFilter] = useState('');
   const [previewStudent, setPreviewStudent] = useState(null);
+
+  const selectedClassObjForFilter = useMemo(
+    () => classes.find(c => String(c._id) === String(classFilter)),
+    [classes, classFilter]
+  );
+  const isMaktabFilterSelected = isMaktabName(departmentFilter) || isMaktabName(selectedClassObjForFilter?.name);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -123,6 +130,9 @@ export default function StudentListPage() {
       if (classFilter) params.classLevel = classFilter;
       if (branchFilter) params.branch = branchFilter;
       if (departmentFilter) params.department = departmentFilter;
+      if (isMaktabFilterSelected && maktabSubBranchFilter) {
+        params.maktabSubBranch = maktabSubBranchFilter;
+      }
       if (residentialStatusFilter) params.residentialStatus = residentialStatusFilter;
       params.sortBy = sortBy;
       params.sortOrder = sortOrder;
@@ -201,7 +211,7 @@ export default function StudentListPage() {
 
   useEffect(() => {
     fetchStudents();
-  }, [page, limit, statusFilter, classFilter, sectionFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch, wholeWords, sortBy, sortOrder]);
+  }, [page, limit, statusFilter, classFilter, sectionFilter, maktabSubBranchFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch, wholeWords, sortBy, sortOrder]);
 
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
@@ -468,56 +478,101 @@ export default function StudentListPage() {
         </div>
       </div>
 
-      {/* ফিল্টার বার */}
-      <div className="card mb-24 filter-card" style={{ padding: '14px 18px' }}>
-        <div className="filter-card-content student-filter-two-row">
+      {/* ফিল্টার বার (সুশৃঙ্খল ২-সারি লেআউট) */}
+      <div className="card mb-24 filter-card" style={{ padding: '16px 18px' }}>
+        <div className="student-filter-bar">
           <style>{`
-            .student-filter-two-row {
+            .student-filter-bar {
               display: flex;
-              flex-wrap: wrap;
-              gap: 10px;
-              align-items: center;
+              flex-direction: column;
+              gap: 12px;
+              width: 100%;
             }
-            .student-filter-search-form {
+            .student-filter-row-1 {
               display: flex;
               align-items: center;
-              gap: 8px;
-              flex: 1 1 580px;
-              max-width: 760px;
+              gap: 10px;
               flex-wrap: wrap;
+              width: 100%;
             }
             .student-filter-search-input-wrap {
               position: relative;
-              flex: 1 1 420px;
-              min-width: min(100%, 420px);
+              flex: 1 1 320px;
+              min-width: 220px;
             }
-            .student-filter-two-row .filter-dropdowns-wrap {
-              display: contents;
+            .student-filter-search-input-wrap .form-input {
+              height: 40px;
+              margin-bottom: 0;
+              width: 100%;
             }
-            .student-filter-two-row .filter-dropdowns-wrap > select,
-            .student-filter-two-row .sort-controls-wrap {
-              flex: 0 1 auto;
+            .student-filter-row-1-actions {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex-wrap: wrap;
+              flex-shrink: 0;
             }
-            @media (max-width: 768px) {
-              .student-filter-search-form {
-                flex: 1 1 100%;
-                max-width: 100%;
+            .student-filter-row-2 {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+              gap: 10px;
+              width: 100%;
+              padding-top: 10px;
+              border-top: 1px dashed var(--border-color);
+              align-items: end;
+            }
+            .student-filter-field {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              min-width: 0;
+            }
+            .student-filter-field-label {
+              font-size: 0.72rem;
+              font-weight: 700;
+              color: var(--text-muted);
+              line-height: 1.1;
+              padding-left: 2px;
+            }
+            .student-filter-row-2 .form-select {
+              width: 100% !important;
+              max-width: 100% !important;
+              min-width: 0 !important;
+              height: 36px;
+              font-size: 0.83rem;
+              padding: 0 26px 0 10px;
+              margin-bottom: 0;
+            }
+            .student-sort-field {
+              grid-column: span 2;
+            }
+            .student-sort-inline {
+              display: flex;
+              gap: 6px;
+              align-items: center;
+              width: 100%;
+            }
+            .student-sort-inline .form-select {
+              flex: 1;
+            }
+            .student-sort-inline .btn {
+              height: 36px;
+              padding: 0 10px;
+              white-space: nowrap;
+              flex-shrink: 0;
+            }
+            @media (max-width: 640px) {
+              .student-filter-row-2 {
+                grid-template-columns: 1fr 1fr;
               }
-              .student-filter-search-input-wrap {
-                min-width: 100%;
-              }
-              .student-filter-two-row .filter-dropdowns-wrap {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                width: 100%;
+              .student-sort-field {
+                grid-column: span 2;
               }
             }
           `}</style>
-          <form
-            onSubmit={handleSearch}
-            className="filter-search-form student-filter-search-form"
-          >
+
+          {/* ১ম সারি: অনুসন্ধান + Whole words + রিসেট */}
+          <form onSubmit={handleSearch} className="student-filter-row-1">
             <div className="student-filter-search-input-wrap">
               <Search
                 size={16}
@@ -527,6 +582,7 @@ export default function StudentListPage() {
                   top: '50%',
                   transform: 'translateY(-50%)',
                   color: 'var(--text-muted)',
+                  pointerEvents: 'none',
                 }}
               />
               <input
@@ -535,7 +591,7 @@ export default function StudentListPage() {
                 placeholder="যেকোনো তথ্য (নাম, রোল, আইডি, মোবাইল, পিতার নাম) দিয়ে খুঁজুন..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ paddingLeft: '38px', paddingRight: search ? '36px' : '12px', width: '100%' }}
+                style={{ paddingLeft: '38px', paddingRight: search ? '36px' : '12px' }}
               />
               {search && (
                 <button
@@ -564,177 +620,234 @@ export default function StudentListPage() {
                 </button>
               )}
             </div>
-            <WholeWordToggle
-              checked={wholeWords}
-              onChange={(val) => {
-                setWholeWords(val);
-                setPage(1);
-              }}
-            />
-            <button type="submit" className="btn btn-secondary btn-sm">
-              <Search size={14} /> অনুসন্ধান
-            </button>
+
+            <div className="student-filter-row-1-actions">
+              <WholeWordToggle
+                checked={wholeWords}
+                onChange={(val) => {
+                  setWholeWords(val);
+                  setPage(1);
+                }}
+              />
+              <button type="submit" className="btn btn-secondary btn-sm" style={{ height: '38px', padding: '0 14px' }}>
+                <Search size={14} /> অনুসন্ধান
+              </button>
+              {(classFilter || selectedSectionName || maktabSubBranchFilter || branchFilter || departmentFilter || residentialStatusFilter || statusFilter || search) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    setSearch('');
+                    setDebouncedSearch('');
+                    setClassFilter('');
+                    setSelectedSectionName('');
+                    setMaktabSubBranchFilter('');
+                    setBranchFilter('');
+                    setDepartmentFilter('');
+                    setResidentialStatusFilter('');
+                    setStatusFilter('');
+                    setPage(1);
+                  }}
+                  style={{
+                    height: '38px',
+                    padding: '0 12px',
+                    fontSize: '0.82rem',
+                    color: 'var(--danger)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    borderRadius: 'var(--border-radius-sm)',
+                    border: '1px dashed var(--danger)'
+                  }}
+                  title="সকল ফিল্টার রিসেট করুন"
+                >
+                  <X size={14} /> রিসেট
+                </button>
+              )}
+            </div>
           </form>
 
-          <div className="filter-dropdowns-wrap">
-            <select
-              className="form-input form-select"
-              value={classFilter}
-              onChange={(e) => {
-                setClassFilter(e.target.value);
-                setPage(1);
-              }}
-              title="শ্রেণি ফিল্টার"
-            >
-              <option value="">সকল শ্রেণি</option>
-              {academicClasses.map(c => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
-
-            <select
-              className="form-input form-select"
-              value={selectedSectionName}
-              onChange={(e) => {
-                setSelectedSectionName(e.target.value);
-                setPage(1);
-              }}
-              title="সেকশন ফিল্টার"
-            >
-              <option value="">সকল সেকশন</option>
-              {SECTION_OPTIONS.map((sec, idx) => (
-                <option key={idx} value={sec}>{sec}</option>
-              ))}
-            </select>
-
-            <select
-              className="form-input form-select"
-              value={branchFilter}
-              onChange={(e) => {
-                setBranchFilter(e.target.value);
-                setPage(1);
-              }}
-              title="শাখা ফিল্টার"
-            >
-              <option value="">সকল শাখা</option>
-              {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
-                <option key={b._id} value={b._id}>{b.name}</option>
-              ))}
-            </select>
-
-            <select
-              className="form-input form-select"
-              value={departmentFilter}
-              onChange={(e) => {
-                setDepartmentFilter(e.target.value);
-                setPage(1);
-              }}
-              title="বিভাগ ফিল্টার"
-            >
-              <option value="">সকল বিভাগ</option>
-              <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
-              <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
-              <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
-              <option value="নুরানী বিভাগ">নুরানী বিভাগ</option>
-              <option value="উর্দু জামাত">উর্দু জামাত</option>
-              <option value="তাইসীর জামাত">তাইসীর জামাত</option>
-              <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
-            </select>
-
-            <select
-              className="form-input form-select"
-              value={residentialStatusFilter}
-              onChange={(e) => {
-                setResidentialStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              title="আবাসিক অবস্থা ফিল্টার"
-            >
-              <option value="">সকল আবাসন</option>
-              <option value="residential">আবাসিক</option>
-              <option value="non-residential">অনাবাসিক</option>
-              <option value="day_care">ডে-কেয়ার</option>
-            </select>
-
-            <select
-              className="form-input form-select"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              title="স্ট্যাটাস ফিল্টার"
-            >
-              <option value="">সকল স্ট্যাটাস</option>
-              <option value="active">সক্রিয়</option>
-              <option value="inactive">নিষ্ক্রিয়</option>
-              <option value="graduated">স্নাতক</option>
-              <option value="transferred">স্থানান্তরিত</option>
-            </select>
-
-            {/* সর্টিং কন্ট্রোল */}
-            <div className="sort-controls-wrap">
+          {/* ২য় সারি: শ্রেণি, সেকশন/মক্তব উপ-শাখা, শাখা, বিভাগ, আবাসন, স্ট্যাটাস ও সর্টিং */}
+          <div className="student-filter-row-2">
+            <div className="student-filter-field">
+              <span className="student-filter-field-label">শ্রেণি</span>
               <select
                 className="form-input form-select"
-                value={sortBy}
+                value={classFilter}
                 onChange={(e) => {
-                  setSortBy(e.target.value);
+                  const nextClsId = e.target.value;
+                  const nextClsName = classes.find(c => String(c._id) === String(nextClsId))?.name || '';
+                  const nextIsMaktab = isMaktabName(departmentFilter) || isMaktabName(nextClsName);
+                  setClassFilter(nextClsId);
+                  if (!nextIsMaktab) {
+                    setMaktabSubBranchFilter('');
+                  }
                   setPage(1);
                 }}
-                title="সর্ট কলাম নির্বাচন করুন"
+                title="শ্রেণি ফিল্টার"
               >
-                <option value="createdAt">সর্বশেষ ভর্তি (ডিফল্ট)</option>
-                <option value="name">নাম অনুযায়ী</option>
-                <option value="roll">রোল অনুযায়ী</option>
-                <option value="studentId">আইডি অনুযায়ী</option>
-                <option value="class">শ্রেণি অনুযায়ী</option>
-                <option value="section">সেকশন অনুযায়ী</option>
-                <option value="username">ইউজারনেম অনুযায়ী</option>
-                <option value="status">স্ট্যাটাস অনুযায়ী</option>
+                <option value="">সকল শ্রেণি</option>
+                {academicClasses.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
               </select>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
-                  setPage(1);
-                }}
-                title={sortOrder === 'asc' ? 'আরোহী (Ascending) — ক্লিক করে অবরোহী করুন' : 'অবরোহী (Descending) — ক্লিক করে আরোহী করুন'}
-              >
-                <span style={{ fontWeight: 700 }}>{sortOrder === 'asc' ? '▲ আরোহী' : '▼ অবরোহী'}</span>
-              </button>
             </div>
 
-            {/* সক্রিয় ফিল্টার রিসেট বাটন */}
-            {(classFilter || selectedSectionName || branchFilter || departmentFilter || residentialStatusFilter || statusFilter) && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  setClassFilter('');
-                  setSelectedSectionName('');
-                  setBranchFilter('');
-                  setDepartmentFilter('');
-                  setResidentialStatusFilter('');
-                  setStatusFilter('');
+            <div className="student-filter-field">
+              <span className="student-filter-field-label">সেকশন</span>
+              <select
+                className="form-input form-select"
+                value={selectedSectionName}
+                onChange={(e) => {
+                  setSelectedSectionName(e.target.value);
                   setPage(1);
                 }}
-                style={{
-                  height: '38px',
-                  padding: '0 10px',
-                  fontSize: '0.82rem',
-                  color: 'var(--danger)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  borderRadius: 'var(--border-radius-sm)',
-                  border: '1px dashed var(--danger)'
-                }}
-                title="ফিল্টার রিসেট করুন"
+                title="সেকশন ফিল্টার"
               >
-                <X size={14} /> রিসেট
-              </button>
+                <option value="">সকল সেকশন</option>
+                {SECTION_OPTIONS.map((sec, idx) => (
+                  <option key={idx} value={sec}>{sec}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="student-filter-field">
+              <span className="student-filter-field-label">শাখা</span>
+              <select
+                className="form-input form-select"
+                value={branchFilter}
+                onChange={(e) => {
+                  setBranchFilter(e.target.value);
+                  setPage(1);
+                }}
+                title="শাখা ফিল্টার"
+              >
+                <option value="">সকল শাখা</option>
+                {branches.filter(b => b.name !== 'হিফজ শাখা').map(b => (
+                  <option key={b._id} value={b._id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="student-filter-field">
+              <span className="student-filter-field-label">বিভাগ</span>
+              <select
+                className="form-input form-select"
+                value={departmentFilter}
+                onChange={(e) => {
+                  const nextDept = e.target.value;
+                  const nextIsMaktab = isMaktabName(nextDept) || isMaktabName(selectedClassObjForFilter?.name);
+                  setDepartmentFilter(nextDept);
+                  if (!nextIsMaktab) {
+                    setMaktabSubBranchFilter('');
+                  }
+                  setPage(1);
+                }}
+                title="বিভাগ ফিল্টার"
+              >
+                <option value="">সকল বিভাগ</option>
+                <option value="মক্তব বিভাগ">মক্তব বিভাগ</option>
+                <option value="নাজেরা বিভাগ">নাজেরা বিভাগ</option>
+                <option value="হিফজ বিভাগ">হিফজ বিভাগ</option>
+                <option value="নুরানী বিভাগ">নুরানী বিভাগ</option>
+                <option value="উর্দু জামাত">উর্দু জামাত</option>
+                <option value="তাইসীর জামাত">তাইসীর জামাত</option>
+                <option value="মিযান মুনশায়িব জামাত">মিযান মুনশায়িব জামাত</option>
+              </select>
+            </div>
+
+            {isMaktabFilterSelected && (
+              <div className="student-filter-field">
+                <span className="student-filter-field-label" style={{ color: '#047857' }}>মক্তব উপ-শাখা</span>
+                <select
+                  className="form-input form-select"
+                  value={maktabSubBranchFilter}
+                  onChange={(e) => {
+                    setMaktabSubBranchFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  title="মক্তব উপ-শাখা ফিল্টার (আমপারা / কায়দা)"
+                  style={{ borderColor: maktabSubBranchFilter ? '#10b981' : undefined }}
+                >
+                  <option value="">সকল উপ-শাখা</option>
+                  {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                    <option key={idx} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              </div>
             )}
+
+            <div className="student-filter-field">
+              <span className="student-filter-field-label">আবাসিক অবস্থা</span>
+              <select
+                className="form-input form-select"
+                value={residentialStatusFilter}
+                onChange={(e) => {
+                  setResidentialStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                title="আবাসিক অবস্থা ফিল্টার"
+              >
+                <option value="">সকল আবাসন</option>
+                <option value="residential">আবাসিক</option>
+                <option value="non-residential">অনাবাসিক</option>
+                <option value="day_care">ডে-কেয়ার</option>
+              </select>
+            </div>
+
+            <div className="student-filter-field">
+              <span className="student-filter-field-label">স্ট্যাটাস</span>
+              <select
+                className="form-input form-select"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                title="স্ট্যাটাস ফিল্টার"
+              >
+                <option value="">সকল স্ট্যাটাস</option>
+                <option value="active">সক্রিয়</option>
+                <option value="inactive">নিষ্ক্রিয়</option>
+                <option value="graduated">স্নাতক</option>
+                <option value="transferred">স্থানান্তরিত</option>
+              </select>
+            </div>
+
+            <div className="student-filter-field student-sort-field">
+              <span className="student-filter-field-label">সর্টিং ও ক্রম</span>
+              <div className="student-sort-inline">
+                <select
+                  className="form-input form-select"
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setPage(1);
+                  }}
+                  title="সর্ট কলাম নির্বাচন করুন"
+                >
+                  <option value="createdAt">সর্বশেষ ভর্তি</option>
+                  <option value="name">নাম অনুযায়ী</option>
+                  <option value="roll">রোল অনুযায়ী</option>
+                  <option value="studentId">আইডি অনুযায়ী</option>
+                  <option value="class">শ্রেণি অনুযায়ী</option>
+                  <option value="section">সেকশন অনুযায়ী</option>
+                  <option value="username">ইউজারনেম অনুযায়ী</option>
+                  <option value="status">স্ট্যাটাস অনুযায়ী</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+                    setPage(1);
+                  }}
+                  title={sortOrder === 'asc' ? 'আরোহী (Ascending) — ক্লিক করে অবরোহী করুন' : 'অবরোহী (Descending) — ক্লিক করে আরোহী করুন'}
+                >
+                  <span style={{ fontWeight: 700 }}>{sortOrder === 'asc' ? '▲ আরোহী' : '▼ অবরোহী'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

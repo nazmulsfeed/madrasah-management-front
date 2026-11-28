@@ -5,7 +5,7 @@ import {
   AlertCircle, Loader, User, BookOpen, Key, Calendar, Camera, Trash2 
 } from 'lucide-react';
 import api from '../../api/axios';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { MAKTAB_SUB_BRANCHES, SECTION_OPTIONS } from '../../utils/constants';
 import ImageCropModal from '../../components/common/ImageCropModal';
 import BangladeshAddressFields from '../../components/common/BangladeshAddressFields';
 import { DEFAULT_ADDRESS } from '../../utils/bdAddressData';
@@ -46,6 +46,7 @@ export default function StudentCreatePage() {
     residentialStatus: 'non-residential',
     hifzProgramType: '',
     department: '',
+    maktabSubBranch: '',
     fatherName: '',
     motherName: '',
     ...DEFAULT_ADDRESS,
@@ -298,14 +299,24 @@ export default function StudentCreatePage() {
       const match = classLevels.find(c => (c.name || '').trim() === submitData.department.trim());
       if (match) submitData.classLevelId = match._id;
     }
+    const selectedClassName = classLevels.find(c => c._id === submitData.classLevelId)?.name || '';
+    const isMaktabAdmission = (submitData.department || '').includes('মক্তব') || selectedClassName.includes('মক্তব');
 
     if (!submitData.classLevelId) {
       setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শ্রেণি / বিভাগ" নির্বাচন করা আবশ্যক' });
       return;
     }
-    if (!submitData.sectionId) {
-      setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "সেকশন" নির্বাচন করা আবশ্যক। অনুগ্রহ করে সেকশনটি আবার সিলেক্ট করুন।' });
+    if (isMaktabAdmission && !submitData.maktabSubBranch) {
+      setToast({ type: 'error', message: 'মক্তব বিভাগের "মক্তব উপ-শাখা (আমপারা / কায়দা)" নির্বাচন করা আবশ্যক' });
       return;
+    }
+    if (!submitData.sectionId) {
+      if (isMaktabAdmission && submitData.hifzProgramType === 'only_hifz') {
+        submitData.sectionId = 'কোন সেকশন নাই';
+      } else {
+        setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "সেকশন" নির্বাচন করা আবশ্যক। অনুগ্রহ করে সেকশনটি আবার সিলেক্ট করুন।' });
+        return;
+      }
     }
     if (!submitData.branchId) {
       setToast({ type: 'error', message: 'একাডেমিক এনরোলমেন্টের "শাখা" নির্বাচন করা আবশ্যক' });
@@ -838,7 +849,14 @@ export default function StudentCreatePage() {
                               const matchClass = classLevels.find(c => (c.name || '').trim() === dept.trim());
                               if (matchClass) autoClassId = matchClass._id;
                             }
-                            setFormData(prev => ({ ...prev, department: dept, classLevelId: autoClassId }));
+                            const isMaktab = dept.includes('মক্তব');
+                            setFormData(prev => ({
+                              ...prev,
+                              department: dept,
+                              classLevelId: autoClassId,
+                              maktabSubBranch: isMaktab ? prev.maktabSubBranch : '',
+                              sectionId: isMaktab && isOnlyHifz && !prev.sectionId ? 'কোন সেকশন নাই' : prev.sectionId,
+                            }));
                           }} 
                           required
                         >
@@ -853,6 +871,24 @@ export default function StudentCreatePage() {
 
                   return null;
                 })()}
+
+                {/* মক্তব উপ-শাখা — শুধু মক্তব বিভাগ বা মক্তব শ্রেণি সিলেক্ট হলে বিভাগের ঠিক পাশেই আলাদাভাবে দেখাবে */}
+                {((formData.department || '').includes('মক্তব') || (classLevels.find(c => c._id === formData.classLevelId)?.name || '').includes('মক্তব')) && (
+                  <div>
+                    <label className="form-label">মক্তব উপ-শাখা (আমপারা / কায়দা) *</label>
+                    <select 
+                      className="form-select form-input" 
+                      value={formData.maktabSubBranch} 
+                      onChange={e => setFormData(prev => ({ ...prev, maktabSubBranch: e.target.value }))} 
+                      required
+                    >
+                      <option value="">-- মক্তব উপ-শাখা নির্বাচন করুন --</option>
+                      {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                        <option key={idx} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* শ্রেণি (Class) Dropdown - শুধু হিফজ (only_hifz) অথবা কিতাব বিভাগের জন্য লুকানো থাকবে, কারণ তাদের বিভাগই তাদের শ্রেণি */}
                 {!(stream === 'hifz' && formData.hifzProgramType === 'only_hifz') && !(['কিতাব'].some(k => branches.find(b => b._id === formData.branchId)?.name?.includes(k)) || stream === 'kitab') && (

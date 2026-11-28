@@ -4,9 +4,10 @@ import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, Chev
 import SeatPlanGenerator from '../../components/exams/SeatPlanGenerator';
 import AdmitCardGenerator from '../../components/exams/AdmitCardGenerator';
 import MatrixExamRoutineBuilder, { MatrixRoutinePreviewTable, printMatrixExamRoutine } from '../../components/exams/MatrixExamRoutineBuilder';
+import HifzResultsWorkspace from '../../components/exams/HifzResultsWorkspace';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { formatDateDDMMYYYY, getMadrasahInfo, getNumericRoll, parseBnToEnNumber, toBnNumber } from '../../utils/helpers';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
@@ -3296,6 +3297,13 @@ export default function ExamPage({ initialViewMode }) {
               >
                 <FileText size={15} /> <span>প্রবেশপত্র (Admit Card)</span>
               </button>
+              <button
+                type="button"
+                className={`btn exam-tab-btn ${examViewMode === 'hifz_results' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setExamViewMode('hifz_results')}
+              >
+                <BookOpen size={15} /> <span>হিফজ ও নাজেরা ফলাফল</span>
+              </button>
             </div>
           )}
 
@@ -4170,6 +4178,11 @@ export default function ExamPage({ initialViewMode }) {
             <AdmitCardGenerator exams={exams} classes={classes} />
           )}
 
+          {/* Hifz/Najera/Maktab Results inside Selected Exam */}
+          {examViewMode === 'hifz_results' && (
+            <HifzResultsWorkspace embedded />
+          )}
+
           {/* Official Footer Signatures for Exam Results Print */}
           <div className="print-only">
             <PrintFooterSignatures roles={selectedSignatureRoles} style={{ marginTop: '40px' }} />
@@ -4437,6 +4450,24 @@ export default function ExamPage({ initialViewMode }) {
         </div>
       ) : examViewMode === 'routine' ? (
         renderExamRoutineWorkspace(false)
+      ) : examViewMode === 'hifz_results' ? (
+        <div className="animate-fade-in">
+          <div className="page-header no-print">
+            <div className="flex gap-16" style={{ alignItems: 'center' }}>
+              <button className="btn btn-secondary btn-icon" onClick={() => setExamViewMode('marks')}>
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BookOpen size={22} style={{ color: '#059669' }} />
+                  <span>হিফজ, নাজেরা ও মক্তব ফলাফল</span>
+                </h1>
+                <p className="page-subtitle">বালক ও বালিকা শাখা ➔ বিভাগ ➔ উপ-শাখা ও পরীক্ষা অনুযায়ী নম্বর এন্ট্রি ও প্রিন্ট</p>
+              </div>
+            </div>
+          </div>
+          <HifzResultsWorkspace embedded />
+        </div>
       ) : (
         // EXAMS LIST
         <div>
@@ -4477,6 +4508,17 @@ export default function ExamPage({ initialViewMode }) {
                 >
                   <LayoutGrid size={15} style={{ color: '#059669' }} />
                   <span>সিট প্ল্যান</span>
+                </button>
+              )}
+              {!isStudentOrGuardian && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '0.82rem', whiteSpace: 'nowrap', borderColor: '#10b981', color: '#065f46', background: 'rgba(16, 185, 129, 0.12)', fontWeight: 700 }}
+                  onClick={() => setExamViewMode('hifz_results')}
+                >
+                  <BookOpen size={15} style={{ color: '#059669' }} />
+                  <span>হিফজ ও নাজেরা ফলাফল</span>
                 </button>
               )}
               {!isStudentOrGuardian && (

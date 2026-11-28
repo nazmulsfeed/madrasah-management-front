@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BookOpen, FileText, Calendar, ShieldAlert, Search, Sun, Moon, Download, Bell, BellOff, X, ArrowLeft } from 'lucide-react';
 import api from '../../api/axios';
-import { SECTION_OPTIONS } from '../../utils/constants';
+import { SECTION_OPTIONS, MAKTAB_SUB_BRANCHES, isMaktabName } from '../../utils/constants';
 import { formatDateDDMMYYYY } from '../../utils/helpers';
 
 export default function PublicHomeworkPage() {
@@ -241,7 +241,10 @@ export default function PublicHomeworkPage() {
         }
 
         if (classFilter) params.classLevel = classFilter;
-        if (sectionFilter) params.section = sectionFilter;
+        const effectiveSec = (isMaktabName(classFilter) && sectionFilter && MAKTAB_SUB_BRANCHES.includes(sectionFilter))
+          ? sectionFilter
+          : sectionFilter;
+        if (effectiveSec) params.section = effectiveSec;
         if (subjectFilter) params.subject = subjectFilter;
         if (statusFilter) params.status = statusFilter;
         if (searchQuery) params.search = searchQuery;
@@ -676,16 +679,34 @@ export default function PublicHomeworkPage() {
             {/* Dropdown 3: Class Filter */}
             <select
               value={classFilter}
-              onChange={e => setClassFilter(e.target.value)}
+              onChange={e => {
+                const nextCls = e.target.value;
+                if (!isMaktabName(nextCls) && MAKTAB_SUB_BRANCHES.includes(sectionFilter)) setSectionFilter('');
+                setClassFilter(nextCls);
+              }}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <option value="">সকল শ্রেণী</option>
               {classes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
 
+            {isMaktabName(classFilter) && (
+              <select
+                value={MAKTAB_SUB_BRANCHES.includes(sectionFilter) ? sectionFilter : ''}
+                onChange={e => setSectionFilter(e.target.value)}
+                style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1.5px solid #10b981', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                title="মক্তব উপ-শাখা"
+              >
+                <option value="">সকল উপ-শাখা</option>
+                {MAKTAB_SUB_BRANCHES.map((sub, idx) => (
+                  <option key={idx} value={sub}>{sub}</option>
+                ))}
+              </select>
+            )}
+
             {/* Dropdown 4: Section Filter */}
             <select
-              value={sectionFilter}
+              value={MAKTAB_SUB_BRANCHES.includes(sectionFilter) ? '' : sectionFilter}
               onChange={e => setSectionFilter(e.target.value)}
               style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '8px 16px', borderRadius: '8px', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
