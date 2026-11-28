@@ -14,6 +14,8 @@ import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignatu
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 export default function FinanceReportsPage() {
   const { user } = useAuthStore();
@@ -43,6 +45,7 @@ export default function FinanceReportsPage() {
 
   // Salary Sheet Filters
   const [salarySearch, setSalarySearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [salaryFilter, setSalaryFilter] = useState('all'); // 'all' | 'paid' | 'unpaid'
 
   // In-place Salary setting state
@@ -466,17 +469,18 @@ export default function FinanceReportsPage() {
   const filteredSalarySheet = useMemo(() => {
     if (!salarySheetData?.salarySheet) return [];
     return salarySheetData.salarySheet.filter(item => {
-      const matchSearch =
-        (item.name || '').toLowerCase().includes(salarySearch.toLowerCase()) ||
-        (item.designation || '').toLowerCase().includes(salarySearch.toLowerCase()) ||
-        (item.phone || '').includes(salarySearch);
+      const matchSearch = matchesSearchQuery(
+        [item.name, item.designation, item.phone],
+        salarySearch,
+        { wholeWords }
+      );
 
       if (!matchSearch) return false;
       if (salaryFilter === 'paid') return item.status === 'paid';
       if (salaryFilter === 'unpaid') return item.status === 'unpaid';
       return true;
     });
-  }, [salarySheetData, salarySearch, salaryFilter]);
+  }, [salarySheetData, salarySearch, wholeWords, salaryFilter]);
 
   // Category Expense total for progress bars
   const totalCategoryExpense = useMemo(() => {
@@ -1222,7 +1226,7 @@ export default function FinanceReportsPage() {
             {/* Filters Bar */}
             <div className="card mb-16" style={{ padding: '14px 18px' }}>
               <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
-                <div className="flex-center gap-10" style={{ flex: 1, minWidth: '240px' }}>
+                <div className="flex-center gap-10" style={{ flex: 1, minWidth: '240px', flexWrap: 'wrap' }}>
                   <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
                     <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                     <input
@@ -1234,6 +1238,7 @@ export default function FinanceReportsPage() {
                       style={{ paddingLeft: '36px', height: '38px', fontSize: '0.88rem' }}
                     />
                   </div>
+                  <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
                 </div>
 
                 {/* Status Filter Buttons */}

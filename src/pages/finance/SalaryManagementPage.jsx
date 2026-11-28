@@ -13,6 +13,8 @@ import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignatu
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
 import AuditBadge from '../../components/common/AuditBadge';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 
 export default function SalaryManagementPage() {
   const { user } = useAuthStore();
@@ -36,6 +38,7 @@ export default function SalaryManagementPage() {
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'paid' | 'unpaid' | 'partial'
 
   // Signature Roles State & Print Preview
@@ -277,11 +280,8 @@ export default function SalaryManagementPage() {
     let list = sheetData?.records || [];
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
       list = list.filter(r =>
-        (r.staffName && r.staffName.toLowerCase().includes(q)) ||
-        (r.designation && r.designation.toLowerCase().includes(q)) ||
-        (r.phone && r.phone.includes(q))
+        matchesSearchQuery([r.staffName, r.designation, r.phone], searchQuery, wholeWords)
       );
     }
 
@@ -290,7 +290,7 @@ export default function SalaryManagementPage() {
     }
 
     return list;
-  }, [sheetData?.records, searchQuery, statusFilter]);
+  }, [sheetData?.records, searchQuery, wholeWords, statusFilter]);
 
   // Open Edit Modal
   const handleOpenEdit = (rec) => {
@@ -911,16 +911,19 @@ export default function SalaryManagementPage() {
       {/* Filter and Search Bar */}
       <div className="card mb-20" style={{ padding: '14px 20px' }}>
         <div className="flex flex-wrap gap-14 justify-between items-center">
-          <div style={{ position: 'relative', flex: 1, minWidth: '240px', maxWidth: '360px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="নাম, পদবি বা ফোন নম্বর দিয়ে খুঁজুন..."
-              className="form-input"
-              style={{ paddingLeft: '38px', height: '38px', fontSize: '0.88rem' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '240px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '340px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="নাম, পদবি বা ফোন নম্বর দিয়ে খুঁজুন..."
+                className="form-input"
+                style={{ paddingLeft: '38px', height: '38px', fontSize: '0.88rem' }}
+              />
+            </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           <div className="flex flex-wrap gap-8">

@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { BookOpen, CheckCircle, AlertCircle, Save, Users, Plus, Edit, Trash2, X, Settings } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 export default function ClassSubjectsPage() {
   const { user } = useAuthStore();
@@ -30,6 +32,7 @@ export default function ClassSubjectsPage() {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
   const [subjectSearch, setSubjectSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
@@ -421,15 +424,16 @@ export default function ClassSubjectsPage() {
                     )}
                   </div>
 
-                  <div className="mb-16">
+                  <div className="mb-16" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <input 
                       type="text" 
                       className="form-input" 
                       placeholder="বিষয় খুঁজুন (নাম বা কোড দিয়ে)..." 
                       value={subjectSearch}
                       onChange={(e) => setSubjectSearch(e.target.value)}
-                      style={{ width: '100%' }}
+                      style={{ flex: 1, minWidth: '200px' }}
                     />
+                    <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
                   </div>
 
                   <div style={{
@@ -440,8 +444,7 @@ export default function ClassSubjectsPage() {
                   }}>
                     {(() => {
                       const filteredSubjects = subjects.filter(s => 
-                        s.name.toLowerCase().includes(subjectSearch.toLowerCase()) || 
-                        (s.code && s.code.toLowerCase().includes(subjectSearch.toLowerCase()))
+                        matchesSearchQuery([s.name, s.code], subjectSearch, { wholeWords })
                       );
 
                       if (filteredSubjects.length === 0) {

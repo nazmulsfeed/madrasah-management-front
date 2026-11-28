@@ -3,6 +3,7 @@ import { Shield, Save, CheckCircle, AlertCircle, RefreshCw, Users, Search, Gradu
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { permissionCategories, allPermissionKeys } from '../../utils/permissionCategories';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 
 const roles = [
   { value: 'co_super_admin', label: 'কো-সুপার অ্যাডমিন' },
@@ -100,6 +101,7 @@ export default function RoleManagementPage() {
   const [usersList, setUsersList] = useState([]);
   const [userTypeFilter, setUserTypeFilter] = useState('staff'); // 'staff', 'guardian', 'student'
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [searching, setSearching] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   
@@ -152,6 +154,7 @@ export default function RoleManagementPage() {
       const res = await api.get('/users', { 
         params: { 
           search: searchQuery, 
+          wholeWords: wholeWords ? 'true' : 'false',
           userType: userTypeFilter,
           limit: 50 
         } 
@@ -600,8 +603,8 @@ export default function RoleManagementPage() {
           </div>
 
           <div className="card">
-            <div className="flex gap-12 mb-20">
-              <div style={{ position: 'relative', flex: 1 }}>
+            <div className="flex gap-12 mb-20" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input 
                   type="text" 
@@ -612,6 +615,7 @@ export default function RoleManagementPage() {
                   style={{ paddingLeft: '38px', marginBottom: 0 }}
                 />
               </div>
+              <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
               <button className="btn btn-secondary" onClick={fetchUsers} disabled={searching}>
                 {searching ? <RefreshCw size={16} className="spin" /> : 'খুঁজুন'}
               </button>

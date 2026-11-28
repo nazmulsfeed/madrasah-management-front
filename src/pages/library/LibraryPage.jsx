@@ -6,6 +6,8 @@ import {
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { getMadrasahInfo } from '../../utils/helpers';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 const CATEGORIES = ['তাফসীর', 'হাদিস', 'ফিকহ', 'আরবি ব্যাকরণ', 'আরবি ভাষা', 'সীরাত', 'অন্যান্য'];
 
@@ -25,6 +27,7 @@ export default function LibraryPage() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [toast, setToast] = useState(null);
 
@@ -73,9 +76,7 @@ export default function LibraryPage() {
 
   // Filter books
   const filteredBooks = books.filter((book) => {
-    const matchesSearch = 
-      book.title.toLowerCase().includes(search.toLowerCase()) || 
-      (book.author && book.author.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = matchesSearchQuery([book.title, book.author], search, { wholeWords });
     const matchesCategory = !selectedCategory || book.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -208,6 +209,7 @@ export default function LibraryPage() {
               style={{ paddingLeft: '44px', borderRadius: '10px' }}
             />
           </div>
+          <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           <select 
             className="form-input" 
             value={selectedCategory} 

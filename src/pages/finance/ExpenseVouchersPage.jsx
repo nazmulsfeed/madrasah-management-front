@@ -11,6 +11,8 @@ import { formatDateDDMMYYYY, getMadrasahInfo } from '../../utils/helpers';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 export default function ExpenseVouchersPage() {
   const { user } = useAuthStore();
@@ -27,6 +29,7 @@ export default function ExpenseVouchersPage() {
   // Filters & State
   const [activeTab, setActiveTab] = useState('all'); // all, pending, level_1_approved, approved, rejected
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [filterMethod, setFilterMethod] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -417,18 +420,17 @@ export default function ExpenseVouchersPage() {
 
       // Search query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const vNum = (v.voucherNumber || '').toLowerCase();
-        const payee = (v.payeeName || '').toLowerCase();
-        const desc = (v.description || '').toLowerCase();
-        const expName = (v.expenseAccountDetails?.name || '').toLowerCase();
-        if (!vNum.includes(q) && !payee.includes(q) && !desc.includes(q) && !expName.includes(q)) {
+        if (!matchesSearchQuery(
+          [v.voucherNumber, v.payeeName, v.description, v.expenseAccountDetails?.name],
+          searchQuery,
+          { wholeWords }
+        )) {
           return false;
         }
       }
       return true;
     });
-  }, [vouchers, searchQuery, filterMethod]);
+  }, [vouchers, searchQuery, wholeWords, filterMethod]);
 
   // Dynamic Statistics
   const stats = useMemo(() => {
@@ -589,6 +591,8 @@ export default function ExpenseVouchersPage() {
                 </button>
               )}
             </div>
+
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
 
             <select
               value={filterMethod}

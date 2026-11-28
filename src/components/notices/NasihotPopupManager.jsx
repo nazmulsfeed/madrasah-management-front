@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import { toBnNumber } from '../../utils/helpers';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../common/WholeWordToggle';
 
 const AUDIENCE_CHOICES = [
   { value: 'all', label: 'সকলের জন্য (সবাই)', icon: Users },
@@ -35,6 +37,7 @@ export default function NasihotPopupManager({ onPopupListChange }) {
   const [previewSpeaking, setPreviewSpeaking] = useState(false);
   const [listFilter, setListFilter] = useState('all'); // 'all' | 'nasihot' | 'notice_push' | 'active'
   const [listSearch, setListSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -210,9 +213,7 @@ export default function NasihotPopupManager({ onPopupListChange }) {
     if (listFilter === 'notice_push' && item.type !== 'notice_push') return false;
     if (listFilter === 'active' && !item.isActive) return false;
     if (listSearch.trim()) {
-      const q = listSearch.toLowerCase();
-      const hay = `${item.title || ''} ${item.author || ''} ${item.content || ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
+      if (!matchesSearchQuery([item.title, item.author, item.content], listSearch, wholeWords)) return false;
     }
     return true;
   });
@@ -582,16 +583,19 @@ export default function NasihotPopupManager({ onPopupListChange }) {
           </div>
         </div>
 
-        <div style={{ position: 'relative', marginBottom: '14px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-          <input
-            type="text"
-            className="form-input"
-            style={{ paddingLeft: '40px' }}
-            placeholder="শিরোনাম, বক্তা বা বক্তব্য দিয়ে খুঁজুন..."
-            value={listSearch}
-            onChange={(e) => setListSearch(e.target.value)}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              className="form-input"
+              style={{ paddingLeft: '40px' }}
+              placeholder="শিরোনাম, বক্তা বা বক্তব্য দিয়ে খুঁজুন..."
+              value={listSearch}
+              onChange={(e) => setListSearch(e.target.value)}
+            />
+          </div>
+          <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
         </div>
 
         {loading ? (

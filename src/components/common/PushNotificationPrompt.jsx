@@ -15,13 +15,21 @@ export default function PushNotificationPrompt() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
 
-    // যদি পারমিশন ইতিমধ্যে দিয়ে দেওয়া থাকে বা এই সেশনে বাতিল করা থাকে তবে দেখাবে না
+    // যদি পারমিশন ইতিমধ্যে দিয়ে দেওয়া থাকে তবে দেখাবে না
     if (Notification.permission === 'granted') return;
-    if (sessionStorage.getItem('push_prompt_dismissed') === 'true') return;
 
-    // পারমিশন 'default' হলে প্রম্পট দেখাবে
+    const currentToken = localStorage.getItem('token') || String(user._id || user.id || '');
+    if (!currentToken) return;
+
+    // বর্তমান লগইন সেশনে ইতিমধ্যে ১ বার দেখানো হয়ে থাকলে আর দেখাবে না
+    if (localStorage.getItem('push_prompt_shown_token') === currentToken) return;
+
+    // পারমিশন 'default' হলে এই লগইনে শুধুমাত্র ১ বার প্রম্পট দেখাবে
     if (Notification.permission === 'default') {
-      const timer = setTimeout(() => setShowPrompt(true), 1500);
+      const timer = setTimeout(() => {
+        localStorage.setItem('push_prompt_shown_token', currentToken);
+        setShowPrompt(true);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [user]);
@@ -47,7 +55,10 @@ export default function PushNotificationPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    sessionStorage.setItem('push_prompt_dismissed', 'true');
+    const currentToken = localStorage.getItem('token') || String(user?._id || user?.id || '');
+    if (currentToken) {
+      localStorage.setItem('push_prompt_shown_token', currentToken);
+    }
   };
 
   if (!showPrompt) return null;

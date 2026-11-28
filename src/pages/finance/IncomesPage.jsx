@@ -11,6 +11,8 @@ import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
 import PrintSignatureRoleSelector from '../../components/common/PrintSignatureRoleSelector';
 import PrintFooterSignatures from '../../components/common/PrintFooterSignatures';
 import AuditBadge from '../../components/common/AuditBadge';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 const DONOR_PRESETS = [
   'সাধারণ কালেকশন / পাবলিক অনুদান',
@@ -43,6 +45,7 @@ export default function IncomesPage() {
   });
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [filterCategory, setFilterCategory] = useState('');
 
   const [formData, setFormData] = useState({
@@ -208,16 +211,15 @@ export default function IncomesPage() {
   // Filtered incomes
   const filteredIncomes = useMemo(() => {
     return incomes.filter(inc => {
-      const q = searchQuery.toLowerCase().trim();
+      const q = searchQuery.trim();
       if (!q) return true;
-      const catName = inc.category?.name?.toLowerCase() || '';
-      const donor = inc.donorName?.toLowerCase() || '';
-      const phone = inc.donorPhone?.toLowerCase() || '';
-      const ref = inc.transactionReference?.toLowerCase() || '';
-      const notes = inc.notes?.toLowerCase() || '';
-      return catName.includes(q) || donor.includes(q) || phone.includes(q) || ref.includes(q) || notes.includes(q);
+      return matchesSearchQuery(
+        [inc.category?.name, inc.donorName, inc.donorPhone, inc.transactionReference, inc.notes],
+        q,
+        { wholeWords }
+      );
     });
-  }, [incomes, searchQuery]);
+  }, [incomes, searchQuery, wholeWords]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -318,8 +320,8 @@ export default function IncomesPage() {
       {/* Filter and Search Bar */}
       <div className="card mb-20" style={{ padding: '16px' }}>
         <div className="flex flex-wrap gap-16 justify-between items-center">
-          <div className="flex gap-12 flex-1" style={{ minWidth: '260px', maxWidth: '450px' }}>
-            <div style={{ position: 'relative', width: '100%' }}>
+          <div className="flex gap-12 flex-1 items-center" style={{ minWidth: '260px', maxWidth: '580px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
@@ -330,6 +332,7 @@ export default function IncomesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           <div className="flex gap-12 flex-wrap items-center">

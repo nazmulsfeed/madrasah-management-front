@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import { SECTION_OPTIONS } from '../../utils/constants';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 
 export default function StudentPromotionPage() {
   const navigate = useNavigate();
@@ -48,6 +50,7 @@ export default function StudentPromotionPage() {
   
   // Filters
   const [search, setSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [performanceFilter, setPerformanceFilter] = useState('all'); // 'all', 'passed', 'failed', 'no_marks'
 
   // Load lists
@@ -194,8 +197,7 @@ export default function StudentPromotionPage() {
 
   // Filter candidates
   const filteredCandidates = candidates.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) || 
-                          c.admissionNumber.includes(search);
+    const matchesSearch = matchesSearchQuery([c.name, c.admissionNumber], search, wholeWords);
     
     if (performanceFilter === 'all') return matchesSearch;
     if (performanceFilter === 'passed') return matchesSearch && c.avgPercentage !== null && c.avgPercentage >= 33;
@@ -643,6 +645,7 @@ export default function StudentPromotionPage() {
                       style={{ paddingLeft: '36px', height: '36px', fontSize: '0.85rem' }}
                     />
                   </div>
+                  <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
                   <select 
                     className="form-input form-input-sm" 
                     value={performanceFilter}

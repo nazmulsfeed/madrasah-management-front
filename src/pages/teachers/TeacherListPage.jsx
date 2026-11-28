@@ -8,6 +8,8 @@ import AuditBadge from '../../components/common/AuditBadge';
 import { getMadrasahInfo } from '../../utils/helpers';
 import { getMadrasahPrintStyles, getMadrasahHeaderHtml, getMadrasahFooterSignaturesHtml } from '../../utils/madrasahPrintUtils';
 import PrintSignatureRoleSelector, { DEFAULT_SIGNATURE_ROLES } from '../../components/common/PrintSignatureRoleSelector';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 
 export default function TeacherListPage() {
   const { user } = useAuthStore();
@@ -40,6 +42,7 @@ export default function TeacherListPage() {
   
   // Filter states
   const [search, setSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [designationFilter, setDesignationFilter] = useState('');
@@ -47,18 +50,16 @@ export default function TeacherListPage() {
   const designations = Array.from(new Set(teachers.map(t => t.designation).filter(Boolean)));
 
   const filteredTeachers = teachers.filter((teacher) => {
-    const fullName = `${teacher.user?.firstName || ''} ${teacher.user?.lastName || ''}`.toLowerCase();
-    const email = (teacher.user?.email || '').toLowerCase();
-    const phone = (teacher.user?.phone || '').toLowerCase();
-    const designation = (teacher.designation || '').toLowerCase();
-    const searchLower = search.toLowerCase();
+    const fullName = `${teacher.user?.firstName || ''} ${teacher.user?.lastName || ''}`.trim();
+    const email = teacher.user?.email || '';
+    const phone = teacher.user?.phone || '';
+    const designation = teacher.designation || '';
 
-    const matchesSearch = 
-      !search ||
-      fullName.includes(searchLower) ||
-      email.includes(searchLower) ||
-      phone.includes(searchLower) ||
-      designation.includes(searchLower);
+    const matchesSearch = matchesSearchQuery(
+      [fullName, email, phone, designation],
+      search,
+      wholeWords
+    );
 
     let matchesType = true;
     if (typeFilter === 'hifz_boys') {
@@ -554,7 +555,7 @@ export default function TeacherListPage() {
       {canViewTeachers && (
         <div className="card mb-24 filter-card" style={{ padding: '14px 18px' }}>
           <div className="filter-card-content">
-            <div className="filter-search-form">
+            <div className="filter-search-form" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
                 <input
                   type="text"
@@ -564,6 +565,7 @@ export default function TeacherListPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
+              <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
             </div>
 
             <div className="filter-dropdowns-wrap">

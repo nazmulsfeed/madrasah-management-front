@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Printer, Save, Search, FileText, Eye, EyeOff, CheckCircle, AlertCircle, User } from 'lucide-react';
 import api from '../../api/axios';
 import MadrasahLetterhead from '../../components/common/MadrasahLetterhead';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 import './TransferCertificatePage.css';
 
 const BN = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
@@ -201,6 +203,7 @@ export default function TransferCertificatePage() {
 
   const [classFilter, setClassFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [showCert, setShowCert] = useState(false);
   const [useUniversalHeader, setUseUniversalHeader] = useState(true);
@@ -227,18 +230,15 @@ export default function TransferCertificatePage() {
   }, [students]);
 
   const filteredStudents = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
     return students.filter((s) => {
       if (classFilter && (s.className || '').trim() !== classFilter) return false;
-      if (!q) return true;
-      return (
-        (s.name || '').toLowerCase().includes(q) ||
-        (s.studentId || '').toLowerCase().includes(q) ||
-        (String(s.rollNumber || '')).toLowerCase().includes(q) ||
-        (s.fatherName || '').toLowerCase().includes(q)
+      return matchesSearchQuery(
+        [s.name, s.studentId, s.rollNumber, s.fatherName],
+        searchQuery,
+        wholeWords
       );
     });
-  }, [students, classFilter, searchQuery]);
+  }, [students, classFilter, searchQuery, wholeWords]);
 
   const selectedStudent = useMemo(
     () => students.find((s) => s._id === selectedStudentId) || null,
@@ -493,6 +493,7 @@ export default function TransferCertificatePage() {
             className="tc-search-input"
           />
         </div>
+        <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
       </div>
 
       {/* Student List Table */}

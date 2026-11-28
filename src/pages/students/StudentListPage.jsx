@@ -23,6 +23,7 @@ import { SECTION_OPTIONS } from '../../utils/constants';
 import useAuthStore from '../../store/authStore';
 import usePermissions from '../../hooks/usePermissions';
 import StudentExportModal from '../../components/students/StudentExportModal';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 import { getMadrasahInfo } from '../../utils/helpers';
 import AuditBadge from '../../components/common/AuditBadge';
 
@@ -53,6 +54,7 @@ export default function StudentListPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [wholeWords, setWholeWords] = useState(true);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(15);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
@@ -116,6 +118,7 @@ export default function StudentListPage() {
       const params = { page, limit };
       const activeSearch = customSearch !== null ? customSearch : debouncedSearch;
       if (activeSearch) params.search = activeSearch.trim();
+      params.wholeWords = wholeWords ? 'true' : 'false';
       if (statusFilter) params.status = statusFilter;
       if (classFilter) params.classLevel = classFilter;
       if (branchFilter) params.branch = branchFilter;
@@ -198,7 +201,7 @@ export default function StudentListPage() {
 
   useEffect(() => {
     fetchStudents();
-  }, [page, limit, statusFilter, classFilter, sectionFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch, sortBy, sortOrder]);
+  }, [page, limit, statusFilter, classFilter, sectionFilter, branchFilter, departmentFilter, residentialStatusFilter, debouncedSearch, wholeWords, sortBy, sortOrder]);
 
   const handleLimitChange = (newLimit) => {
     setLimit(newLimit);
@@ -467,9 +470,55 @@ export default function StudentListPage() {
 
       {/* ফিল্টার বার */}
       <div className="card mb-24 filter-card" style={{ padding: '14px 18px' }}>
-        <div className="filter-card-content">
-          <form onSubmit={handleSearch} className="filter-search-form">
-            <div style={{ position: 'relative', flex: 1 }}>
+        <div className="filter-card-content student-filter-two-row">
+          <style>{`
+            .student-filter-two-row {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 10px;
+              align-items: center;
+            }
+            .student-filter-search-form {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex: 1 1 580px;
+              max-width: 760px;
+              flex-wrap: wrap;
+            }
+            .student-filter-search-input-wrap {
+              position: relative;
+              flex: 1 1 420px;
+              min-width: min(100%, 420px);
+            }
+            .student-filter-two-row .filter-dropdowns-wrap {
+              display: contents;
+            }
+            .student-filter-two-row .filter-dropdowns-wrap > select,
+            .student-filter-two-row .sort-controls-wrap {
+              flex: 0 1 auto;
+            }
+            @media (max-width: 768px) {
+              .student-filter-search-form {
+                flex: 1 1 100%;
+                max-width: 100%;
+              }
+              .student-filter-search-input-wrap {
+                min-width: 100%;
+              }
+              .student-filter-two-row .filter-dropdowns-wrap {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                width: 100%;
+              }
+            }
+          `}</style>
+          <form
+            onSubmit={handleSearch}
+            className="filter-search-form student-filter-search-form"
+          >
+            <div className="student-filter-search-input-wrap">
               <Search
                 size={16}
                 style={{
@@ -486,7 +535,7 @@ export default function StudentListPage() {
                 placeholder="যেকোনো তথ্য (নাম, রোল, আইডি, মোবাইল, পিতার নাম) দিয়ে খুঁজুন..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ paddingLeft: '38px', paddingRight: search ? '36px' : '12px' }}
+                style={{ paddingLeft: '38px', paddingRight: search ? '36px' : '12px', width: '100%' }}
               />
               {search && (
                 <button
@@ -515,6 +564,13 @@ export default function StudentListPage() {
                 </button>
               )}
             </div>
+            <WholeWordToggle
+              checked={wholeWords}
+              onChange={(val) => {
+                setWholeWords(val);
+                setPage(1);
+              }}
+            />
             <button type="submit" className="btn btn-secondary btn-sm">
               <Search size={14} /> অনুসন্ধান
             </button>

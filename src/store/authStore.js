@@ -101,6 +101,8 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userPermissions');
+    localStorage.removeItem('push_prompt_shown_token');
+    sessionStorage.removeItem('push_prompt_dismissed');
     inFlightPermissionsPromise = null;
     set({
       user: null,

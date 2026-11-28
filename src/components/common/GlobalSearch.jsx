@@ -13,9 +13,12 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import { RAW_MENU_GROUPS } from '../../utils/navigationConfig';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from './WholeWordToggle';
 
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState({ students: [], teachers: [] });
@@ -70,15 +73,12 @@ export default function GlobalSearch() {
 
   // Match menu items based on query
   const matchedMenus = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     if (!q) return [];
-    return allMenuItems.filter((item) => {
-      const matchLabel = item.label.toLowerCase().includes(q);
-      const matchGroup = item.group.toLowerCase().includes(q);
-      const matchPath = item.path.toLowerCase().includes(q);
-      return matchLabel || matchGroup || matchPath;
-    }).slice(0, 6);
-  }, [query, allMenuItems]);
+    return allMenuItems.filter((item) =>
+      matchesSearchQuery([item.label, item.group, item.path], q, wholeWords)
+    ).slice(0, 6);
+  }, [query, wholeWords, allMenuItems]);
 
   // Debounced API search for students and teachers
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function GlobalSearch() {
     const timer = setTimeout(async () => {
       try {
         const res = await api.get('/search/global', {
-          params: { q: trimmed },
+          params: { q: trimmed, wholeWords: wholeWords ? 'true' : 'false' },
         });
         if (res.data.success) {
           setResults(res.data.data || { students: [], teachers: [] });
@@ -106,7 +106,7 @@ export default function GlobalSearch() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, wholeWords]);
 
   const handleSelectMenu = (path) => {
     setIsOpen(false);
@@ -252,12 +252,13 @@ export default function GlobalSearch() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              gap: '8px',
             }}
           >
             <span>
               "{query}" এর জন্য ফলাফল
             </span>
-            <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>Esc চাপুন বন্ধ করতে</span>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           {!hasAnyResults && !loading && (

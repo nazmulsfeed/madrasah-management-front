@@ -26,6 +26,8 @@ import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
 import { toBnNumber, getNumericRoll } from '../../utils/helpers';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 import {
   getMadrasahPrintStyles,
   getMadrasahHeaderHtml,
@@ -213,6 +215,7 @@ export default function ManualFeeChecklistPage() {
   const [residentialFilter, setResidentialFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'paid' | 'unpaid'
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
 
   // Checklist map: { [studentId]: { isPaid: boolean, note: string } }
   const [checklistMap, setChecklistMap] = useState({});
@@ -323,11 +326,10 @@ export default function ManualFeeChecklistPage() {
       if (statusFilter === 'unpaid' && isPaid) return false;
 
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const name = (s.user?.fullName || `${s.user?.firstName || ''} ${s.user?.lastName || ''}` || s.name || '').toLowerCase();
-        const stuIdStr = (s.studentId || '').toLowerCase();
-        const rollStr = String(s.currentEnrollment?.rollNumber || s.roll || '').toLowerCase();
-        if (!name.includes(q) && !stuIdStr.includes(q) && !rollStr.includes(q)) return false;
+        const name = s.user?.fullName || `${s.user?.firstName || ''} ${s.user?.lastName || ''}` || s.name || '';
+        const stuIdStr = s.studentId || '';
+        const rollStr = String(s.currentEnrollment?.rollNumber || s.roll || '');
+        if (!matchesSearchQuery([name, stuIdStr, rollStr], searchQuery, wholeWords)) return false;
       }
 
       return true;
@@ -338,7 +340,7 @@ export default function ManualFeeChecklistPage() {
       const rB = getNumericRoll(b.currentEnrollment?.rollNumber || b.roll);
       return rA - rB;
     });
-  }, [students, classFilter, sectionFilter, branchFilter, departmentFilter, residentialFilter, statusFilter, searchQuery, checklistMap, branches]);
+  }, [students, classFilter, sectionFilter, branchFilter, departmentFilter, residentialFilter, statusFilter, searchQuery, wholeWords, checklistMap, branches]);
 
   const stats = useMemo(() => {
     const total = filteredStudents.length;
@@ -666,16 +668,19 @@ export default function ManualFeeChecklistPage() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
-          <div style={{ position: 'relative', minWidth: '240px', flex: '1 1 240px', maxWidth: '360px' }}>
-            <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="form-input"
-              placeholder="নাম, রোল বা আইডি দিয়ে খুঁজুন..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '32px' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 280px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 220px', maxWidth: '340px' }}>
+              <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="নাম, রোল বা আইডি দিয়ে খুঁজুন..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ paddingLeft: '32px' }}
+              />
+            </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

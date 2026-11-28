@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { MessageSquare, Send, Search, User } from 'lucide-react';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 export default function MessagingPage() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [messageText, setMessageText] = useState('');
+  const [chatSearch, setChatSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
 
   const demoChats = [
     { id: 1, name: 'আবুল হাসান (শিক্ষক)', lastMsg: 'ছাত্র আব্দুল্লাহর ব্যাপারে জানাবেন।', time: '১০:৩০', unread: 2 },
@@ -54,13 +58,25 @@ export default function MessagingPage() {
         {/* চ্যাট লিস্ট */}
         <div style={{ borderRight: '1px solid var(--border-color)' }}>
           <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input type="text" className="form-input" placeholder="চ্যাট খুঁজুন..." style={{ paddingLeft: '36px' }} />
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="চ্যাট খুঁজুন..."
+                  value={chatSearch}
+                  onChange={(e) => setChatSearch(e.target.value)}
+                  style={{ paddingLeft: '36px' }}
+                />
+              </div>
+              <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
             </div>
           </div>
           <div style={{ overflowY: 'auto' }}>
-            {demoChats.map((chat) => (
+            {demoChats
+              .filter((chat) => matchesSearchQuery([chat.name, chat.lastMsg], chatSearch, { wholeWords }))
+              .map((chat) => (
               <div
                 key={chat.id}
                 onClick={() => setSelectedChat(chat)}

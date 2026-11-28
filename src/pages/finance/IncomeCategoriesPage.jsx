@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 const DEFAULT_SUGGESTED_CATEGORIES = [
   { name: 'পাবলিক অনুদান / Public Donation', type: 'donation', description: 'সাধারণ শুভাকাঙ্ক্ষী, মসজিদ বা দানবাক্স থেকে প্রাপ্ত দান' },
@@ -22,6 +24,7 @@ export default function IncomeCategoriesPage() {
   const [toast, setToast] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [typeFilter, setTypeFilter] = useState('all');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -152,12 +155,11 @@ export default function IncomeCategoriesPage() {
   const filteredCategories = useMemo(() => {
     return categories.filter(c => {
       const matchesSearch = !searchQuery || 
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (c.description && c.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        matchesSearchQuery([c.name, c.description], searchQuery, { wholeWords });
       const matchesType = typeFilter === 'all' || c.type === typeFilter;
       return matchesSearch && matchesType;
     });
-  }, [categories, searchQuery, typeFilter]);
+  }, [categories, searchQuery, wholeWords, typeFilter]);
 
   const stats = useMemo(() => {
     const total = categories.length;
@@ -247,8 +249,8 @@ export default function IncomeCategoriesPage() {
       {/* Filter and Search Bar */}
       <div className="card mb-20" style={{ padding: '16px' }}>
         <div className="flex flex-wrap gap-16 justify-between items-center">
-          <div className="flex gap-12 flex-1" style={{ minWidth: '260px', maxWidth: '500px' }}>
-            <div style={{ position: 'relative', width: '100%' }}>
+          <div className="flex gap-12 flex-1 items-center" style={{ minWidth: '260px', maxWidth: '600px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
@@ -259,6 +261,7 @@ export default function IncomeCategoriesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           {/* Type Filter Buttons */}

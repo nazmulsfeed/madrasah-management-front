@@ -3,6 +3,8 @@ import { Plus, UserCheck, Phone, Users, Trash2, X, CheckCircle, AlertCircle, Edi
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import ImageCropModal from '../../components/common/ImageCropModal';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 
 export default function GuardianListPage() {
   const { user } = useAuthStore();
@@ -15,24 +17,23 @@ export default function GuardianListPage() {
 
   // Filter states
   const [search, setSearch] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [occupationFilter, setOccupationFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   const occupations = Array.from(new Set(guardians.map(g => g.occupation).filter(Boolean)));
 
   const filteredGuardians = guardians.filter((guardian) => {
-    const fullName = `${guardian.user?.firstName || ''} ${guardian.user?.lastName || ''}`.toLowerCase();
-    const phone = (guardian.user?.phone || '').toLowerCase();
-    const guardianId = (guardian.guardianId || '').toLowerCase();
-    const occupation = (guardian.occupation || '').toLowerCase();
-    const searchLower = search.toLowerCase();
+    const fullName = `${guardian.user?.firstName || ''} ${guardian.user?.lastName || ''}`.trim();
+    const phone = guardian.user?.phone || '';
+    const guardianId = guardian.guardianId || '';
+    const occupation = guardian.occupation || '';
 
-    const matchesSearch = 
-      !search ||
-      fullName.includes(searchLower) ||
-      phone.includes(searchLower) ||
-      guardianId.includes(searchLower) ||
-      occupation.includes(searchLower);
+    const matchesSearch = matchesSearchQuery(
+      [fullName, phone, guardianId, occupation],
+      search,
+      wholeWords
+    );
 
     const matchesOccupation = !occupationFilter || guardian.occupation === occupationFilter;
     const matchesStatus = !statusFilter || guardian.status === statusFilter;
@@ -289,7 +290,7 @@ export default function GuardianListPage() {
       {/* ফিল্টার বার */}
       <div className="card mb-24" style={{ padding: '16px 20px' }}>
         <div className="flex-between" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <div className="flex gap-8" style={{ flex: 1 }}>
+          <div className="flex gap-8" style={{ flex: 1, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
               <input
                 type="text"
@@ -299,6 +300,7 @@ export default function GuardianListPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>

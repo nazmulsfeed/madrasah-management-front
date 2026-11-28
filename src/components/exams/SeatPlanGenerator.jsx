@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll } from '../../utils/helpers';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../common/WholeWordToggle';
 
 /**
  * Islamic Boy with Topi SVG Avatar Fallback
@@ -54,6 +56,7 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
   const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
   const [studentRooms, setStudentRooms] = useState({}); // { [studentId]: '101' }
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
 
   // Field toggles (Checkboxes)
   const [showRoom, setShowRoom] = useState(true);
@@ -274,13 +277,12 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
     return allStudents.filter(st => {
       if (!selectedStudentIds.has(st._id)) return false;
       if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      const name = (st.fullName || st.user?.fullName || st.name || '').toLowerCase();
-      const roll = String(st.currentEnrollment?.rollNumber || st.rollNumber || st.roll || '').toLowerCase();
-      const id = String(st.studentId || st.admissionNumber || '').toLowerCase();
-      return name.includes(q) || roll.includes(q) || id.includes(q);
+      const name = st.fullName || st.user?.fullName || `${st.user?.firstName || ''} ${st.user?.lastName || ''}`.trim() || st.name || '';
+      const roll = String(st.currentEnrollment?.rollNumber || st.rollNumber || st.roll || '');
+      const id = String(st.studentId || st.admissionNumber || '');
+      return matchesSearchQuery([name, roll, id], searchQuery, wholeWords);
     });
-  }, [allStudents, selectedStudentIds, searchQuery]);
+  }, [allStudents, selectedStudentIds, searchQuery, wholeWords]);
 
   // Handle Cards per Page selection
   const handleCardsPreset = (num) => {
@@ -676,16 +678,19 @@ export default function SeatPlanGenerator({ selectedExam = null, classes = [], u
             </span>
           </div>
 
-          <div style={{ position: 'relative', minWidth: '210px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-            <input 
-              type="text" 
-              placeholder="রোল বা নাম খুঁজুন..." 
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="form-input"
-              style={{ fontSize: '0.8rem', padding: '5px 10px 5px 30px', width: '100%' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', minWidth: '200px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input 
+                type="text" 
+                placeholder="রোল বা নাম খুঁজুন..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="form-input"
+                style={{ fontSize: '0.8rem', padding: '5px 10px 5px 30px', width: '100%' }}
+              />
+            </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
         </div>
       </div>

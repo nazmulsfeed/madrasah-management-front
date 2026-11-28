@@ -28,6 +28,8 @@ import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { getMadrasahInfo, toBnNumber, parseBnToEnNumber, getNumericRoll, formatDateDDMMYYYY } from '../../utils/helpers';
 import AdmitCardBacksideCard, { DEFAULT_BACKSIDE_CONFIG } from './AdmitCardBacksideCard';
+import { matchesSearchQuery } from '../../utils/searchUtils';
+import WholeWordToggle from '../common/WholeWordToggle';
 
 /**
  * Islamic Boy with Topi SVG Avatar Fallback
@@ -90,6 +92,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
   const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
   const [studentRooms, setStudentRooms] = useState({});
   const [commonRoomNo, setCommonRoomNo] = useState('১০২');
@@ -310,14 +313,13 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
   // Filter students based on search query
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return students;
-    const q = searchQuery.toLowerCase();
     return students.filter(s => {
-      const name = getStudentDisplayName(s, '').toLowerCase();
-      const roll = getSafeStr(s.currentEnrollment?.rollNumber || s.rollNumber || s.roll, '').toLowerCase();
-      const sid = getSafeStr(s.studentId || s.admissionNumber, '').toLowerCase();
-      return name.includes(q) || roll.includes(q) || sid.includes(q);
+      const name = getStudentDisplayName(s, '');
+      const roll = getSafeStr(s.currentEnrollment?.rollNumber || s.rollNumber || s.roll, '');
+      const sid = getSafeStr(s.studentId || s.admissionNumber, '');
+      return matchesSearchQuery([name, roll, sid], searchQuery, wholeWords);
     });
-  }, [students, searchQuery]);
+  }, [students, searchQuery, wholeWords]);
 
   // Selected student objects
   const selectedStudentsList = useMemo(() => {
@@ -1376,6 +1378,7 @@ export default function AdmitCardGenerator({ exams = [], classes = [] }) {
                 </button>
               )}
             </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
 
           {/* Table Container */}

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, Search, ChevronDown, Check, Edit, Trash2, Printer, Trophy, Award, RefreshCw, GraduationCap, User, BookOpen, CheckSquare, Square, X, Calendar, Clock, MapPin, LayoutGrid } from 'lucide-react';
 import SeatPlanGenerator from '../../components/exams/SeatPlanGenerator';
 import AdmitCardGenerator from '../../components/exams/AdmitCardGenerator';
+import MatrixExamRoutineBuilder, { MatrixRoutinePreviewTable, printMatrixExamRoutine } from '../../components/exams/MatrixExamRoutineBuilder';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { SECTION_OPTIONS } from '../../utils/constants';
@@ -140,6 +141,8 @@ export default function ExamPage({ initialViewMode }) {
   const [routineExamFilter, setRoutineExamFilter] = useState('all');
   const [routineClassFilter, setRoutineClassFilter] = useState('all');
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
+  const [showMatrixBuilder, setShowMatrixBuilder] = useState(false);
+  const [editingMatrixRoutine, setEditingMatrixRoutine] = useState(null);
   const [routineSubmitting, setRoutineSubmitting] = useState(false);
   const [editingRoutineId, setEditingRoutineId] = useState(null);
   const [studentRoutineData, setStudentRoutineData] = useState(null);
@@ -2702,14 +2705,27 @@ export default function ExamPage({ initialViewMode }) {
               <RefreshCw size={14} className={routinesLoading ? 'animate-spin' : ''} /> <span>রিফ্রেশ</span>
             </button>
             {canManageRoutine && (
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                onClick={() => handleOpenRoutineModal()}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              >
-                <Plus size={16} /> <span>নতুন রুটিন তৈরি</span>
-              </button>
+              <>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => {
+                    setEditingMatrixRoutine(null);
+                    setShowMatrixBuilder((v) => !v);
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                >
+                  <LayoutGrid size={16} /> <span>সম্মিলিত রুটিন (Matrix)</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-primary" 
+                  onClick={() => handleOpenRoutineModal()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Plus size={16} /> <span>নতুন রুটিন তৈরি</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -2792,6 +2808,29 @@ export default function ExamPage({ initialViewMode }) {
           </div>
         )}
 
+        {/* Combined Matrix Routine Builder */}
+        {canManageRoutine && showMatrixBuilder && (
+          <div className="mb-20 no-print">
+            <MatrixExamRoutineBuilder
+              key={editingMatrixRoutine?._id || 'new-matrix'}
+              initialRoutine={editingMatrixRoutine}
+              classes={classes}
+              exams={exams}
+              selectedExam={selectedExam}
+              madrasahName={madrasahName}
+              onSaved={() => {
+                fetchRoutines(routineStreamFilter, routineExamFilter, routineClassFilter, false);
+                setShowMatrixBuilder(false);
+                setEditingMatrixRoutine(null);
+              }}
+              onClose={() => {
+                setShowMatrixBuilder(false);
+                setEditingMatrixRoutine(null);
+              }}
+            />
+          </div>
+        )}
+
         {/* Routines Listing */}
         {routinesLoading ? (
           <div className="card text-center" style={{ padding: '40px' }}>
@@ -2866,7 +2905,13 @@ export default function ExamPage({ initialViewMode }) {
                       <button
                         type="button"
                         className="btn btn-secondary"
-                        onClick={() => handlePrintExamRoutine(routine)}
+                        onClick={() => {
+                          if (routine.schedule?.kind === 'matrix') {
+                            printMatrixExamRoutine(routine, madrasahName);
+                          } else {
+                            handlePrintExamRoutine(routine);
+                          }
+                        }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', padding: '6px 12px' }}
                         title="রুটিন প্রিন্ট বা ডাউনলোড করুন"
                       >
@@ -2877,7 +2922,14 @@ export default function ExamPage({ initialViewMode }) {
                           <button
                             type="button"
                             className="btn btn-ghost"
-                            onClick={() => handleOpenRoutineModal(routine)}
+                            onClick={() => {
+                              if (routine.schedule?.kind === 'matrix') {
+                                setEditingMatrixRoutine(routine);
+                                setShowMatrixBuilder(true);
+                              } else {
+                                handleOpenRoutineModal(routine);
+                              }
+                            }}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', padding: '6px 10px', color: '#2563eb' }}
                             title="রুটিন সম্পাদনা করুন"
                           >
@@ -2897,6 +2949,10 @@ export default function ExamPage({ initialViewMode }) {
                     </div>
                   </div>
 
+                  {routine.schedule?.kind === 'matrix' ? (
+                    <MatrixRoutinePreviewTable routine={routine} />
+                  ) : (
+                    <>
                   {/* Instructions Callout */}
                   {routine.instructions && (
                     <div style={{ 
@@ -3055,6 +3111,8 @@ export default function ExamPage({ initialViewMode }) {
                       </div>
                     )}
                   </div>
+                    </>
+                  )}
                 </div>
               );
             })}

@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
+import { matchesSearchQuery } from '../../utils/searchUtils';
 
 export default function ChartOfAccountsPage() {
   const { user } = useAuthStore();
@@ -18,6 +20,7 @@ export default function ChartOfAccountsPage() {
   // Filters & Search
   const [activeTab, setActiveTab] = useState('all'); // all, Asset, Liability, Equity, Revenue, Expense
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -253,14 +256,11 @@ export default function ChartOfAccountsPage() {
     return accounts.filter(acc => {
       if (activeTab !== 'all' && acc.type !== activeTab) return false;
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const name = (acc.name || '').toLowerCase();
-        const code = (acc.code || '').toLowerCase();
-        if (!name.includes(q) && !code.includes(q)) return false;
+        if (!matchesSearchQuery([acc.name, acc.code], searchQuery, { wholeWords })) return false;
       }
       return true;
     });
-  }, [accounts, activeTab, searchQuery]);
+  }, [accounts, activeTab, searchQuery, wholeWords]);
 
   // Aggregate Stats
   const stats = useMemo(() => {
@@ -385,24 +385,27 @@ export default function ChartOfAccountsPage() {
           </div>
 
           {/* Search Box */}
-          <div style={{ position: 'relative', width: '280px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              placeholder="খাতার নাম বা কোড খুঁজুন..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '36px', height: '38px', fontSize: '0.88rem' }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-              >
-                <X size={14} />
-              </button>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', width: '260px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="খাতার নাম বা কোড খুঁজুন..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="form-input"
+                style={{ paddingLeft: '36px', height: '38px', fontSize: '0.88rem' }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
           </div>
         </div>
       </div>

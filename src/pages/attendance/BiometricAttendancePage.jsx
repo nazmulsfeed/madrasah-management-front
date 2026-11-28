@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import WholeWordToggle from '../../components/common/WholeWordToggle';
 
 export default function BiometricAttendancePage() {
   const { user } = useAuthStore();
@@ -31,6 +32,7 @@ export default function BiometricAttendancePage() {
   const [filterSection, setFilterSection] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all'); // all, not_uploaded, needs_update, synced
   const [searchQuery, setSearchQuery] = useState('');
+  const [wholeWords, setWholeWords] = useState(true);
 
   // Selection
   const [selectedUserIds, setSelectedUserIds] = useState(new Set());
@@ -151,6 +153,7 @@ export default function BiometricAttendancePage() {
       if (filterSection !== 'all') params.section = filterSection;
       if (filterStatus !== 'all') params.status = filterStatus;
       if (searchQuery.trim()) params.search = searchQuery.trim();
+      params.wholeWords = wholeWords ? 'true' : 'false';
 
       const res = await api.get('/attendance/biometric-users', { params });
       if (res.data?.success) {
@@ -170,7 +173,7 @@ export default function BiometricAttendancePage() {
   useEffect(() => {
     fetchBiometricUsers();
     setSelectedUserIds(new Set()); // Clear selection on filter change
-  }, [filterType, filterClass, filterSection, filterStatus]);
+  }, [filterType, filterClass, filterSection, filterStatus, wholeWords]);
 
   // Handle Search submit / debounce
   const handleSearchSubmit = (e) => {
@@ -797,8 +800,8 @@ export default function BiometricAttendancePage() {
               </select>
 
               {/* Search Form */}
-              <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '220px' }}>
-                <div style={{ position: 'relative', width: '100%' }}>
+              <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '220px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
                   <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                   <input
                     type="text"
@@ -816,6 +819,7 @@ export default function BiometricAttendancePage() {
                     }}
                   />
                 </div>
+                <WholeWordToggle checked={wholeWords} onChange={setWholeWords} />
                 <button
                   type="submit"
                   style={{
